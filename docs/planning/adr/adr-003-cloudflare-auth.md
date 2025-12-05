@@ -1,11 +1,11 @@
-# ADR-003: Cloudflare Access Authentication via williaby/testing Middleware
+# ADR-003: Cloudflare Access Authentication via python-libs Middleware
 
 > **Status**: Accepted
 > **Date**: 2025-12-04
 
 ## TL;DR
 
-We will use Cloudflare Access for authentication, integrated via the williaby/testing cloudflare-auth Python middleware, because it provides Zero Trust security without managing our own identity provider while leveraging existing organizational Cloudflare infrastructure.
+We will use Cloudflare Access for authentication, integrated via the cloudflare-auth Python middleware from ByronWilliamsCPA/python-libs (artifact registry), because it provides Zero Trust security without managing our own identity provider while leveraging existing organizational Cloudflare infrastructure.
 
 ## Context
 
@@ -34,19 +34,19 @@ Authentication is a security-critical decision that affects:
 
 ## Decision
 
-**We will use Cloudflare Access with the williaby/testing cloudflare-auth middleware because it provides production-grade authentication with zero operational overhead, leveraging existing organizational infrastructure.**
+**We will use Cloudflare Access with the cloudflare-auth middleware from ByronWilliamsCPA/python-libs because it provides production-grade authentication with zero operational overhead, leveraging existing organizational infrastructure.**
 
 ### Rationale
 
 1. **Zero Trust Model**: Cloudflare Access enforces authentication before traffic reaches our services (defense in depth)
 2. **No Identity Management**: OAuth, MFA, password policies managed by Cloudflare (reduces attack surface)
 3. **Existing Infrastructure**: Organization already uses Cloudflare Tunnel and Access (no new accounts or billing)
-4. **Drop-in Integration**: williaby/testing middleware provides FastAPI integration in <10 lines of code
+4. **Drop-in Integration**: python-libs middleware provides FastAPI integration in <10 lines of code, available from artifact registry at [ByronWilliamsCPA/python-libs](https://github.com/ByronWilliamsCPA/python-libs)
 5. **Audit Trail**: JWT contains email and user_id, automatically logged for compliance
 
 ## Options Considered
 
-### Option 1: Cloudflare Access + williaby/testing Middleware ✓
+### Option 1: Cloudflare Access + python-libs Middleware ✓
 
 **Pros**:
 
