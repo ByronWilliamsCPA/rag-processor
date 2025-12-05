@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://rag-processor.readthedocs.io
+    about: Check our documentation for usage guides and API reference
+  - name: Discussions
+    url: https://github.com/ByronWilliamsCPA/rag_processor/discussions
+    about: Ask questions and share ideas in GitHub Discussions
