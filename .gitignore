@@ -285,3 +285,7 @@ tmp_cleanup/.tmp-*
 # SonarCloud
 .scannerwork/
 .sonar/
+.qlty/logs
+.qlty/out
+.qlty/plugin_cachedir
+.qlty/results
