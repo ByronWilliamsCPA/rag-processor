@@ -25,6 +25,7 @@ from rag_processor.auth.cloudflare import CloudflareAuthMiddleware
 from rag_processor.core.config import settings
 from rag_processor.middleware import CorrelationMiddleware, add_security_middleware
 from rag_processor.utils.logging import get_logger, setup_logging
+from rag_processor.websocket.router import router as websocket_router
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -105,6 +106,7 @@ app.include_router(health_router)
 app.include_router(user_router, prefix="/api/v1")
 app.include_router(ingest_router, prefix="/api/v1")
 app.include_router(batch_router, prefix="/api/v1")
+app.include_router(websocket_router)
 
 
 @app.get("/", tags=["root"])

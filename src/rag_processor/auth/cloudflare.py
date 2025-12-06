@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 import httpx
 import jwt
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey  # noqa: TC002
 from jwt.algorithms import RSAAlgorithm
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
@@ -23,7 +24,6 @@ from rag_processor.utils.logging import get_logger
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
-    from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
     from starlette.requests import Request
     from starlette.responses import Response
 
@@ -268,3 +268,65 @@ def clear_jwks_cache() -> None:
     Useful for testing or forcing a refresh.
     """
     _jwks_cache.clear()
+
+
+async def verify_cloudflare_token(token: str) -> dict[str, Any]:
+    """Verify a Cloudflare Access JWT token.
+
+    Standalone function for verifying tokens outside the middleware context,
+    such as WebSocket connections.
+
+    Args:
+        token: JWT token string.
+
+    Returns:
+        Dictionary with user info (email, user_id).
+
+    Raises:
+        InvalidTokenError: If token is invalid or expired.
+    """
+    # Get JWKS for signature validation
+    if not _jwks_cache.is_valid():
+        jwks_url = f"https://{settings.cloudflare_team_domain}/cdn-cgi/access/certs"
+        async with httpx.AsyncClient() as client:  # nosec B113 - timeout below
+            response = await client.get(jwks_url, timeout=10.0)
+            response.raise_for_status()
+            jwks: JWKSData = response.json()
+        _jwks_cache.update(jwks)
+
+    jwks = _jwks_cache.data
+
+    # Decode header to get key ID
+    unverified_header = jwt.get_unverified_header(token)
+    kid = unverified_header.get("kid")
+
+    if not kid:
+        msg = "Token missing key ID"
+        raise jwt.InvalidTokenError(msg)
+
+    # Find matching key
+    rsa_key: RSAPublicKey | None = None
+    keys_list: list[dict[str, Any]] = jwks.get("keys", [])
+    for key in keys_list:
+        if key.get("kid") == kid:
+            rsa_key = RSAAlgorithm.from_jwk(key)  # type: ignore[assignment]
+            break
+
+    if not rsa_key:
+        msg = f"Key {kid} not found in JWKS"
+        raise jwt.InvalidTokenError(msg)
+
+    # Validate and decode token
+    payload = jwt.decode(
+        token,
+        rsa_key,
+        algorithms=["RS256"],
+        audience=settings.cloudflare_audience_tag,
+        issuer=f"https://{settings.cloudflare_team_domain}",
+    )
+
+    # Extract user info
+    return {
+        "email": payload.get("email"),
+        "user_id": payload.get("sub"),
+    }
