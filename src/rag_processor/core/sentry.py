@@ -167,11 +167,9 @@ def _get_release_version() -> str:
 
         pkg_version = version("rag-processor")
         return f"rag_processor@{pkg_version}"
-    except Exception:
-        pass
-
-    # Ultimate fallback
-    return "rag_processor@0.1.0"
+    except (ImportError, ValueError, OSError):
+        # Fallback if package metadata unavailable
+        return "rag_processor@0.1.0"
 
 
 def before_send_hook(
@@ -194,7 +192,7 @@ def before_send_hook(
     """
     # Example: Filter out specific exceptions
     if "exc_info" in hint:
-        exc_type, exc_value, _tb = hint["exc_info"]
+        exc_type, _exc_value, _tb = hint["exc_info"]
 
         # Don't send certain exception types
         if exc_type.__name__ in ("KeyboardInterrupt", "SystemExit"):
@@ -215,7 +213,7 @@ def before_send_hook(
 
 
 def before_breadcrumb_hook(
-    crumb: dict[str, Any], hint: dict[str, Any]
+    crumb: dict[str, Any], _hint: dict[str, Any]
 ) -> dict[str, Any] | None:
     """Filter and modify breadcrumbs before adding to events.
 
@@ -229,9 +227,8 @@ def before_breadcrumb_hook(
         Modified breadcrumb dictionary, or None to drop the breadcrumb
     """
     # Example: Don't include query parameters in HTTP breadcrumbs
-    if crumb.get("category") == "httplib":
-        if "data" in crumb and "query" in crumb["data"]:
-            crumb["data"]["query"] = "[FILTERED]"
+    if crumb.get("category") == "httplib" and "data" in crumb and "query" in crumb["data"]:
+        crumb["data"]["query"] = "[FILTERED]"
 
     return crumb
 
