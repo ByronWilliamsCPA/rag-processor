@@ -65,7 +65,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install UV
-        uses: astral-sh/setup-uv@v4 # v4.1.1
+        uses: astral-sh/setup-uv@e4db8464a088ece1b920f60402e813ea4de65b8f # v4.1.1
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
@@ -103,7 +103,7 @@ jobs:
           fetch-depth: 0
 
       - name: Check for CHANGELOG update
-        uses: dangoslen/changelog-enforcer@v3 # v3.8.0
+        uses: dangoslen/changelog-enforcer@204e7d3ef26579f4cd0fd759c57032656fdf23c7 # v3.8.0
         with:
           changeLogPath: 'CHANGELOG.md'
           skipLabels: 'skip-changelog,dependencies,documentation'

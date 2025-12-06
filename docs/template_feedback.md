@@ -330,25 +330,25 @@ The workflow references a specific commit SHA of `astral-sh/setup-uv` that may h
 
 **Suggested Fix**:
 
-**Option 1** (Recommended): Use tagged version instead of commit SHA
+**Recommended**: Pin to current stable commit SHA with version comment
 
 ```yaml
-- uses: astral-sh/setup-uv@v4  # Use tag instead of commit
+- uses: astral-sh/setup-uv@e4db8464a088ece1b920f60402e813ea4de65b8f # v4
 ```
 
-**Option 2**: Update to latest commit SHA
+**Security Note**: GitHub security scanning requires actions be pinned to commit
+SHAs rather than tags for supply chain security. Using tags is convenient but
+creates a security risk if tags are moved or compromised.
+
+**Maintenance**: Update SHAs periodically when new versions are released:
 
 ```bash
-# Get latest commit
-gh api repos/astral-sh/setup-uv/commits/main --jq '.sha'
+# Get latest v4 commit SHA
+gh api repos/astral-sh/setup-uv/git/ref/tags/v4 --jq '.object.sha'
 ```
 
-**Option 3**: Pin to known-good commit with fallback
-
-```yaml
-- uses: astral-sh/setup-uv@582b2d78a0f5913301dcc87c4e93301fdd2b6711
-  continue-on-error: true  # Don't fail PR for action download issues
-```
+**Resolution**: This issue was fixed in PR commits by pinning all actions to
+stable commit SHAs with version comments for maintainability.
 
 ---
 
@@ -359,7 +359,7 @@ gh api repos/astral-sh/setup-uv/commits/main --jq '.sha'
 1. ✅ Fix sentry.py indentation syntax error
 2. ✅ Fix pre-commit config YAML escaping
 3. ❌ Fix Python Compatibility Matrix JSON output format
-4. ❌ Update setup-uv action to use tag instead of commit SHA
+4. ✅ Pin GitHub Actions to commit SHAs (security best practice)
 
 ### High Priority
 

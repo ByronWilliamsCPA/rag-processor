@@ -160,10 +160,28 @@ const uppy = new Uppy({
 });
 
 uppy.on('complete', (result) => {
-  // Trigger finalization
-  fetch(`/api/v1/upload/${result.upload_id}/finalize`, {
-    method: 'POST'
-  });
+  // Process successful uploads
+  if (result.successful && result.successful.length > 0) {
+    result.successful.forEach((file) => {
+      // Trigger finalization for each uploaded file
+      // The TUS protocol provides upload_id in file metadata
+      const uploadId = file.meta?.uploadId || file.tus?.uploadId;
+      if (uploadId) {
+        fetch(`/api/v1/upload/${uploadId}/finalize`, {
+          method: 'POST',
+          body: JSON.stringify({ file_id: file.id })
+        });
+      }
+    });
+  }
+
+  // Handle failed uploads
+  if (result.failed && result.failed.length > 0) {
+    console.error('Upload failures:', result.failed.map(f => ({
+      name: f.name,
+      error: f.error
+    })));
+  }
 });
 ```
 
