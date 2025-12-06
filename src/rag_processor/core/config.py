@@ -55,9 +55,25 @@ class Settings(BaseSettings):
     )
 
     # Redis
-    redis_url: str = Field(
-        default="redis://localhost:6379/0",
-        description="Redis connection URL",
+    redis_host: str = Field(
+        default="localhost",
+        description="Redis server hostname",
+    )
+    redis_port: int = Field(
+        default=6379,
+        ge=1,
+        le=65535,
+        description="Redis server port",
+    )
+    redis_password: str = Field(
+        default="",
+        description="Redis password (empty for no auth)",
+    )
+    redis_db: int = Field(
+        default=0,
+        ge=0,
+        le=15,
+        description="Redis database number",
     )
 
     # File Upload
