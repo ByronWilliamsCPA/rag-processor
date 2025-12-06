@@ -27,14 +27,14 @@ dependencies = [
     "structlog>=23.1.0",
     "rich>=13.5.0",
     # Authentication
-    "pyjwt[crypto]>=2.8.0",  # JWT validation with RSA support
-    "httpx>=0.26.0",  # Async HTTP client for JWKS fetch
+    "pyjwt[crypto]>=2.8.0", # JWT validation with RSA support
+    "httpx>=0.26.0", # Async HTTP client for JWKS fetch
     # Job Queue
-    "rq>=1.15.0",  # Redis Queue for background jobs
+    "rq>=1.15.0", # Redis Queue for background jobs
     # File Processing
-    "python-magic>=0.4.27",  # MIME type detection via magic bytes
-    "aiofiles>=24.1.0",  # Async file operations
-    "pdfplumber>=0.11.0",  # PDF text extraction for classification
+    "python-magic>=0.4.27", # MIME type detection via magic bytes
+    "aiofiles>=24.1.0", # Async file operations
+    "pdfplumber>=0.11.0", # PDF text extraction for classification
     # Cross-Version Compatibility Dependencies
     # =========================================
     # This template targets Python 3.10-3.14. Add version-specific dependencies
@@ -79,6 +79,7 @@ dependencies = [
     #
     # UV handles these automatically based on the Python version being used.
     # See: https://docs.astral.sh/uv/concepts/dependencies/#dependency-specifiers
+    "fakeredis>=2.32.1",
 ]
 
 # Optional dependency groups

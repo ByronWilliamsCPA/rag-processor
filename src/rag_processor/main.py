@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from rag_processor.api.batch import router as batch_router
 from rag_processor.api.health import router as health_router
 from rag_processor.api.ingest import router as ingest_router
 from rag_processor.api.user import router as user_router
@@ -89,6 +90,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(user_router, prefix="/api/v1")
     app.include_router(ingest_router, prefix="/api/v1")
+    app.include_router(batch_router, prefix="/api/v1")
 
     return app
 

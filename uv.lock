@@ -3715,6 +3715,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
+    { name = "fakeredis" },
     { name = "httpx" },
     { name = "pdfplumber" },
     { name = "pydantic" },
@@ -3794,6 +3795,7 @@ requires-dist = [
     { name = "basedpyright", marker = "extra == 'dev'", specifier = ">=1.18.0" },
     { name = "cyclonedx-bom", marker = "extra == 'supply-chain'", specifier = ">=4.6.0" },
     { name = "darglint", marker = "extra == 'dev'", specifier = ">=1.8.1" },
+    { name = "fakeredis", specifier = ">=2.32.1" },
     { name = "fakeredis", marker = "extra == 'dev'", specifier = ">=2.20.0" },
     { name = "fastapi", marker = "extra == 'api'", specifier = ">=0.120.1" },
     { name = "google-api-core", marker = "extra == 'dev'", specifier = ">=2.0.0" },
