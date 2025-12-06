@@ -26,6 +26,11 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "structlog>=23.1.0",
     "rich>=13.5.0",
+    # Authentication
+    "pyjwt[crypto]>=2.8.0",  # JWT validation with RSA support
+    "httpx>=0.26.0",  # Async HTTP client for JWKS fetch
+    # Job Queue
+    "rq>=1.15.0",  # Redis Queue for background jobs
     # Cross-Version Compatibility Dependencies
     # =========================================
     # This template targets Python 3.10-3.14. Add version-specific dependencies
@@ -82,6 +87,8 @@ dev = [
     "pytest-asyncio>=0.21.0",
     "pytest-xdist>=3.3.0",
     "hypothesis>=6.82.0",
+    "fakeredis>=2.20.0",  # In-memory Redis for testing
+    "respx>=0.20.0",  # HTTP mocking for httpx
 
     # Code Quality (always included)
     "ruff>=0.9.0",

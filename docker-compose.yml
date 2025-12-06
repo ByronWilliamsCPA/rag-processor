@@ -46,6 +46,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
       interval: 30s
@@ -120,38 +122,72 @@ services:
       - rag_processor-network
 
 # =============================================================================
-  # Redis Service (Caching/Sessions)
+  # Redis Service (Job Queue + Caching)
   # =============================================================================
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: rag_processor-redis
-  #   command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redispassword}
-  #
-  #   volumes:
-  #     - redis-data:/data
-  #
-  #   ports:
-  #     - "${REDIS_PORT:-6379}:6379"
-  #
-  #   healthcheck:
-  #     test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-  #     interval: 10s
-  #     timeout: 3s
-  #     retries: 5
-  #
-  #   restart: unless-stopped
-  #
-  #   networks:
-  #     - rag_processor-network
+  redis:
+    image: redis:7-alpine
+    container_name: rag_processor-redis
+    command: redis-server --appendonly yes --appendfsync everysec --requirepass ${REDIS_PASSWORD:-redispassword}
+
+    volumes:
+      - redis-data:/data
+
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redispassword}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+    restart: unless-stopped
+
+    networks:
+      - rag_processor-network
+
+  # =============================================================================
+  # RQ Worker Service (Background Job Processing)
+  # =============================================================================
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BUILD_ENV: ${ENVIRONMENT:-development}
+    image: rag_processor:${VERSION:-latest}
+    container_name: rag_processor-worker
+    command: rq worker high default low --url redis://:${REDIS_PASSWORD:-redispassword}@redis:6379/0
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redispassword}@redis:6379/0
+
+    volumes:
+      - ./src:/app/src:ro
+      - upload-data:/data/uploads
+      - result-data:/data/results
+
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+    networks:
+      - rag_processor-network
 
 # =============================================================================
 # Volumes (Persistent Storage)
 # =============================================================================
 volumes:
-postgres-data:
+  postgres-data:
     driver: local
-# redis-data:
-  #   driver: local
+  redis-data:
+    driver: local
+  upload-data:
+    driver: local
+  result-data:
+    driver: local
 
 # =============================================================================
 # Networks
