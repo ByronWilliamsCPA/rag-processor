@@ -10,6 +10,11 @@ repo_url: https://github.com/ByronWilliamsCPA/rag-processor
 repo_name: ByronWilliamsCPA/rag_processor
 edit_uri: edit/main/docs/
 
+# Exclude template files and scaffolding from docs build
+not_in_nav: |
+  /ADRs/adr-template.md
+  /planning/project-plan-template.md
+
 # Copyright
 copyright: Copyright &copy; 2025 Byron Williams
 

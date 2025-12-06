@@ -227,7 +227,11 @@ def before_breadcrumb_hook(
         Modified breadcrumb dictionary, or None to drop the breadcrumb
     """
     # Example: Don't include query parameters in HTTP breadcrumbs
-    if crumb.get("category") == "httplib" and "data" in crumb and "query" in crumb["data"]:
+    if (
+        crumb.get("category") == "httplib"
+        and "data" in crumb
+        and "query" in crumb["data"]
+    ):
         crumb["data"]["query"] = "[FILTERED]"
 
     return crumb

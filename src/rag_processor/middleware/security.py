@@ -514,8 +514,12 @@ def add_security_middleware(
     if config is None:
         config = SecurityConfig(
             enable_https_redirect=enable_https_redirect or False,
-            enable_rate_limiting=enable_rate_limiting if enable_rate_limiting is not None else True,
-            enable_ssrf_prevention=enable_ssrf_prevention if enable_ssrf_prevention is not None else True,
+            enable_rate_limiting=enable_rate_limiting
+            if enable_rate_limiting is not None
+            else True,
+            enable_ssrf_prevention=enable_ssrf_prevention
+            if enable_ssrf_prevention is not None
+            else True,
             allowed_origins=allowed_origins,
             allowed_hosts=allowed_hosts,
             rate_limit_rpm=rate_limit_rpm or 60,
