@@ -23,6 +23,10 @@ class Settings(BaseSettings):
         cloudflare_audience_tag: Cloudflare Access audience tag.
         cloudflare_enabled: Enable/disable Cloudflare authentication.
         redis_url: Redis connection URL.
+        upload_dir: Directory for uploaded files.
+        result_dir: Directory for processing results.
+        max_file_size_mb: Maximum file size in megabytes.
+        allowed_mime_types: Allowed MIME types for upload.
     """
 
     model_config = SettingsConfigDict(
@@ -55,6 +59,65 @@ class Settings(BaseSettings):
         default="redis://localhost:6379/0",
         description="Redis connection URL",
     )
+
+    # File Upload
+    upload_dir: str = Field(
+        default="/data/uploads",
+        description="Directory for uploaded files",
+    )
+    result_dir: str = Field(
+        default="/data/results",
+        description="Directory for processing results",
+    )
+    max_file_size_mb: int = Field(
+        default=100,
+        ge=1,
+        le=500,
+        description="Maximum file size in megabytes",
+    )
+    allowed_mime_types: list[str] = Field(
+        default=[
+            # PDF
+            "application/pdf",
+            # Images
+            "image/png",
+            "image/jpeg",
+            "image/gif",
+            "image/webp",
+            "image/tiff",
+            # Audio
+            "audio/mpeg",
+            "audio/wav",
+            "audio/mp4",
+            "audio/ogg",
+            "audio/flac",
+            # Video
+            "video/mp4",
+            "video/webm",
+            "video/quicktime",
+            # Documents
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            # Text
+            "text/plain",
+            "text/markdown",
+            "text/csv",
+        ],
+        description="Allowed MIME types for upload",
+    )
+
+    @property
+    def max_file_size_bytes(self) -> int:
+        """Get max file size in bytes.
+
+        Returns:
+            Maximum file size in bytes.
+        """
+        return self.max_file_size_mb * 1024 * 1024
 
 
 # A single, global instance of the settings

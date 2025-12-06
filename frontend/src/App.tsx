@@ -1,6 +1,8 @@
 import './App.css'
 import { Header } from '@/components/Header'
 import { ApiStatus } from '@/components/ApiStatus'
+import { FileUpload } from '@/components/FileUpload'
+import { UploadButton } from '@/components/UploadButton'
 
 function App() {
   return (
@@ -11,6 +13,12 @@ function App() {
         <section className="hero-section">
           <h2>RAG Pipeline Ingestion</h2>
           <p>Upload and process documents for your RAG pipeline</p>
+        </section>
+
+        <section className="upload-section">
+          <h3>Upload Files</h3>
+          <FileUpload />
+          <UploadButton />
         </section>
 
         <section className="api-section">

@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from rag_processor import __version__
 from rag_processor.api import health_router
+from rag_processor.api.ingest import router as ingest_router
 from rag_processor.api.user import router as user_router
 from rag_processor.auth.cloudflare import CloudflareAuthMiddleware
 from rag_processor.core.config import settings
@@ -101,6 +102,7 @@ add_security_middleware(app)
 # Include routers
 app.include_router(health_router)
 app.include_router(user_router, prefix="/api/v1")
+app.include_router(ingest_router, prefix="/api/v1")
 
 
 @app.get("/", tags=["root"])
