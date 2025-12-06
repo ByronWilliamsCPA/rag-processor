@@ -88,6 +88,9 @@ class TestIngestEndpoint:
         assert len(data["jobs"]) == 1
         assert data["jobs"][0]["filename"] == "test.pdf"
         assert data["jobs"][0]["status"] == "queued"
+        # Verify routing info is included
+        assert "classification" in data["jobs"][0]
+        assert "pipeline" in data["jobs"][0]
 
     def test_ingest_multiple_files_success(self, client):
         """Test successful multiple file upload."""

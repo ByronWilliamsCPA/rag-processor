@@ -34,6 +34,7 @@ dependencies = [
     # File Processing
     "python-magic>=0.4.27",  # MIME type detection via magic bytes
     "aiofiles>=24.1.0",  # Async file operations
+    "pdfplumber>=0.11.0",  # PDF text extraction for classification
     # Cross-Version Compatibility Dependencies
     # =========================================
     # This template targets Python 3.10-3.14. Add version-specific dependencies

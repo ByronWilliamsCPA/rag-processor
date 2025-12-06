@@ -21,7 +21,14 @@ from rag_processor.auth.models import (
 )
 from rag_processor.core.config import settings
 from rag_processor.models.batch import Batch, BatchStatus
-from rag_processor.models.job import Job, JobStatus, Priority
+from rag_processor.models.job import (
+    FileClassification,
+    Job,
+    JobStatus,
+    Pipeline,
+    Priority,
+)
+from rag_processor.routing import FileRouter
 from rag_processor.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -30,6 +37,9 @@ router = APIRouter(prefix="/ingest", tags=["ingest"])
 
 # Compile regex for filename sanitization
 SAFE_FILENAME_PATTERN = re.compile(r"[^\w\s\-.]")
+
+# File router for classification and pipeline routing
+file_router = FileRouter()
 
 
 class JobResponse(BaseModel):
@@ -41,6 +51,8 @@ class JobResponse(BaseModel):
         file_type: MIME type of the file.
         file_size_bytes: Size in bytes.
         status: Current job status.
+        classification: File classification for routing.
+        pipeline: Target processing pipeline.
     """
 
     job_id: UUID
@@ -48,6 +60,8 @@ class JobResponse(BaseModel):
     file_type: str
     file_size_bytes: int
     status: JobStatus
+    classification: FileClassification
+    pipeline: Pipeline
 
 
 class IngestResponse(BaseModel):
@@ -261,6 +275,9 @@ async def ingest_files(
         async with aiofiles.open(file_path, "wb") as f:
             await f.write(content)
 
+        # Route file to determine classification and pipeline
+        routing_result = file_router.route_from_bytes(content, original_filename)
+
         # Create job
         job = Job(
             batch_id=batch.batch_id,
@@ -269,6 +286,8 @@ async def ingest_files(
             file_type=mime_type,
             file_size_bytes=len(content),
             priority=priority,
+            classification=routing_result.classification,
+            routed_to=routing_result.pipeline,
         )
         jobs.append(job)
 
@@ -279,6 +298,8 @@ async def ingest_files(
             filename=original_filename,
             file_type=mime_type,
             file_size=len(content),
+            classification=routing_result.classification.value,
+            pipeline=routing_result.pipeline.value,
             user_email=user.email,
         )
 
@@ -315,6 +336,8 @@ async def ingest_files(
             file_type=job.file_type,
             file_size_bytes=job.file_size_bytes,
             status=job.status,
+            classification=job.classification,
+            pipeline=job.routed_to,
         )
         for job in jobs
     ]
