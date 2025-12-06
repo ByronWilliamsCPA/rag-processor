@@ -88,7 +88,7 @@ jobs:
           retention-days: 90
 
       - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@def455f501ff622b3e6c35f7b7d1c8712b81d7e1 # v1.5.2
+        uses: actions/attest-build-provenance@v2 # v1.5.2
         with:
           subject-path: 'dist/*'
 
