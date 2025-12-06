@@ -143,7 +143,7 @@ repos:
       - id: qlty-check
         name: Qlty Code Quality Check (changed files)
         entry: >-
-          bash -c "command -v qlty >/dev/null 2>&1 && qlty check --filter=diff || echo 'Qlty not installed - skipping (install: curl https://qlty.sh | bash)'"
+          bash -c "command -v qlty >/dev/null 2>&1 && qlty check --filter=diff || echo 'Qlty not installed - skipping'"
         language: system
         types: [file]
         pass_filenames: false

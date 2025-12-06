@@ -82,7 +82,7 @@ cloudflare-auth = {git = "https://github.com/williaby/testing.git"}
 
 ### Component Diagram
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        CLOUDFLARE EDGE                              │
 │  ┌──────────────────────────────────────────────────────────────┐   │
@@ -284,7 +284,7 @@ Response (application/json):
 
 Client → Server (connection):
 
-```
+```text
 wss://host/ws/batch/{batch_id}?cf_access_token={JWT}
 ```
 
@@ -486,10 +486,10 @@ volumes:
 
 ## Related Documents
 
-- [Project Vision](./project-vision.md)
-- [Architecture Decisions](./adr/)
-  - [ADR-001: React + FastAPI Architecture](./adr/adr-001-initial-architecture.md)
-  - [ADR-002: Redis Job Queue](./adr/adr-002-redis-job-queue.md)
-  - [ADR-003: Cloudflare Authentication](./adr/adr-003-cloudflare-auth.md)
-- [Development Roadmap](./roadmap.md)
+- [Project Vision](project-vision.md)
+- [Architecture Decisions](adr/README.md)
+  - [ADR-001: React + FastAPI Architecture](adr/adr-001-initial-architecture.md)
+  - [ADR-002: Redis Job Queue](adr/adr-002-redis-job-queue.md)
+  - [ADR-003: Cloudflare Authentication](adr/adr-003-cloudflare-auth.md)
+- [Development Roadmap](roadmap.md)
 - [WebUI Specification](../webui_spec.md) (original requirements)

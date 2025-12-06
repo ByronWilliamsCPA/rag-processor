@@ -65,7 +65,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install UV
-        uses: astral-sh/setup-uv@582b2d78a0f5913301dcc87c4e93301fdd2b6711 # v4.1.1
+        uses: astral-sh/setup-uv@v4 # v4.1.1
         with:
           enable-cache: true
           cache-dependency-glob: "uv.lock"

@@ -8,7 +8,7 @@ Building a React + FastAPI web interface for RAG pipeline file ingestion in 4 ph
 
 ## Timeline Overview
 
-```
+```text
 Phase 0: Foundation    ████████░░░░░░░░░░░░░░░░░░░░ (Week 1)  - Setup
 Phase 1: MVP Core      ░░░░░░░░████████████████░░░░ (Weeks 2-4) - Core features
 Phase 2: Enhancement   ░░░░░░░░░░░░░░░░░░░░████████ (Week 5) - Additional features
@@ -352,9 +352,9 @@ A feature is complete when:
 
 ## Related Documents
 
-- [Project Vision](./project-vision.md)
-- [Technical Spec](./tech-spec.md)
-- [Architecture Decisions](./adr/)
-  - [ADR-001: React + FastAPI Architecture](./adr/adr-001-initial-architecture.md)
-  - [ADR-002: Redis Job Queue](./adr/adr-002-redis-job-queue.md)
-  - [ADR-003: Cloudflare Authentication](./adr/adr-003-cloudflare-auth.md)
+- [Project Vision](project-vision.md)
+- [Technical Spec](tech-spec.md)
+- [Architecture Decisions](adr/README.md)
+  - [ADR-001: React + FastAPI Architecture](adr/adr-001-initial-architecture.md)
+  - [ADR-002: Redis Job Queue](adr/adr-002-redis-job-queue.md)
+  - [ADR-003: Cloudflare Authentication](adr/adr-003-cloudflare-auth.md)

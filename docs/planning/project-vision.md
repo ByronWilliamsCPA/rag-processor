@@ -99,8 +99,8 @@ RAG Processor WebUI eliminates operational friction by providing a single, authe
 
 ## Related Documents
 
-- [Architecture Decisions](./adr/)
-  - [ADR-001: Initial Architecture](./adr/adr-001-initial-architecture.md)
-- [Technical Spec](./tech-spec.md)
-- [Development Roadmap](./roadmap.md)
+- [Architecture Decisions](adr/README.md)
+  - [ADR-001: Initial Architecture](adr/adr-001-initial-architecture.md)
+- [Technical Spec](tech-spec.md)
+- [Development Roadmap](roadmap.md)
 - [WebUI Specification](../webui_spec.md) (original requirements document)

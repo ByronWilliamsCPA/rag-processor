@@ -140,4 +140,4 @@ Authentication is a security-critical decision that affects:
 
 - [ADR-001](./adr-001-initial-architecture.md) - References Cloudflare Access as authentication mechanism
 - [Tech Spec](../tech-spec.md#security) - Details authentication flow and JWT validation
-- [WebUI Spec](../../webui_spec.md#authentication--security) - Original authentication requirements
+- [WebUI Spec](../../webui_spec.md) - Original authentication requirements

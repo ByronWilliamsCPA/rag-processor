@@ -42,7 +42,7 @@ Job queue choice impacts system reliability, scalability, and operational comple
 1. **Operational Simplicity**: Redis runs as a single Docker Compose service with persistence via AOF/RDB—no cluster management, no separate message broker
 2. **Python-Native**: RQ is designed for Python, providing decorator-based job definitions and native FastAPI integration
 3. **Persistence**: Redis persistence ensures jobs survive gateway restarts (critical for long-running pipeline processing)
-4. **Priority Queues**: Built-in support for high/normal/low priority queues via RQ's named queues
+4. **Priority Queues**: Built-in support for high/normal/low-priority queues via RQ's named queues
 5. **Observability**: RQ provides job status tracking (queued/started/finished/failed) and failure metadata out of the box
 
 ## Options Considered
@@ -127,7 +127,7 @@ Job queue choice impacts system reliability, scalability, and operational comple
 
 ### Success Criteria
 
-- [ ] 100 file batch queued and processed within 2 minutes (test with mock pipelines)
+- [ ] 100-file batch queued and processed within 2 minutes (test with mock pipelines)
 - [ ] High-priority jobs processed before low-priority jobs when queue is full
 - [ ] Jobs persist across gateway restart (stop/start Docker Compose)
 - [ ] Failed jobs automatically retry up to 3 times with exponential backoff
