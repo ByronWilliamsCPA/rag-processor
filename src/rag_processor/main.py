@@ -16,6 +16,7 @@ from rag_processor.api.batch import router as batch_router
 from rag_processor.api.health import router as health_router
 from rag_processor.api.ingest import router as ingest_router
 from rag_processor.api.user import router as user_router
+from rag_processor.websocket.router import router as websocket_router
 from rag_processor.auth.cloudflare import CloudflareAuthMiddleware
 from rag_processor.core.config import settings
 from rag_processor.middleware.correlation import CorrelationMiddleware
@@ -91,6 +92,7 @@ def create_app() -> FastAPI:
     app.include_router(user_router, prefix="/api/v1")
     app.include_router(ingest_router, prefix="/api/v1")
     app.include_router(batch_router, prefix="/api/v1")
+    app.include_router(websocket_router)
 
     return app
 
