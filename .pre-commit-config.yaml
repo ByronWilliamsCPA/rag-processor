@@ -63,7 +63,10 @@ repos:
       - id: trufflehog
         name: TruffleHog Secret Scanner
         description: Detect secrets in your data before committing
-        entry: bash -c 'command -v trufflehog >/dev/null 2>&1 && trufflehog git file://. --since-commit HEAD --results=verified,unknown --fail || echo "TruffleHog not installed - skipping (install: brew install trufflehog)"'
+        entry: >
+          bash -c 'command -v trufflehog >/dev/null 2>&1 &&
+          trufflehog git file://. --since-commit HEAD --results=verified,unknown --fail ||
+          echo "TruffleHog not installed - skipping (install: brew install trufflehog)"'
         language: system
         pass_filenames: false
         stages: [pre-commit]
@@ -224,4 +227,3 @@ exclude: |
       models/|
       .*\.pyc
   )$
-
