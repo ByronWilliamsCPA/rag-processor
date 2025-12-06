@@ -3716,6 +3716,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
     { name = "httpx" },
+    { name = "pdfplumber" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyjwt", extra = ["crypto"] },
@@ -3821,6 +3822,7 @@ requires-dist = [
     { name = "mutmut", marker = "extra == 'dev'", specifier = ">=3.3.1" },
     { name = "nox", marker = "extra == 'dev'", specifier = ">=2024.10.16" },
     { name = "nox-uv", marker = "extra == 'dev'", specifier = ">=0.6.3" },
+    { name = "pdfplumber", specifier = ">=0.11.0" },
     { name = "pdfplumber", marker = "extra == 'queue'", specifier = ">=0.11.0" },
     { name = "pip-audit", marker = "extra == 'dev'", specifier = ">=2.7.0" },
     { name = "pip-audit", marker = "extra == 'supply-chain'", specifier = ">=2.7.0" },
