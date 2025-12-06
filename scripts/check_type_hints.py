@@ -70,6 +70,21 @@ class UnionSyntaxVisitor(ast.NodeVisitor):
         self.visit_FunctionDef(node)  # type: ignore[arg-type]
 
 
+def _is_annotations_import(node: ast.ImportFrom) -> bool:
+    """Check if node is 'from __future__ import annotations'.
+
+    Args:
+        node: AST ImportFrom node to check.
+
+    Returns:
+        True if this imports annotations from __future__.
+    """
+    if node.module != "__future__":
+        return False
+
+    return any(alias.name == "annotations" for alias in node.names)
+
+
 def has_future_annotations_import(content: str) -> bool:
     """Check if file has 'from __future__ import annotations'."""
     try:
@@ -78,11 +93,8 @@ def has_future_annotations_import(content: str) -> bool:
         return False
 
     for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom):
-            if node.module == "__future__":
-                for alias in node.names:
-                    if alias.name == "annotations":
-                        return True
+        if isinstance(node, ast.ImportFrom) and _is_annotations_import(node):
+            return True
     return False
 
 
@@ -139,25 +151,24 @@ def check_file(file_path: Path) -> tuple[bool, str]:
     return True, "OK"
 
 
-def add_future_import(file_path: Path) -> bool:
-    """Add 'from __future__ import annotations' to a file.
+def _find_insert_index(lines: list[str], content: str) -> int:
+    """Find the correct index to insert the future import.
+
+    Args:
+        lines: File lines with line endings preserved.
+        content: Full file content string.
 
     Returns:
-        True if the import was added, False otherwise
+        Index where the import should be inserted.
     """
+    insert_index = 0
+
+    # Skip shebang
+    if lines and lines[0].startswith("#!"):
+        insert_index = 1
+
+    # Skip module docstring
     try:
-        content = file_path.read_text(encoding="utf-8")
-        lines = content.splitlines(keepends=True)
-
-        # Find the right place to insert the import
-        # After shebang and module docstring, before other imports
-        insert_index = 0
-
-        # Skip shebang
-        if lines and lines[0].startswith("#!"):
-            insert_index = 1
-
-        # Skip module docstring
         tree = ast.parse(content)
         if (
             tree.body
@@ -167,25 +178,45 @@ def add_future_import(file_path: Path) -> bool:
             # Find the line after the docstring
             docstring_end = tree.body[0].end_lineno or 0
             insert_index = max(insert_index, docstring_end)
+    except SyntaxError:
+        pass
 
-        # Skip any existing __future__ imports
-        for i, line in enumerate(lines[insert_index:], start=insert_index):
-            if line.strip().startswith("from __future__ import"):
-                continue
-            if line.strip() and not line.strip().startswith("#"):
-                insert_index = i
-                break
+    # Skip any existing __future__ imports
+    for i, line in enumerate(lines[insert_index:], start=insert_index):
+        if line.strip().startswith("from __future__ import"):
+            continue
+        if line.strip() and not line.strip().startswith("#"):
+            insert_index = i
+            break
 
-        # Insert the import
-        import_line = "from __future__ import annotations\n"
-        if insert_index > 0 and not lines[insert_index - 1].strip():
-            # If there's already a blank line, don't add another
-            lines.insert(insert_index, import_line)
-        else:
-            # Add the import with a blank line after it
-            lines.insert(insert_index, import_line)
-            lines.insert(insert_index + 1, "\n")
+    return insert_index
 
+
+def _insert_import_line(lines: list[str], insert_index: int) -> None:
+    """Insert the future import at the specified index.
+
+    Args:
+        lines: File lines with line endings preserved (modified in place).
+        insert_index: Index where the import should be inserted.
+    """
+    import_line = "from __future__ import annotations\n"
+
+    if insert_index > 0 and not lines[insert_index - 1].strip():
+        # If there's already a blank line, don't add another
+        lines.insert(insert_index, import_line)
+    else:
+        # Add the import with a blank line after it
+        lines.insert(insert_index, import_line)
+        lines.insert(insert_index + 1, "\n")
+
+
+def add_future_import(file_path: Path) -> bool:
+    """Add 'from __future__ import annotations' to a file.
+
+    Returns:
+        True if the import was added, False otherwise
+    """
+    try:
         # Security: Validate file path is within expected directory
         if not file_path.resolve().is_relative_to(Path.cwd()):
             print(
@@ -194,11 +225,96 @@ def add_future_import(file_path: Path) -> bool:
             )
             return False
 
+        content = file_path.read_text(encoding="utf-8")
+        lines = content.splitlines(keepends=True)
+
+        insert_index = _find_insert_index(lines, content)
+        _insert_import_line(lines, insert_index)
+
         file_path.write_text("".join(lines), encoding="utf-8")
         return True
     except Exception as e:
         print(f"Error adding import to {file_path}: {e}", file=sys.stderr)
         return False
+
+
+def _find_python_files(src_dir: Path, include_tests: bool) -> list[Path]:
+    """Find all Python files to check.
+
+    Args:
+        src_dir: Source directory to search.
+        include_tests: Whether to include test files.
+
+    Returns:
+        List of Python file paths.
+    """
+    python_files = []
+
+    if src_dir.exists():
+        python_files.extend(src_dir.rglob("*.py"))
+
+    if include_tests:
+        tests_dir = Path("tests")
+        if tests_dir.exists():
+            python_files.extend(tests_dir.rglob("*.py"))
+
+    return python_files
+
+
+def _process_file(
+    file_path: Path, fix: bool
+) -> tuple[bool, Path | None, tuple[Path, str] | None]:
+    """Process a single file for compliance.
+
+    Args:
+        file_path: Path to the Python file to check.
+        fix: Whether to automatically fix violations.
+
+    Returns:
+        Tuple of (is_compliant, fixed_file, violation)
+        - is_compliant: Whether file is now compliant
+        - fixed_file: Path if file was fixed, None otherwise
+        - violation: (path, message) tuple if violation found, None otherwise
+    """
+    is_compliant, message = check_file(file_path)
+
+    if is_compliant:
+        return True, None, None
+
+    if fix:
+        if add_future_import(file_path):
+            print(f"✓ Fixed: {file_path}")
+            return True, file_path, None
+        print(f"✗ Failed to fix: {file_path}: {message}", file=sys.stderr)
+        return False, None, (file_path, message)
+
+    print(f"✗ {file_path}: {message}", file=sys.stderr)
+    return False, None, (file_path, message)
+
+
+def _print_summary(violations: list[tuple[Path, str]], fixed: list[Path]) -> int:
+    """Print summary and return exit code.
+
+    Args:
+        violations: List of (path, message) tuples for violations.
+        fixed: List of fixed file paths.
+
+    Returns:
+        Exit code (0 for success, 1 for violations).
+    """
+    print()
+    if violations:
+        print(f"Found {len(violations)} violation(s):")
+        for file_path, message in violations:
+            print(f"  - {file_path}: {message}")
+        print()
+        print("Run with --fix to automatically add the import")
+        return 1
+    if fixed:
+        print(f"Fixed {len(fixed)} file(s)")
+        return 0
+    print("All files compliant ✓")
+    return 0
 
 
 def main() -> int:
@@ -224,57 +340,28 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    # Find all Python files
-    python_files = []
-
-    if args.src_dir.exists():
-        python_files.extend(args.src_dir.rglob("*.py"))
-
-    if args.include_tests:
-        tests_dir = Path("tests")
-        if tests_dir.exists():
-            python_files.extend(tests_dir.rglob("*.py"))
+    python_files = _find_python_files(args.src_dir, args.include_tests)
 
     if not python_files:
         print(f"No Python files found in {args.src_dir}", file=sys.stderr)
         return 1
 
-    violations = []
-    fixed = []
+    violations: list[tuple[Path, str]] = []
+    fixed: list[Path] = []
 
     for file_path in python_files:
         # Skip __pycache__ and other generated files
         if "__pycache__" in str(file_path):
             continue
 
-        is_compliant, message = check_file(file_path)
+        _, fixed_file, violation = _process_file(file_path, args.fix)
 
-        if not is_compliant:
-            if args.fix:
-                if add_future_import(file_path):
-                    fixed.append(file_path)
-                    print(f"✓ Fixed: {file_path}")
-                else:
-                    violations.append((file_path, message))
-                    print(f"✗ Failed to fix: {file_path}: {message}", file=sys.stderr)
-            else:
-                violations.append((file_path, message))
-                print(f"✗ {file_path}: {message}", file=sys.stderr)
+        if fixed_file:
+            fixed.append(fixed_file)
+        if violation:
+            violations.append(violation)
 
-    # Print summary
-    print()
-    if violations:
-        print(f"Found {len(violations)} violation(s):")
-        for file_path, message in violations:
-            print(f"  - {file_path}: {message}")
-        print()
-        print("Run with --fix to automatically add the import")
-        return 1
-    if fixed:
-        print(f"Fixed {len(fixed)} file(s)")
-        return 0
-    print("All files compliant ✓")
-    return 0
+    return _print_summary(violations, fixed)
 
 
 if __name__ == "__main__":

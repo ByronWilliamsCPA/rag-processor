@@ -187,25 +187,20 @@ def validate_adr(content: str, filepath: Path) -> list[str]:
     return issues
 
 
-def main() -> int:
-    """Run validation on planning documents."""
-    # Find docs/planning directory
-    project_root = Path.cwd()
-    docs_dir = project_root / "docs" / "planning"
+def _validate_required_files(
+    docs_dir: Path, required_files: list[tuple[str, callable]]
+) -> tuple[list[str], int]:
+    """Validate required planning documents.
 
-    if not docs_dir.exists():
-        print("ERROR: docs/planning/ directory not found")
-        return 1
+    Args:
+        docs_dir: Path to docs/planning directory.
+        required_files: List of (filename, validator_func) tuples.
 
+    Returns:
+        Tuple of (issues_list, files_checked_count).
+    """
     all_issues: list[str] = []
     files_checked = 0
-
-    # Check required files exist
-    required_files = [
-        ("project-vision.md", validate_pvs),
-        ("tech-spec.md", validate_tech_spec),
-        ("roadmap.md", validate_roadmap),
-    ]
 
     for filename, validator in required_files:
         filepath = docs_dir / filename
@@ -229,26 +224,54 @@ def main() -> int:
         # Check cross-references
         all_issues.extend(check_cross_references(content, filepath, docs_dir))
 
-    # Check ADR directory
+    return all_issues, files_checked
+
+
+def _validate_adr_directory(docs_dir: Path) -> tuple[list[str], int]:
+    """Validate ADR (Architecture Decision Records) directory.
+
+    Args:
+        docs_dir: Path to docs/planning directory.
+
+    Returns:
+        Tuple of (issues_list, files_checked_count).
+    """
+    all_issues: list[str] = []
+    files_checked = 0
     adr_dir = docs_dir / "adr"
+
     if not adr_dir.exists():
         all_issues.append("Missing ADR directory: docs/planning/adr/")
-    else:
-        adr_files = list(adr_dir.glob("adr-*.md"))
-        if not adr_files:
-            all_issues.append("No ADR files found in docs/planning/adr/")
-        else:
-            for adr_file in adr_files:
-                content = adr_file.read_text()
-                files_checked += 1
+        return all_issues, files_checked
 
-                if "Awaiting Generation" in content:
-                    continue
+    adr_files = list(adr_dir.glob("adr-*.md"))
+    if not adr_files:
+        all_issues.append("No ADR files found in docs/planning/adr/")
+        return all_issues, files_checked
 
-                all_issues.extend(validate_adr(content, adr_file))
-                all_issues.extend(check_cross_references(content, adr_file, docs_dir))
+    for adr_file in adr_files:
+        content = adr_file.read_text()
+        files_checked += 1
 
-    # Report results
+        if "Awaiting Generation" in content:
+            continue
+
+        all_issues.extend(validate_adr(content, adr_file))
+        all_issues.extend(check_cross_references(content, adr_file, docs_dir))
+
+    return all_issues, files_checked
+
+
+def _print_validation_report(files_checked: int, all_issues: list[str]) -> int:
+    """Print validation report and return exit code.
+
+    Args:
+        files_checked: Number of files checked.
+        all_issues: List of validation issues found.
+
+    Returns:
+        Exit code (0 for success, 1 for failures).
+    """
     print(f"\n{'=' * 60}")
     print("Project Planning Documents Validation Report")
     print(f"{'=' * 60}\n")
@@ -260,9 +283,36 @@ def main() -> int:
             print(f"  - {issue}")
         print(f"\n{'=' * 60}")
         return 1
+
     print("Status: All documents valid")
     print(f"\n{'=' * 60}")
     return 0
+
+
+def main() -> int:
+    """Run validation on planning documents."""
+    # Find docs/planning directory
+    project_root = Path.cwd()
+    docs_dir = project_root / "docs" / "planning"
+
+    if not docs_dir.exists():
+        print("ERROR: docs/planning/ directory not found")
+        return 1
+
+    # Check required files exist
+    required_files = [
+        ("project-vision.md", validate_pvs),
+        ("tech-spec.md", validate_tech_spec),
+        ("roadmap.md", validate_roadmap),
+    ]
+
+    issues1, checked1 = _validate_required_files(docs_dir, required_files)
+    issues2, checked2 = _validate_adr_directory(docs_dir)
+
+    all_issues = issues1 + issues2
+    files_checked = checked1 + checked2
+
+    return _print_validation_report(files_checked, all_issues)
 
 
 if __name__ == "__main__":

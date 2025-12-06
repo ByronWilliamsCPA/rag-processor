@@ -23,6 +23,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import defaultdict
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -351,6 +352,55 @@ class SSRFPreventionMiddleware(BaseHTTPMiddleware):
         except Exception:
             return None
 
+    def _is_blocked_scheme(self, url: str) -> bool:
+        """Check if URL uses a blocked scheme.
+
+        Args:
+            url: URL string to check.
+
+        Returns:
+            True if scheme is blocked.
+        """
+        scheme = self._extract_scheme_from_url(url)
+        return bool(scheme and scheme in self.BLOCKED_SCHEMES)
+
+    def _is_blocked_hostname(self, host: str) -> bool:
+        """Check if hostname is in blocked list.
+
+        Args:
+            host: Hostname to check.
+
+        Returns:
+            True if hostname is blocked.
+        """
+        return host.lower() in self.BLOCKED_HOSTS
+
+    def _is_obfuscated_private_ip(self, host: str) -> bool:
+        """Check for numeric IP obfuscation.
+
+        Detects decimal IP notation (e.g., 2130706433 = 127.0.0.1).
+
+        Args:
+            host: Hostname to check.
+
+        Returns:
+            True if host is an obfuscated private IP.
+        """
+        if not host.isdigit():
+            return False
+
+        try:
+            import ipaddress
+
+            ip_int = int(host)
+            if 0 <= ip_int <= 0xFFFFFFFF:
+                ip = ipaddress.ip_address(ip_int)
+                return self._is_private_ip(str(ip))
+        except (ValueError, OverflowError):
+            pass
+
+        return False
+
     def _is_blocked_url(self, url: str) -> bool:
         """Check if a URL points to a blocked destination.
 
@@ -361,8 +411,7 @@ class SSRFPreventionMiddleware(BaseHTTPMiddleware):
             True if the URL should be blocked, False otherwise
         """
         # Check scheme
-        scheme = self._extract_scheme_from_url(url)
-        if scheme and scheme in self.BLOCKED_SCHEMES:
+        if self._is_blocked_scheme(url):
             return True
 
         # Extract and check hostname
@@ -370,32 +419,12 @@ class SSRFPreventionMiddleware(BaseHTTPMiddleware):
         if not host:
             return False
 
-        host_lower = host.lower()
-
         # Check against blocked hostnames
-        if host_lower in self.BLOCKED_HOSTS:
+        if self._is_blocked_hostname(host):
             return True
 
-        # Check if it's a private IP
-        if self._is_private_ip(host):
-            return True
-
-        # Check for numeric IP obfuscation (decimal, octal, hex)
-        # e.g., 2130706433 = 127.0.0.1, 0x7f000001 = 127.0.0.1
-        try:
-            import ipaddress
-
-            # Try parsing as integer (decimal IP notation)
-            if host.isdigit():
-                ip_int = int(host)
-                if 0 <= ip_int <= 0xFFFFFFFF:
-                    ip = ipaddress.ip_address(ip_int)
-                    if self._is_private_ip(str(ip)):
-                        return True
-        except (ValueError, OverflowError):
-            pass
-
-        return False
+        # Check if it's a private IP or obfuscated IP
+        return self._is_private_ip(host) or self._is_obfuscated_private_ip(host)
 
     async def dispatch(self, request: Request, call_next) -> Response:
         """Check for SSRF patterns in request.
@@ -419,15 +448,38 @@ class SSRFPreventionMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+@dataclass
+class SecurityConfig:
+    """Configuration for security middleware.
+
+    Attributes:
+        enable_https_redirect: Redirect HTTP to HTTPS (production only)
+        enable_rate_limiting: Enable rate limiting middleware
+        enable_ssrf_prevention: Enable SSRF prevention middleware
+        allowed_origins: CORS allowed origins (default: none)
+        allowed_hosts: Trusted host names (default: all)
+        rate_limit_rpm: Rate limit requests per minute
+    """
+
+    enable_https_redirect: bool = False
+    enable_rate_limiting: bool = True
+    enable_ssrf_prevention: bool = True
+    allowed_origins: list[str] | None = None
+    allowed_hosts: list[str] | None = None
+    rate_limit_rpm: int = 60
+
+
 def add_security_middleware(
     app: FastAPI,
+    config: SecurityConfig | None = None,
     *,
-    enable_https_redirect: bool = False,
-    enable_rate_limiting: bool = True,
-    enable_ssrf_prevention: bool = True,
+    # Legacy parameters for backward compatibility
+    enable_https_redirect: bool | None = None,
+    enable_rate_limiting: bool | None = None,
+    enable_ssrf_prevention: bool | None = None,
     allowed_origins: list[str] | None = None,
     allowed_hosts: list[str] | None = None,
-    rate_limit_rpm: int = 60,
+    rate_limit_rpm: int | None = None,
 ) -> None:
     """Add all security middleware to FastAPI application.
 
@@ -435,39 +487,55 @@ def add_security_middleware(
 
     Args:
         app: FastAPI application instance
-        enable_https_redirect: Redirect HTTP to HTTPS (production only)
-        enable_rate_limiting: Enable rate limiting middleware
-        enable_ssrf_prevention: Enable SSRF prevention middleware
-        allowed_origins: CORS allowed origins (default: none)
-        allowed_hosts: Trusted host names (default: all)
-        rate_limit_rpm: Rate limit requests per minute
+        config: Security configuration object (recommended)
+        enable_https_redirect: (Legacy) Redirect HTTP to HTTPS
+        enable_rate_limiting: (Legacy) Enable rate limiting middleware
+        enable_ssrf_prevention: (Legacy) Enable SSRF prevention middleware
+        allowed_origins: (Legacy) CORS allowed origins
+        allowed_hosts: (Legacy) Trusted host names
+        rate_limit_rpm: (Legacy) Rate limit requests per minute
 
     Example:
         >>> from fastapi import FastAPI
+        >>> from rag_processor.middleware.security import (
+        ...     add_security_middleware,
+        ...     SecurityConfig,
+        ... )
         >>> app = FastAPI()
-        >>> add_security_middleware(
-        ...     app,
+        >>> config = SecurityConfig(
         ...     enable_https_redirect=True,
         ...     allowed_origins=["https://example.com"],
         ...     allowed_hosts=["example.com", "api.example.com"],
         ...     rate_limit_rpm=100,
         ... )
+        >>> add_security_middleware(app, config)
     """
+    # Use config object or create from legacy parameters
+    if config is None:
+        config = SecurityConfig(
+            enable_https_redirect=enable_https_redirect or False,
+            enable_rate_limiting=enable_rate_limiting if enable_rate_limiting is not None else True,
+            enable_ssrf_prevention=enable_ssrf_prevention if enable_ssrf_prevention is not None else True,
+            allowed_origins=allowed_origins,
+            allowed_hosts=allowed_hosts,
+            rate_limit_rpm=rate_limit_rpm or 60,
+        )
+
     # HTTPS redirect (production only)
-    if enable_https_redirect:
+    if config.enable_https_redirect:
         app.add_middleware(HTTPSRedirectMiddleware)
 
     # Trusted hosts (OWASP A05)
-    if allowed_hosts:
+    if config.allowed_hosts:
         app.add_middleware(
             TrustedHostMiddleware,
-            allowed_hosts=allowed_hosts,
+            allowed_hosts=config.allowed_hosts,
         )
 
     # CORS configuration (OWASP A05)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=allowed_origins or [],
+        allow_origins=config.allowed_origins or [],
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
         allow_headers=["*"],
@@ -479,15 +547,15 @@ def add_security_middleware(
     app.add_middleware(SecurityHeadersMiddleware)
 
     # Rate limiting (OWASP A07)
-    if enable_rate_limiting:
+    if config.enable_rate_limiting:
         app.add_middleware(
             RateLimitMiddleware,
-            requests_per_minute=rate_limit_rpm,
+            requests_per_minute=config.rate_limit_rpm,
             burst_size=10,
         )
 
     # SSRF prevention (OWASP A10)
-    if enable_ssrf_prevention:
+    if config.enable_ssrf_prevention:
         app.add_middleware(SSRFPreventionMiddleware)
 
 

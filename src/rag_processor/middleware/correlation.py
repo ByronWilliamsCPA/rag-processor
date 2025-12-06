@@ -257,6 +257,28 @@ class CorrelationMiddleware(BaseHTTPMiddleware):
                 _span_id_ctx.reset(span_token)
 
 
+def _add_correlation_tags(event: dict) -> None:
+    """Add correlation IDs as tags to Sentry event.
+
+    Args:
+        event: Sentry event dictionary to modify.
+    """
+    correlation_id = _correlation_id_ctx.get()
+    request_id = _request_id_ctx.get()
+    trace_id = _trace_id_ctx.get()
+
+    if not (correlation_id or request_id or trace_id):
+        return
+
+    event.setdefault("tags", {})
+    if correlation_id:
+        event["tags"]["correlation_id"] = correlation_id
+    if request_id:
+        event["tags"]["request_id"] = request_id
+    if trace_id:
+        event["tags"]["trace_id"] = trace_id
+
+
 def configure_sentry_correlation() -> None:
     """Configure Sentry to include correlation IDs in error reports.
 
@@ -272,19 +294,7 @@ def configure_sentry_correlation() -> None:
 
     def before_send(event, hint):
         """Add correlation IDs to Sentry events."""
-        correlation_id = _correlation_id_ctx.get()
-        request_id = _request_id_ctx.get()
-        trace_id = _trace_id_ctx.get()
-
-        if correlation_id or request_id or trace_id:
-            event.setdefault("tags", {})
-            if correlation_id:
-                event["tags"]["correlation_id"] = correlation_id
-            if request_id:
-                event["tags"]["request_id"] = request_id
-            if trace_id:
-                event["tags"]["trace_id"] = trace_id
-
+        _add_correlation_tags(event)
         return event
 
     # Get current options and add before_send
