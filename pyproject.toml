@@ -31,6 +31,9 @@ dependencies = [
     "httpx>=0.26.0",  # Async HTTP client for JWKS fetch
     # Job Queue
     "rq>=1.15.0",  # Redis Queue for background jobs
+    # File Processing
+    "python-magic>=0.4.27",  # MIME type detection via magic bytes
+    "aiofiles>=24.1.0",  # Async file operations
     # Cross-Version Compatibility Dependencies
     # =========================================
     # This template targets Python 3.10-3.14. Add version-specific dependencies
