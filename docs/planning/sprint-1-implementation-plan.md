@@ -1,4 +1,16 @@
-# Sprint 1 Implementation Plan: Authentication Foundation
+---
+title: "Sprint 1 Implementation Plan: Authentication Foundation"
+schema_type: planning
+status: published
+owner: core-maintainer
+purpose: "Detail the implementation plan for Sprint 1 authentication foundation."
+tags:
+  - planning
+  - implementation
+  - security
+component: Strategy
+source: "Phase 1 MVP Planning"
+---
 
 > **Sprint Duration**: 14 hours (Sprint 1.1-1.4)
 > **Branch**: `claude/plan-first-sprint-01RLqB2VBp1QVA1Ap49N7vSR`

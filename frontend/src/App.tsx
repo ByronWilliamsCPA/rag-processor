@@ -1,32 +1,20 @@
-import { useState, useEffect } from 'react'
 import './App.css'
+import { Header } from '@/components/Header'
 import { ApiStatus } from '@/components/ApiStatus'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>{{ cookiecutter.project_name }}</h1>
-        <p>{{ cookiecutter.project_short_description }}</p>
-      </header>
+      <Header />
 
       <main className="app-main">
-        <section className="demo-section">
-          <h2>React + TypeScript + Vite</h2>
-          <div className="card">
-            <button onClick={() => setCount((count) => count + 1)}>
-              Count is {count}
-            </button>
-            <p>
-              Edit <code>src/App.tsx</code> and save to test HMR
-            </p>
-          </div>
+        <section className="hero-section">
+          <h2>RAG Pipeline Ingestion</h2>
+          <p>Upload and process documents for your RAG pipeline</p>
         </section>
 
         <section className="api-section">
-          <h2>Backend API Status</h2>
+          <h3>Backend API Status</h3>
           <ApiStatus />
         </section>
       </main>
