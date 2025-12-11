@@ -254,8 +254,8 @@ How will we validate that this decision achieved its goals?
 ### Related ADRs
 
 <!-- Update with actual related ADRs -->
-- *Example: [ADR-001: Previous Decision](adr-001-example.md) - Related context*
-- *Example: [ADR-005: Future Decision](adr-005-example.md) - Builds on this ADR*
+- *Example: ADR-001: Previous Decision - Related context*
+- *Example: ADR-005: Future Decision - Builds on this ADR*
 
 ### External References
 
