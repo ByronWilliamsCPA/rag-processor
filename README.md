@@ -99,6 +99,111 @@ result = module.process()
 print(result)
 ```
 
+## Local Development with Docker
+
+The full stack runs with Docker Compose, including the FastAPI gateway, React frontend, PostgreSQL, Redis, and RQ worker.
+
+### Docker Prerequisites
+
+- Docker and Docker Compose
+- Node.js 18+ and pnpm (for frontend development without Docker)
+
+### Quick Start (Docker)
+
+```bash
+# 1. Clone and enter the project
+git clone https://github.com/ByronWilliamsCPA/rag-processor.git
+cd rag-processor
+
+# 2. Copy environment template
+cp .env.example .env
+
+# 3. Start all services
+docker-compose up -d
+
+# 4. Check service status
+docker-compose ps
+```
+
+### Services
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| Gateway (FastAPI) | http://localhost:8000 | API server with health endpoints |
+| Frontend (React) | http://localhost:3000 | React UI with hot reload |
+| API Docs | http://localhost:8000/docs | Swagger UI |
+| PostgreSQL | localhost:5432 | Database |
+| Redis | localhost:6379 | Job queue and cache |
+
+### Verify Services
+
+```bash
+# Check gateway health
+curl http://localhost:8000/health/live
+# Expected: {"status":"ok","uptime_seconds":...}
+
+# Check Redis
+docker exec rag_processor-redis redis-cli -a redispassword ping
+# Expected: PONG
+
+# View worker logs
+docker-compose logs -f worker
+# Expected: "Listening on high, default, low"
+```
+
+### Development Workflow
+
+**Backend Development (with hot reload):**
+
+```bash
+# Option 1: Run in Docker (uses mounted source)
+docker-compose up app
+
+# Option 2: Run locally (faster iteration)
+uv sync --all-extras
+uv run uvicorn rag_processor.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Frontend Development (with hot reload):**
+
+```bash
+# Option 1: Run in Docker
+docker-compose up frontend
+
+# Option 2: Run locally (faster iteration)
+cd frontend
+pnpm install
+pnpm run dev
+```
+
+### Common Tasks
+
+```bash
+# View logs for all services
+docker-compose logs -f
+
+# Restart a specific service
+docker-compose restart app
+
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (clean slate)
+docker-compose down -v
+
+# Rebuild after dependency changes
+docker-compose up -d --build
+```
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Port 8000 in use | Change `APP_PORT` in `.env` |
+| Port 3000 in use | Change `FRONTEND_PORT` in `.env` |
+| Redis connection refused | Ensure Redis container is healthy: `docker-compose ps` |
+| Database connection error | Wait for PostgreSQL to initialize (check logs) |
+
 ## Frontend Development
 
 The frontend is a React + TypeScript application built with Vite.

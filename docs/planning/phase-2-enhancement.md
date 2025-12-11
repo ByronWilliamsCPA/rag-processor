@@ -1,4 +1,16 @@
-# Phase 2: Enhancement - Detailed Plan
+---
+title: "Phase 2: Enhancement - Detailed Plan"
+schema_type: planning
+status: published
+owner: core-maintainer
+purpose: "Define the detailed sprint plan for Phase 2 enhancement features."
+tags:
+  - planning
+  - enhancement
+  - implementation
+component: Strategy
+source: "Derived from roadmap.md Phase 2"
+---
 
 <!-- markdownlint-disable MD024 -->
 

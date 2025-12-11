@@ -91,6 +91,7 @@ SPDX-FileCopyrightText = "2025 Byron Williams"
 [[annotations]]
 path = [
     ".claude/settings.local.json",
+    ".claude/settings.local.json.example",
     ".claude/**/*.json",  # Claude configuration files
     ".claude/**/*.md",  # Claude documentation files
     ".standards/**",  # Baseline standards (auto-updated by cruft)
@@ -106,6 +107,7 @@ path = [
     "renovate.json",
     "validate_workflows.sh",
     "scripts/**/*.sh",  # Shell scripts for automation
+    "scripts/**/*.md",  # Script documentation
     "tmp_cleanup/**/*.txt",  # Temporary text files
     "tmp_cleanup/.gitkeep",  # Directory placeholder
     "sonar-project.properties",  # SonarCloud/SonarQube configuration
@@ -114,6 +116,18 @@ path = [
     "Makefile",  # Build automation
     "justfile",  # Just command runner
     "Taskfile.yml",  # Task runner configuration
+    ".cruft.json",  # Cruft template tracking
+    ".dockerignore",  # Docker build exclusions
+    ".env.example",  # Environment example file
+    ".infisical.json",  # Infisical secrets config
+    ".markdownlint.json",  # Markdown linting config
+    ".mutmut_config",  # Mutation testing config
+    ".prettierrc",  # Prettier formatting config
+    ".shellcheckrc",  # ShellCheck config
+    ".yamllint",  # YAML linting config
+    ".hadolint.yaml",  # Hadolint Docker linting config
+    "Dockerfile",  # Main Dockerfile
+    "uv.lock",  # UV dependency lockfile
 ]
 SPDX-License-Identifier = "CC0-1.0"
 SPDX-FileCopyrightText = "2025 Byron Williams"
@@ -129,4 +143,51 @@ path = [
     "notebooks/**/*.ipynb",  # Jupyter notebooks (Colab training examples)
 ]
 SPDX-License-Identifier = "CC0-1.0"
+SPDX-FileCopyrightText = "2025 Byron Williams"
+
+# Frontend application - MIT (TypeScript/React code)
+[[annotations]]
+path = [
+    "frontend/src/**/*.ts",
+    "frontend/src/**/*.tsx",
+    "frontend/src/**/*.css",
+]
+SPDX-License-Identifier = "MIT"
+SPDX-FileCopyrightText = "2025 Byron Williams"
+
+# Frontend documentation - CC-BY-4.0
+[[annotations]]
+path = [
+    "frontend/**/*.md",
+]
+SPDX-License-Identifier = "CC-BY-4.0"
+SPDX-FileCopyrightText = "2025 Byron Williams"
+
+# Frontend configuration and build files - CC0-1.0
+[[annotations]]
+path = [
+    "frontend/.env.example",
+    "frontend/.gitignore",
+    "frontend/.prettierrc",
+    "frontend/Dockerfile",
+    "frontend/eslint.config.js",
+    "frontend/index.html",
+    "frontend/nginx.conf",
+    "frontend/package.json",
+    "frontend/public/**",
+    "frontend/src/assets/**",
+    "frontend/tsconfig*.json",
+    "frontend/vite.config.ts",
+    "frontend/src/vite-env.d.ts",
+    "frontend/src/test/setup.ts",
+]
+SPDX-License-Identifier = "CC0-1.0"
+SPDX-FileCopyrightText = "2025 Byron Williams"
+
+# Claude Code skills Python scripts - MIT
+[[annotations]]
+path = [
+    ".claude/skills/**/*.py",
+]
+SPDX-License-Identifier = "MIT"
 SPDX-FileCopyrightText = "2025 Byron Williams"

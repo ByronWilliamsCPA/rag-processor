@@ -1,0 +1,17 @@
+# Hadolint configuration
+# https://github.com/hadolint/hadolint#configure
+
+# Global ignore rules
+ignored:
+  # DL3008: Pin versions in apt get install
+  # Rationale: For base image dependencies like curl, ca-certificates, build-essential,
+  # pinning to specific Debian versions makes images brittle and causes failures when
+  # packages are updated/removed from repos. These packages are well-tested with
+  # the Python base image and security updates are important.
+  - DL3008
+
+# Trusted registries for pulling base images
+trustedRegistries:
+  - docker.io
+  - gcr.io
+  - ghcr.io

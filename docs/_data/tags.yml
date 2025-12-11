@@ -92,3 +92,20 @@ allowed:
   - mvp
   - scope
   - boundaries
+  - project
+  - strategy
+  - vision
+  - tech_spec
+  - implementation
+  - foundation
+  - enhancement
+  - polish
+
+  # Templates & Feedback
+  - template
+  - feedback
+
+  # ADR (Architecture Decision Records)
+  - decision
+  - context
+  - consequences

@@ -85,7 +85,16 @@ def setup_logging(
         _method_name: str,
         event_dict: "EventDict",
     ) -> "EventDict":
-        """No-op processor that passes through the event dict unchanged."""
+        """No-op processor that passes through the event dict unchanged.
+
+        Args:
+            _logger: The wrapped logger instance (unused).
+            _method_name: The logging method name (unused).
+            event_dict: The event dictionary to process.
+
+        Returns:
+            The event dictionary unchanged.
+        """
         return event_dict
 
     # Configure structlog processors
@@ -222,7 +231,11 @@ if __name__ == "__main__":
 
     # Example of structured error logging
     def _raise_example_error() -> None:
-        """Helper function to demonstrate error logging."""
+        """Helper function to demonstrate error logging.
+
+        Raises:
+            ValueError: Always raised with demonstration message.
+        """
         error_msg = "Example error for demonstration"
         raise ValueError(error_msg)
 

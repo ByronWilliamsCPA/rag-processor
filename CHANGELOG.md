@@ -8,7 +8,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Initial project setup and structure
+
+#### Phase 0: Foundation Infrastructure
+
+- **FastAPI Gateway**: Main application entry point (`src/rag_processor/main.py`)
+  - Health check endpoints (`/health/live`, `/health/ready`, `/health/startup`)
+  - CORS middleware for frontend integration
+  - Correlation ID middleware for distributed tracing
+  - Security headers middleware (OWASP compliance)
+- **Docker Compose Services**:
+  - Redis with AOF persistence for job queue and caching
+  - RQ worker for background job processing (high/default/low queues)
+  - Cloudflared tunnel for secure ingress
+  - PostgreSQL database
+  - React frontend with hot reload
+- **File Storage Infrastructure**:
+  - Upload and result data volumes
+  - `/data/uploads` and `/data/results` directories in container
+- **RAG Pipeline Dependencies**:
+  - RQ (Redis Queue) for job management
+  - httpx for async HTTP client
+  - python-magic for file type detection
+  - pdfplumber for PDF text extraction
+
+### Changed
+
+- Updated `.env.example` with Redis, Cloudflare, and pipeline configuration
+- Enhanced Dockerfile with `/data` directory creation for file storage
+- Fixed `MutableHeaders.pop()` bug in security middleware
+
+### Added (Testing)
+
+- Integration tests for gateway health endpoints
+- Integration tests for CORS headers and correlation IDs
+- Integration tests for OpenAPI documentation endpoints
+- Unit tests for Redis operations using fakeredis
+- Unit tests for RQ-style queue patterns
+
+### Documentation
+
+- Added "Local Development with Docker" section to README
+- Docker Compose quick start guide
+- Service verification instructions
+- Troubleshooting guide
 
 ## [0.1.0] - TBD
 

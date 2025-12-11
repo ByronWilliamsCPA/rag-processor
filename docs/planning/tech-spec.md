@@ -1,4 +1,16 @@
-# Technical Implementation Spec: RAG Processor WebUI
+---
+title: "Technical Implementation Spec: RAG Processor WebUI"
+schema_type: planning
+status: published
+owner: core-maintainer
+purpose: "Define the technical architecture, data model, APIs, and security requirements for RAG Processor WebUI."
+tags:
+  - planning
+  - tech_spec
+  - architecture
+component: Strategy
+source: "Initial project planning"
+---
 
 > **Status**: Draft | **Version**: 1.0 | **Updated**: 2025-12-05
 

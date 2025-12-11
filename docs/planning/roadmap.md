@@ -1,4 +1,16 @@
-# Development Roadmap: RAG Processor WebUI
+---
+title: "Development Roadmap: RAG Processor WebUI"
+schema_type: planning
+status: published
+owner: core-maintainer
+purpose: "Define the phased implementation timeline and milestones for RAG Processor WebUI."
+tags:
+  - planning
+  - roadmap
+  - implementation
+component: Strategy
+source: "Initial project planning"
+---
 
 <!-- markdownlint-disable MD024 -->
 

@@ -1,18 +1,19 @@
 ---
-schema_type: adr
-title: "ADR-NNN: Short Descriptive Title of the Decision"
-description: "Brief one-sentence description of what decision this ADR documents"
+schema_type: planning
+title: "ADR Template: Architecture Decision Record"
+description: "Template for documenting Architecture Decision Records."
 tags:
+  - planning
   - architecture
-  - decision
-  - your-topic
-  - relevant-area
-status: proposed
-owner: "Your Team Role or Name"
+  - decisions
+status: published
+owner: core-maintainer
 authors:
   - name: "Author Name"
     email: "author@example.com"
-purpose: "Document the decision to [choose X approach] for [problem area], with rationale for alternatives considered"
+purpose: "Provide a template for documenting architecture decisions with context and consequences."
+component: Strategy
+source: "Template from cookiecutter-python-template"
 ---
 
 > **Status**: `proposed` → Change to `published` once approved, or `deprecated`/`superseded` if no longer valid
@@ -252,20 +253,23 @@ How will we validate that this decision achieved its goals?
 
 ### Related ADRs
 
-- [ADR-001: Previous Decision](0001-previous-decision.md) - Related context
-- [ADR-005: Future Decision](0005-future-decision.md) - Builds on this ADR
+<!-- Update with actual related ADRs -->
+- *Example: [ADR-001: Previous Decision](adr-001-example.md) - Related context*
+- *Example: [ADR-005: Future Decision](adr-005-example.md) - Builds on this ADR*
 
 ### External References
 
-- [Technology/Framework Documentation](https://example.com/docs)
-- [Research Paper or Article](https://example.com/research)
-- [Related GitHub Issues](https://github.com/yourusername/yourrepo/issues/123)
+<!-- Update with actual documentation links -->
+- *Example: [Technology/Framework Documentation](https://example.com/docs)*
+- *Example: [Research Paper or Article](https://example.com/research)*
+- *Example: [Related GitHub Issues](https://github.com/example/repo/issues/123)*
 
 ### Implementation References
 
-- [Implementation File](../../src/component.py)
-- [Test Coverage](../../tests/test_component.py)
-- [Configuration](../../config.yaml)
+<!-- Update with actual implementation paths -->
+- *Example: Implementation File - `src/component.py`*
+- *Example: Test Coverage - `tests/test_component.py`*
+- *Example: Configuration - `config.yaml`*
 
 ## Questions & Discussion
 

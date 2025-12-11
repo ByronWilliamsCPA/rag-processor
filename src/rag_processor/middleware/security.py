@@ -58,7 +58,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        """Add security headers to response."""
+        """Add security headers to response.
+
+        Args:
+            request: The incoming HTTP request.
+            call_next: Callable to invoke the next middleware or endpoint.
+
+        Returns:
+            Response with security headers added.
+        """
         response = await call_next(request)
 
         # Prevent MIME sniffing (OWASP A05)
@@ -96,7 +104,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         )
 
         # Remove server identification (OWASP A09)
-        response.headers.pop("Server", None)
+        if "Server" in response.headers:
+            del response.headers["Server"]
 
         return response
 
@@ -128,7 +137,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         max_tracked_ips: int = 10000,
         cleanup_interval: int = 300,
     ) -> None:
-        """Initialize rate limiter."""
+        """Initialize rate limiter.
+
+        Args:
+            app: The ASGI application to wrap.
+            requests_per_minute: Maximum requests per IP per minute.
+            burst_size: Maximum burst requests allowed.
+            max_tracked_ips: Maximum IPs to track (prevents memory exhaustion).
+            cleanup_interval: Seconds between full cleanup cycles.
+        """
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
         self.burst_size = burst_size
@@ -184,7 +201,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             )
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        """Apply rate limiting per IP address."""
+        """Apply rate limiting per IP address.
+
+        Args:
+            request: The incoming HTTP request.
+            call_next: Callable to invoke the next middleware or endpoint.
+
+        Returns:
+            Response from downstream handler or 429 if rate limited.
+        """
         if request.client is None:
             logger.warning(
                 "request.client is None - cannot determine client IP for rate limiting. "
@@ -402,6 +427,13 @@ class SSRFPreventionMiddleware(BaseHTTPMiddleware):
 
         Validates query parameters, form data, and JSON body for potential
         SSRF attempts targeting internal resources.
+
+        Args:
+            request: The incoming HTTP request.
+            call_next: Callable to invoke the next middleware or endpoint.
+
+        Returns:
+            Response from downstream handler or 400 if SSRF detected.
         """
         # Check query parameters for URLs
         for param, value in request.query_params.items():

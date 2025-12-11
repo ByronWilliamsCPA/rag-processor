@@ -25,26 +25,30 @@ services:
 
       # Database configuration
       DATABASE_URL: ${DATABASE_URL:-postgresql://rag_processor:password@db:5432/rag_processor}
-      # Redis cache (if applicable)
-      # REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+
+      # Redis configuration (job queue)
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redispassword}@redis:6379/0
 
       # Sentry (error tracking)
       # SENTRY_DSN: ${SENTRY_DSN:-}
       # SENTRY_ENVIRONMENT: ${ENVIRONMENT:-development}
 
-      # Google Cloud credentials (if using Assured OSS)
-      # GOOGLE_APPLICATION_CREDENTIALS_B64: ${GOOGLE_APPLICATION_CREDENTIALS_B64:-}
-      # GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
+      # Cloudflare Access (authentication)
+      # CLOUDFLARE_TEAM_DOMAIN: ${CLOUDFLARE_TEAM_DOMAIN:-}
+      # CLOUDFLARE_AUDIENCE_TAG: ${CLOUDFLARE_AUDIENCE_TAG:-}
 
     volumes:
       # Development: Mount source code for hot reload
       - ./src:/app/src:ro
       - ./tests:/app/tests:ro
-      # Logs (optional)
-      # - ./logs:/app/logs
+      # File storage
+      - upload-data:/data/uploads
+      - result-data:/data/results
 
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
@@ -120,38 +124,105 @@ services:
       - rag_processor-network
 
 # =============================================================================
-  # Redis Service (Caching/Sessions)
+  # Redis Service (Job Queue + Caching)
   # =============================================================================
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: rag_processor-redis
-  #   command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redispassword}
-  #
-  #   volumes:
-  #     - redis-data:/data
-  #
-  #   ports:
-  #     - "${REDIS_PORT:-6379}:6379"
-  #
-  #   healthcheck:
-  #     test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-  #     interval: 10s
-  #     timeout: 3s
-  #     retries: 5
-  #
-  #   restart: unless-stopped
-  #
-  #   networks:
-  #     - rag_processor-network
+  redis:
+    image: redis:7-alpine
+    container_name: rag_processor-redis
+    # AOF persistence with everysec fsync for durability without performance hit
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --requirepass ${REDIS_PASSWORD:-redispassword}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+
+    volumes:
+      - redis-data:/data
+
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redispassword}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+    restart: unless-stopped
+
+    networks:
+      - rag_processor-network
+
+  # =============================================================================
+  # RQ Worker Service (Background Job Processing)
+  # =============================================================================
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rag_processor:${VERSION:-latest}
+    container_name: rag_processor-worker
+    # Process jobs from high, default, and low priority queues
+    command: >
+      python -m rq.cli worker
+      high default low
+      --url redis://:${REDIS_PASSWORD:-redispassword}@redis:6379/0
+      --with-scheduler
+
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redispassword}@redis:6379/0
+
+    volumes:
+      # Shared file storage with gateway
+      - upload-data:/data/uploads
+      - result-data:/data/results
+      # Development: Mount source code
+      - ./src:/app/src:ro
+
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    restart: unless-stopped
+    user: "1000:1000"
+
+    networks:
+      - rag_processor-network
+
+  # =============================================================================
+  # Cloudflare Tunnel (Secure Ingress)
+  # =============================================================================
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: rag_processor-cloudflared
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    restart: unless-stopped
+    # Only start when explicitly enabled with: docker compose --profile production up -d
+    profiles:
+      - production
+
+    networks:
+      - rag_processor-network
 
 # =============================================================================
 # Volumes (Persistent Storage)
 # =============================================================================
 volumes:
-postgres-data:
+  postgres-data:
     driver: local
-# redis-data:
-  #   driver: local
+  redis-data:
+    driver: local
+  upload-data:
+    driver: local
+  result-data:
+    driver: local
 
 # =============================================================================
 # Networks

@@ -26,4 +26,3 @@ Complete API documentation for RAG Processor.
     options:
       show_root_heading: true
       members_order: source
-

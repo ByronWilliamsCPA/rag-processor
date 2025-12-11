@@ -1,4 +1,16 @@
-# Phase 0: Foundation - Detailed Plan
+---
+title: "Phase 0: Foundation - Detailed Plan"
+schema_type: planning
+status: published
+owner: core-maintainer
+purpose: "Define the detailed sprint plan for Phase 0 foundation infrastructure."
+tags:
+  - planning
+  - foundation
+  - implementation
+component: Strategy
+source: "Derived from roadmap.md Phase 0"
+---
 
 <!-- markdownlint-disable MD024 -->
 

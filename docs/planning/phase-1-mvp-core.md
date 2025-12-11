@@ -1,4 +1,16 @@
-# Phase 1: MVP Core - Detailed Plan
+---
+title: "Phase 1: MVP Core - Detailed Plan"
+schema_type: planning
+status: published
+owner: core-maintainer
+purpose: "Define the detailed sprint plan for Phase 1 MVP core features."
+tags:
+  - planning
+  - implementation
+  - mvp
+component: Strategy
+source: "Derived from roadmap.md Phase 1"
+---
 
 <!-- markdownlint-disable MD024 -->
 

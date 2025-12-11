@@ -55,6 +55,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Security: Create non-root user
 RUN groupadd -r appuser && useradd -r -g appuser -u 1000 appuser
 
+# Create data directories for file storage (used by volume mounts)
+RUN mkdir -p /data/uploads /data/results && \
+    chown -R appuser:appuser /data
+
 # Set working directory
 WORKDIR /app
 
