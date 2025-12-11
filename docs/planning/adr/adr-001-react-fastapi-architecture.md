@@ -1,4 +1,16 @@
-# ADR-001: React + FastAPI Microservices Architecture
+---
+title: "ADR-001: React + FastAPI Microservices Architecture"
+schema_type: planning
+status: published
+owner: core-maintainer
+purpose: "Document the decision to use React + FastAPI microservices architecture for RAG Processor WebUI."
+tags:
+  - planning
+  - architecture
+  - decisions
+component: Strategy
+source: "Initial architecture planning"
+---
 
 > **Status**: Accepted
 > **Date**: 2025-12-05

@@ -1,4 +1,16 @@
-# Phase 3: Polish - Detailed Plan
+---
+title: "Phase 3: Polish - Detailed Plan"
+schema_type: planning
+status: published
+owner: core-maintainer
+purpose: "Define the detailed sprint plan for Phase 3 polish and release preparation."
+tags:
+  - planning
+  - polish
+  - implementation
+component: Strategy
+source: "Derived from roadmap.md Phase 3"
+---
 
 <!-- markdownlint-disable MD024 -->
 

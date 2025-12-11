@@ -8,6 +8,8 @@ tags:
   - planning
   - architecture
   - decisions
+component: Strategy
+source: "Initial project planning"
 ---
 
 This directory contains Architecture Decision Records (ADRs) for RAG Processor.

@@ -1,18 +1,19 @@
 ---
 schema_type: planning
-title: "RAG Processor - Project Plan"
-description: "Comprehensive project plan for RAG Processor with detailed implementation roadmap, architecture overview, and phased development strategy"
+title: "RAG Processor - Project Plan Template"
+description: "Comprehensive project plan template for RAG Processor with detailed implementation roadmap, architecture overview, and phased development strategy"
 tags:
   - planning
   - roadmap
   - project
   - strategy
 status: published
-owner: "core-maintainer"
+owner: core-maintainer
 authors:
   - name: "Byron Williams"
-purpose: "Document the complete implementation roadmap for RAG Processor with detailed phases, milestones, and technical strategy"
-component: "Strategy"
+purpose: "Document the complete implementation roadmap for RAG Processor with detailed phases, milestones, and technical strategy."
+component: Strategy
+source: "Template from cookiecutter-python-template"
 ---
 
 **Project**: RAG Processor

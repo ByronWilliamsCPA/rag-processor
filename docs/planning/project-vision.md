@@ -1,6 +1,16 @@
-# Project Vision & Scope: RAG Processor WebUI
-
-> **Status**: Active | **Version**: 1.0 | **Updated**: 2025-12-05
+---
+title: "Project Vision & Scope: RAG Processor WebUI"
+schema_type: planning
+status: published
+owner: core-maintainer
+purpose: "Define the project vision, problem statement, solution overview, and scope boundaries."
+tags:
+  - planning
+  - vision
+  - scope
+component: Strategy
+source: "Initial project planning"
+---
 
 ## TL;DR
 

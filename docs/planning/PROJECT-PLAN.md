@@ -1,4 +1,16 @@
-# Project Plan: RAG Processor WebUI
+---
+title: "Project Plan: RAG Processor WebUI"
+schema_type: planning
+status: published
+owner: core-maintainer
+purpose: "Synthesized project plan with phased implementation strategy."
+tags:
+  - planning
+  - roadmap
+  - project
+component: Strategy
+source: "Synthesized from project-vision.md, tech-spec.md, roadmap.md, adr/adr-001-react-fastapi-architecture.md"
+---
 
 > **Generated**: 2025-12-05
 > **Status**: Ready for Development

@@ -1,18 +1,19 @@
 ---
-schema_type: adr
-title: "ADR-NNN: Short Descriptive Title of the Decision"
-description: "Brief one-sentence description of what decision this ADR documents"
+schema_type: planning
+title: "ADR Template: Architecture Decision Record"
+description: "Template for documenting Architecture Decision Records."
 tags:
+  - planning
   - architecture
-  - decision
-  - your-topic
-  - relevant-area
-status: proposed
-owner: "Your Team Role or Name"
+  - decisions
+status: published
+owner: core-maintainer
 authors:
   - name: "Author Name"
     email: "author@example.com"
-purpose: "Document the decision to [choose X approach] for [problem area], with rationale for alternatives considered"
+purpose: "Provide a template for documenting architecture decisions with context and consequences."
+component: Strategy
+source: "Template from cookiecutter-python-template"
 ---
 
 > **Status**: `proposed` → Change to `published` once approved, or `deprecated`/`superseded` if no longer valid
