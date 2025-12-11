@@ -265,6 +265,59 @@ Based on the errors, these workflow files likely need updates:
 
 ---
 
+## Issue 6: Container Security Scan - pdfminer.six Vulnerability (PR #4)
+
+**Workflow**: `python-container-security.yml`
+**Status**: `failure`
+**Vulnerability**: GHSA-f83h-ghpp-7wcc
+
+### Error (Issue 6)
+
+```text
+Python (python-pkg)
+Total: 1 (HIGH: 1, CRITICAL: 0)
+pdfminer.six (METADATA) | GHSA-f83h-ghpp-7wcc | HIGH
+```
+
+### Root Cause (Issue 6)
+
+The pdfminer.six library has a **local privilege escalation vulnerability** due to insecure deserialization (pickle) in its CMap loader. This is a **transitive dependency** - pdfplumber depends on pdfminer.six.
+
+**Severity**: HIGH (CVSS 7.8) - Local privilege escalation requires low-privileged user access.
+
+### Current Status (Issue 6)
+
+**No fix available upstream.** According to the [GitHub Advisory](https://github.com/pdfminer/pdfminer.six/security/advisories/GHSA-f83h-ghpp-7wcc), no patched version exists as of November 2025.
+
+### Risk Assessment
+
+- **Container Environment**: In containerized deployments, the attack surface is reduced because the container runs in isolation. An attacker would need to:
+  1. Gain access to the container
+  2. Have write access to CMap cache directories
+  3. Trigger PDF processing to exploit the vulnerability
+
+- **Our Usage**: We use pdfplumber for PDF text extraction in the classifier. The vulnerability is less severe in our context because:
+  - The container runs as non-root user
+  - CMap directories are read-only in production
+  - PDF files are from authenticated users only
+
+### Suggested Mitigations (Issue 6)
+
+1. **Accept the risk** with documented justification (recommended for now)
+2. **Configure Trivy ignore file** (`.trivyignore`) to suppress this specific CVE:
+
+   ```text
+   # pdfminer.six local privesc - no upstream fix, low risk in container
+   GHSA-f83h-ghpp-7wcc
+   ```
+
+3. **Monitor upstream** for a fix and update when available
+4. **Consider alternatives** if upstream doesn't fix within 60 days:
+   - pypdf2 (pure Python, no pdfminer dependency)
+   - Custom PDF extraction using lower-level libraries
+
+---
+
 ## Contact
 
 If you need additional context or CI run logs, please reach out. The PR #3 run logs contain full details of each failure.
