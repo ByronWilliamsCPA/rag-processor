@@ -55,7 +55,7 @@ Implement JWT validation middleware in FastAPI that validates Cloudflare Access 
 
 ### File Structure
 
-```
+```text
 src/rag_processor/
 ├── auth/
 │   ├── __init__.py
@@ -216,9 +216,9 @@ async def get_me(user: CloudflareUser = Depends(get_current_user)):
 
 Display user email in React UI header and handle authentication state.
 
-### File Structure
+### File Structure (Sprint 1.3)
 
-```
+```text
 frontend/src/
 ├── hooks/
 │   ├── useAuth.ts        # Authentication hook
@@ -232,7 +232,7 @@ frontend/src/
     └── auth.ts           # TypeScript types
 ```
 
-### Tasks
+### Tasks (Sprint 1.3)
 
 #### 1.3.1 Create useAuth Hook (1.5 hours)
 
