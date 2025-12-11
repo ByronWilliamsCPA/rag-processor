@@ -99,7 +99,11 @@ app.add_middleware(CorrelationMiddleware)
 app.add_middleware(CloudflareAuthMiddleware)
 
 # Add security middleware (headers, rate limiting, SSRF prevention)
-add_security_middleware(app)
+add_security_middleware(
+    app,
+    enable_rate_limiting=settings.rate_limiting_enabled,
+    rate_limit_rpm=settings.rate_limit_rpm,
+)
 
 # Include routers
 app.include_router(health_router)

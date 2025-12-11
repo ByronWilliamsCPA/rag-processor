@@ -195,12 +195,14 @@ class CloudflareAuthMiddleware(BaseHTTPMiddleware):
             raise jwt.InvalidTokenError(msg)
 
         # Validate and decode token
+        # Use leeway to handle slight clock skew between systems
         payload = jwt.decode(
             token,
             rsa_key,
             algorithms=["RS256"],
             audience=settings.cloudflare_audience_tag,
             issuer=f"https://{settings.cloudflare_team_domain}",
+            leeway=5,  # 5 seconds leeway for clock skew
         )
 
         # Parse claims and create user

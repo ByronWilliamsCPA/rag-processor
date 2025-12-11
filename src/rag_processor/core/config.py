@@ -54,6 +54,17 @@ class Settings(BaseSettings):
         description="Enable Cloudflare authentication (set to false for local dev)",
     )
 
+    # Rate Limiting
+    rate_limiting_enabled: bool = Field(
+        default=True,
+        description="Enable rate limiting middleware (set to false for testing)",
+    )
+    rate_limit_rpm: int = Field(
+        default=60,
+        ge=1,
+        description="Rate limit requests per minute per IP",
+    )
+
     # Redis
     redis_host: str = Field(
         default="localhost",
