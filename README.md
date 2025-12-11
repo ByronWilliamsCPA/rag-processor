@@ -103,7 +103,7 @@ print(result)
 
 The full stack runs with Docker Compose, including the FastAPI gateway, React frontend, PostgreSQL, Redis, and RQ worker.
 
-### Prerequisites
+### Docker Prerequisites
 
 - Docker and Docker Compose
 - Node.js 18+ and pnpm (for frontend development without Docker)

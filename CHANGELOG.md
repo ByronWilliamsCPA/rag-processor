@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 #### Phase 0: Foundation Infrastructure
+
 - **FastAPI Gateway**: Main application entry point (`src/rag_processor/main.py`)
   - Health check endpoints (`/health/live`, `/health/ready`, `/health/startup`)
   - CORS middleware for frontend integration
@@ -31,11 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - pdfplumber for PDF text extraction
 
 ### Changed
+
 - Updated `.env.example` with Redis, Cloudflare, and pipeline configuration
 - Enhanced Dockerfile with `/data` directory creation for file storage
 - Fixed `MutableHeaders.pop()` bug in security middleware
 
 ### Added (Testing)
+
 - Integration tests for gateway health endpoints
 - Integration tests for CORS headers and correlation IDs
 - Integration tests for OpenAPI documentation endpoints
@@ -43,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unit tests for RQ-style queue patterns
 
 ### Documentation
+
 - Added "Local Development with Docker" section to README
 - Docker Compose quick start guide
 - Service verification instructions
