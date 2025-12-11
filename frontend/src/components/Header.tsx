@@ -23,7 +23,7 @@ export function Header() {
           {!isLoading && !error && isAuthenticated && user && (
             <div className="user-info">
               <span className="user-email">{user.email}</span>
-              <button onClick={logout} className="logout-button">
+              <button type="button" onClick={logout} className="logout-button">
                 Logout
               </button>
             </div>

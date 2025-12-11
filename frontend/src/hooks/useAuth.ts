@@ -4,7 +4,7 @@
  * Fetches user info from the backend and manages auth state.
  */
 
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuthStore } from '@/store/authStore';
 import type { User } from '@/types/auth';
@@ -23,20 +23,26 @@ export function useAuth() {
   const { user, isLoading, error, isAuthenticated, setUser, setError, logout } =
     useAuthStore();
 
-  useEffect(() => {
-    fetchUser();
-  }, []);
+  // Use ref to track abort controller for cleanup
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  /**
-   * Fetch current user from backend.
-   */
-  async function fetchUser() {
+  const fetchUser = useCallback(async () => {
+    // Abort any in-flight request
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+
     try {
       const response = await axios.get<User>(`${API_URL}/api/v1/user/me`, {
         withCredentials: true,
+        signal: abortControllerRef.current.signal,
+        timeout: 10000, // 10 second timeout
       });
       setUser(response.data);
     } catch (err) {
+      // Ignore abort errors from cleanup
+      if (axios.isCancel(err)) {
+        return;
+      }
       if (axios.isAxiosError(err)) {
         if (err.response?.status === 401) {
           // Not authenticated - this is expected for unauthenticated users
@@ -48,7 +54,15 @@ export function useAuth() {
         setError('An unexpected error occurred');
       }
     }
-  }
+  }, [setUser, setError]);
+
+  useEffect(() => {
+    fetchUser();
+
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, [fetchUser]);
 
   return {
     user,
