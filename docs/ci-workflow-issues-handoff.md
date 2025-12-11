@@ -11,7 +11,7 @@ tags:
 ---
 
 **Project**: rag-processor
-**PR**: https://github.com/ByronWilliamsCPA/rag-processor/pull/3
+**PR**: [#3](https://github.com/ByronWilliamsCPA/rag-processor/pull/3)
 **Date**: 2025-12-11
 **Prepared by**: Claude Code (assisted)
 
@@ -29,17 +29,17 @@ During CI runs for PR #3 (Phase 0 Infrastructure), several reusable workflows fr
 **Status**: `startup_failure`
 **Run ID**: 20148614888
 
-### Error
+### Error (Issue 1)
 
-```
+```text
 ##[error]An action could not be found at the URI 'https://api.github.com/repos/astral-sh/setup-uv/tarball/582b2d78a0f5913301dcc87c4e93301fdd2b6711'
 ```
 
-### Root Cause
+### Root Cause (Issue 1)
 
 The workflow references a specific SHA (`582b2d78a0f5913301dcc87c4e93301fdd2b6711`) for `astral-sh/setup-uv` that does not exist or is no longer valid.
 
-### Suggested Fix
+### Suggested Fix (Issue 1)
 
 Update the action reference to use a valid version tag or SHA:
 
@@ -60,17 +60,17 @@ Update the action reference to use a valid version tag or SHA:
 **Status**: `startup_failure`
 **Run ID**: 20148614891
 
-### Error
+### Error (Issue 2)
 
-```
+```text
 ##[error]An action could not be found at the URI 'https://api.github.com/repos/google/clusterfuzzlite/tarball/f090cc7d581f82fb0e0b04f0c9e56ff7f4a24e76'
 ```
 
-### Root Cause
+### Root Cause (Issue 2)
 
 The workflow references a specific SHA for `google/clusterfuzzlite` that does not exist or has been removed.
 
-### Suggested Fix
+### Suggested Fix (Issue 2)
 
 Update to a valid ClusterFuzzLite action reference:
 
@@ -92,18 +92,18 @@ Update to a valid ClusterFuzzLite action reference:
 **Status**: `failure`
 **Run ID**: 20148614958
 
-### Error
+### Error (Issue 3)
 
-```
+```text
 ##[error]Unable to process file command 'output' successfully.
 ##[error]Invalid format '  "python": ['
 ```
 
-### Root Cause
+### Root Cause (Issue 3)
 
 The workflow generates a JSON matrix and writes it to `$GITHUB_OUTPUT`, but the multiline JSON format breaks GitHub Actions' output parsing.
 
-### Current Code (Problematic)
+### Current Code (Problematic - Issue 3)
 
 ```bash
 MATRIX=$(jq -n \
@@ -114,7 +114,7 @@ MATRIX=$(jq -n \
 echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
 ```
 
-### Suggested Fix
+### Suggested Fix (Issue 3)
 
 Use compact JSON output or the heredoc delimiter syntax:
 
@@ -140,7 +140,7 @@ echo "EOF" >> $GITHUB_OUTPUT
 **Status**: `failure`
 **Run ID**: 20148614894
 
-### Error
+### Error (Issue 4)
 
 ```json
 [
@@ -152,11 +152,11 @@ echo "EOF" >> $GITHUB_OUTPUT
 ]
 ```
 
-### Root Cause
+### Root Cause (Issue 4)
 
 The workflow passes both `allow-licenses` and `deny-licenses` to the `actions/dependency-review-action`, which is not allowed.
 
-### Current Configuration (Problematic)
+### Current Configuration (Problematic - Issue 4)
 
 ```yaml
 - uses: actions/dependency-review-action@v4
@@ -166,7 +166,7 @@ The workflow passes both `allow-licenses` and `deny-licenses` to the `actions/de
     allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, MPL-2.0, LGPL-2.1, LGPL-3.0, Python-2.0, Unlicense, CC0-1.0
 ```
 
-### Suggested Fix
+### Suggested Fix (Issue 4)
 
 Use only one of `allow-licenses` OR `deny-licenses`, not both:
 
@@ -192,26 +192,28 @@ Use only one of `allow-licenses` OR `deny-licenses`, not both:
 **Status**: `failure`
 **Run ID**: 20148614860
 
-### Error
+### Error (Issue 5)
 
-```
+```text
 EXECUTION FAILURE
 ```
 
-### Likely Root Causes
+### Likely Root Causes (Issue 5)
 
 1. Missing `SONAR_TOKEN` secret in the repository
 2. Missing or misconfigured `sonar-project.properties` file
 3. SonarCloud project not properly configured for the repository
 
-### Suggested Fixes
+### Suggested Fixes (Issue 5)
 
 1. Ensure `SONAR_TOKEN` is set as a repository or organization secret
 2. Verify `sonar-project.properties` exists and contains:
+
    ```properties
    sonar.projectKey=ByronWilliamsCPA_rag-processor
    sonar.organization=byronwilliamscpa
    ```
+
 3. Check SonarCloud dashboard to ensure the project is properly linked
 
 ---
@@ -237,8 +239,8 @@ For reference, these workflows are working correctly:
 
 ### Short-term
 
-4. **Fix ClusterFuzzLite SHA** or disable if not needed
-5. **Configure SonarCloud** properly or make it optional for new repos
+1. **Fix ClusterFuzzLite SHA** or disable if not needed
+2. **Configure SonarCloud** properly or make it optional for new repos
 
 ### Best Practices
 
@@ -252,7 +254,7 @@ For reference, these workflows are working correctly:
 
 Based on the errors, these workflow files likely need updates:
 
-```
+```text
 .github/workflows/
 ├── python-fips-compatibility.yml    # Fix setup-uv SHA
 ├── python-compatibility.yml         # Fix jq multiline output
