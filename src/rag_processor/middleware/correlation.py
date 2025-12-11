@@ -151,8 +151,8 @@ def correlation_context_processor(
         )
 
     Args:
-        logger: The wrapped logger instance.
-        method_name: The name of the log method called.
+        _logger: The wrapped logger instance (unused).
+        _method_name: The name of the log method called (unused).
         event_dict: The event dictionary to process.
 
     Returns:
@@ -270,8 +270,16 @@ def configure_sentry_correlation() -> None:
     """
     import sentry_sdk
 
-    def before_send(event, hint):
-        """Add correlation IDs to Sentry events."""
+    def before_send(event, hint):  # noqa: ARG001
+        """Add correlation IDs to Sentry events.
+
+        Args:
+            event: The Sentry event dictionary.
+            hint: Additional context hint from Sentry (unused).
+
+        Returns:
+            The modified event with correlation IDs in tags.
+        """
         correlation_id = _correlation_id_ctx.get()
         request_id = _request_id_ctx.get()
         trace_id = _trace_id_ctx.get()

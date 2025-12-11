@@ -67,6 +67,9 @@ async def liveness() -> HealthStatus:
     If this fails, Kubernetes will restart the pod.
 
     This should be a simple, fast check that doesn't depend on external services.
+
+    Returns:
+        HealthStatus with status and uptime.
     """
     return HealthStatus(
         status="ok",
@@ -185,6 +188,12 @@ async def readiness() -> ReadinessStatus:
 
     Returns HTTP 503 if any critical dependency is unavailable.
     If this fails, Kubernetes will stop sending traffic to this pod.
+
+    Returns:
+        ReadinessStatus with overall health and individual dependency checks.
+
+    Raises:
+        HTTPException: When the application is not ready (503 status).
     """
     checks: dict[str, ReadinessCheck] = {}
 
@@ -233,6 +242,9 @@ async def startup() -> HealthStatus:
     This prevents the application from being killed during slow initialization.
 
     Returns HTTP 200 once the application has fully started.
+
+    Returns:
+        HealthStatus indicating startup completion.
     """
     # Add any startup checks here (e.g., database migrations completed)
     # For most applications, being alive means startup is complete
@@ -256,6 +268,9 @@ async def health() -> HealthStatus:
 
     Alias for /health/live for compatibility with load balancers
     that expect a /health endpoint.
+
+    Returns:
+        HealthStatus from the liveness check.
     """
     return await liveness()
 

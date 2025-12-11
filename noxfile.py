@@ -53,6 +53,9 @@ def frontmatter(session: nox.Session) -> None:
 
     This session installs the required dependencies and runs the front matter
     validation script with autofix enabled.
+
+    Args:
+        session: The nox session object.
     """
     session.install("pydantic>=2.0", "python-frontmatter>=1.1", "ruamel.yaml>=0.18")
     session.run("python", "tools/validate_front_matter.py", "docs", "--fix")
@@ -64,6 +67,9 @@ def docs(session: nox.Session) -> None:
 
     This session installs the project with docs dependencies and builds
     the documentation in strict mode.
+
+    Args:
+        session: The nox session object.
     """
     session.install("-e", ".[dev]")
     session.run("mkdocs", "build", "--strict")
@@ -75,6 +81,9 @@ def serve(session: nox.Session) -> None:
 
     This session starts the MkDocs development server with live reloading.
     Access at http://127.0.0.1:8000
+
+    Args:
+        session: The nox session object.
     """
     session.install("-e", ".[dev]")
     session.run("mkdocs", "serve")
@@ -86,6 +95,9 @@ def docstrings(session: nox.Session) -> None:
 
     This session validates that docstrings meet the Google style convention
     and that coverage meets the minimum threshold.
+
+    Args:
+        session: The nox session object.
     """
     session.install("pydocstyle>=6.3", "interrogate>=1.7")
     session.run("pydocstyle", "src/")
@@ -98,6 +110,9 @@ def validate(session: nox.Session) -> None:
 
     This session combines front matter validation, docstring checks,
     and documentation building to ensure everything is correct.
+
+    Args:
+        session: The nox session object.
     """
     session.install(
         "-e",
@@ -121,6 +136,9 @@ def reuse(session: nox.Session) -> None:
     This session uses the REUSE tool to verify that all files have proper
     licensing information according to the REUSE specification.
     Requires Docker to be installed and running.
+
+    Args:
+        session: The nox session object.
     """
     session.run(
         "docker",
@@ -141,6 +159,9 @@ def reuse_spdx(session: nox.Session) -> None:
     This session generates an SPDX document from the REUSE metadata.
     The SPDX file is saved to reuse-spdx.json in the current directory.
     Requires Docker to be installed and running.
+
+    Args:
+        session: The nox session object.
     """
     session.run(
         "docker",
@@ -163,6 +184,9 @@ def sbom(session: nox.Session) -> None:
 
     This session generates Software Bill of Materials (SBOM) in CycloneDX format
     for runtime and development dependency sets using UV's pip-compatible interface.
+
+    Args:
+        session: The nox session object.
     """
     session.install("cyclonedx-bom==4.6.1")
 
@@ -225,6 +249,9 @@ def scan(session: nox.Session) -> None:
     This session uses Trivy to scan the generated SBOMs for known vulnerabilities.
     Requires Docker to be installed and running.
     Requires SBOM files to be generated first (run 'nox -s sbom').
+
+    Args:
+        session: The nox session object.
     """
     import pathlib
 
@@ -256,6 +283,9 @@ def compliance(session: nox.Session) -> None:
 
     This session runs REUSE compliance checks and generates SBOMs
     for comprehensive compliance validation.
+
+    Args:
+        session: The nox session object.
     """
     session.log("Running REUSE compliance check...")
     reuse(session)
@@ -282,6 +312,9 @@ def assuredoss(session: nox.Session) -> None:
     Requires .env file with:
     - GOOGLE_CLOUD_PROJECT
     - GOOGLE_APPLICATION_CREDENTIALS or GOOGLE_APPLICATION_CREDENTIALS_B64
+
+    Args:
+        session: The nox session object.
     """
     session.install("-e", ".[dev]")
     session.run("python", "scripts/validate_assuredoss.py")
@@ -298,6 +331,9 @@ def test(session: nox.Session) -> None:
 
     This session runs all tests with coverage reporting
     across Python 3.10, 3.11, 3.12, 3.13, and 3.14 to ensure compatibility.
+
+    Args:
+        session: The nox session object.
     """
     session.install("-e", ".[dev]")
     session.run(
@@ -319,6 +355,9 @@ def unit(session: nox.Session) -> None:
 
     Unit tests are isolated, fast, and don't require external dependencies.
     Target: 85%+ coverage for unit tests.
+
+    Args:
+        session: The nox session object.
     """
     session.install("-e", ".[dev]")
     session.run(
@@ -341,6 +380,9 @@ def integration(session: nox.Session) -> None:
 
     Integration tests verify interaction between components.
     Target: 70%+ coverage for integration tests.
+
+    Args:
+        session: The nox session object.
     """
     session.install("-e", ".[dev]")
     session.run(
@@ -363,6 +405,9 @@ def fast(session: nox.Session) -> None:
 
     Use this for rapid feedback during development.
     Excludes slow tests and stops after 5 failures.
+
+    Args:
+        session: The nox session object.
     """
     session.install("-e", ".[dev]")
     session.run(
@@ -384,6 +429,9 @@ def security_tests(session: nox.Session) -> None:
     """Run security assertion tests.
 
     Tests focused on security-critical functionality.
+
+    Args:
+        session: The nox session object.
     """
     session.install("-e", ".[dev]")
     session.run(
@@ -409,6 +457,9 @@ def mutate(session: nox.Session) -> None:
     Usage:
         nox -s mutate              # Run mutation testing
         nox -s mutate -- --report  # Show mutation report
+
+    Args:
+        session: The nox session object.
     """
     session.install("-e", ".[dev]")
 
@@ -432,6 +483,9 @@ def lint(session: nox.Session) -> None:
 
     This session runs Ruff linting and type hint checks to ensure code quality
     across all supported Python versions.
+
+    Args:
+        session: The nox session object.
     """
     session.install("-e", ".[dev]")
     session.run("ruff", "check", ".", "--config=pyproject.toml")
@@ -446,6 +500,9 @@ def typecheck(session: nox.Session) -> None:
     This session runs BasedPyright type checking to ensure type safety
     across all supported Python versions. BasedPyright is a stricter fork
     of Pyright that provides faster analysis than MyPy.
+
+    Args:
+        session: The nox session object.
     """
     session.install("-e", ".[dev]")
     session.run("basedpyright", "src")

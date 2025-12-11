@@ -188,6 +188,9 @@ def cache_invalidate(key_pattern: str) -> Callable:
     Args:
         key_pattern: Redis key pattern (supports * wildcard)
 
+    Returns:
+        A decorator function that wraps async functions with cache invalidation.
+
     Example:
         >>> @cache_invalidate("user:*")
         >>> async def update_user(user_id: str, data: dict):

@@ -71,7 +71,7 @@ def init_sentry(
         from sentry_sdk.integrations.starlette import StarletteIntegration
         from sentry_sdk.integrations.logging import LoggingIntegration
         from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
-        except ImportError:
+    except ImportError:
         logger.warning(
             "Sentry SDK not installed. Install with: uv add sentry-sdk[fastapi]"
         )
