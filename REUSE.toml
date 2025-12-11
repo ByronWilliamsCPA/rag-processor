@@ -178,6 +178,7 @@ path = [
     "frontend/src/assets/**",
     "frontend/tsconfig*.json",
     "frontend/vite.config.ts",
+    "frontend/playwright.config.ts",  # Playwright E2E config
     "frontend/src/vite-env.d.ts",
     "frontend/src/test/setup.ts",
 ]
@@ -188,6 +189,14 @@ SPDX-FileCopyrightText = "2025 Byron Williams"
 [[annotations]]
 path = [
     ".claude/skills/**/*.py",
+]
+SPDX-License-Identifier = "MIT"
+SPDX-FileCopyrightText = "2025 Byron Williams"
+
+# Frontend E2E tests - MIT (TypeScript test code)
+[[annotations]]
+path = [
+    "frontend/e2e/**/*.ts",
 ]
 SPDX-License-Identifier = "MIT"
 SPDX-FileCopyrightText = "2025 Byron Williams"
