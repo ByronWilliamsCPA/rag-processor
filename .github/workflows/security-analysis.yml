@@ -45,4 +45,8 @@ jobs:
       run-dependency-review: true
       run-bandit: true
       run-safety: true
-      run-osv: true
+      # OSV Scanner disabled due to bug in v2.2.4 where filtered vulnerabilities are
+      # incorrectly reported as "unused ignores" causing exit code 1.
+      # See: https://github.com/google/osv-scanner/issues - needs bug report
+      # Re-enable after org workflow updates to fixed version.
+      run-osv: false
