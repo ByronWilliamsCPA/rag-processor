@@ -153,7 +153,7 @@ def _get_release_version() -> str:
         import subprocess
 
         sha = (
-            subprocess.check_output(
+            subprocess.check_output(  # nosec B607 - git is safe, intentional partial path
                 ["git", "rev-parse", "--short", "HEAD"],
                 stderr=subprocess.DEVNULL,
             )
@@ -170,7 +170,7 @@ def _get_release_version() -> str:
 
         pkg_version = version("rag-processor")
         return f"rag_processor@{pkg_version}"
-    except Exception:
+    except Exception:  # nosec B110 - intentional fallback for version detection
         pass
 
     # Ultimate fallback
