@@ -28,9 +28,14 @@ on:
     - cron: "0 8 * * 1"
   workflow_dispatch:
 
-# Note: read-all required because org workflow needs various read permissions
-# for artifact metadata, attestations, packages, etc.
-permissions: read-all
+# Note: The org workflow needs various permissions for SBOM generation and SARIF upload
+# - read permissions for artifact-metadata, attestations, packages, etc.
+# - security-events:write for SARIF upload to GitHub Security tab
+permissions:
+  contents: read
+  actions: read
+  packages: read
+  security-events: write
 
 env:
   INFISICAL_DOMAIN: https://infisical.williamshome.family
