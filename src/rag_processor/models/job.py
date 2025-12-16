@@ -5,7 +5,7 @@ A job represents a single file being processed through a pipeline.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
@@ -139,11 +139,11 @@ class Job(BaseModel):
     retry_count: int = Field(default=0, ge=0, description="Current retry count")
     max_retries: int = Field(default=3, ge=0, description="Maximum retries")
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(tz=timezone.utc),
+        default_factory=lambda: datetime.now(tz=UTC),
         description="Job creation timestamp",
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(tz=timezone.utc),
+        default_factory=lambda: datetime.now(tz=UTC),
         description="Last update timestamp",
     )
     started_at: datetime | None = Field(default=None, description="Processing start time")
@@ -154,13 +154,13 @@ class Job(BaseModel):
     def mark_processing(self) -> None:
         """Mark job as processing."""
         self.status = JobStatus.PROCESSING
-        self.started_at = datetime.now(tz=timezone.utc)
+        self.started_at = datetime.now(tz=UTC)
         self.updated_at = self.started_at
 
     def mark_completed(self) -> None:
         """Mark job as completed."""
         self.status = JobStatus.COMPLETED
-        self.completed_at = datetime.now(tz=timezone.utc)
+        self.completed_at = datetime.now(tz=UTC)
         self.updated_at = self.completed_at
 
     def mark_failed(self, error_message: str) -> None:
@@ -171,7 +171,7 @@ class Job(BaseModel):
         """
         self.status = JobStatus.FAILED
         self.error_message = error_message
-        self.completed_at = datetime.now(tz=timezone.utc)
+        self.completed_at = datetime.now(tz=UTC)
         self.updated_at = self.completed_at
 
     def can_retry(self) -> bool:

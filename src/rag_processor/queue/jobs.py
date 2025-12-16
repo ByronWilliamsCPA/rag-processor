@@ -5,7 +5,7 @@ Functions for enqueuing jobs and checking their status.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID  # noqa: TC003 - Used at runtime in function signatures
 
 from rag_processor.models.batch import Batch, BatchStatus
@@ -197,7 +197,7 @@ def process_job_task(job_id: str) -> dict[str, str]:
     store.update_job_status(
         job_id,
         status=JobStatus.PROCESSING.value,
-        started_at=datetime.now(tz=timezone.utc).isoformat(),
+        started_at=datetime.now(tz=UTC).isoformat(),
     )
 
     # Update batch progress
@@ -214,7 +214,7 @@ def process_job_task(job_id: str) -> dict[str, str]:
     store.update_job_status(
         job_id,
         status=JobStatus.COMPLETED.value,
-        completed_at=datetime.now(tz=timezone.utc).isoformat(),
+        completed_at=datetime.now(tz=UTC).isoformat(),
     )
 
     # Update batch progress

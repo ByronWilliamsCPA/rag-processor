@@ -5,7 +5,7 @@ A batch represents a group of files uploaded together by a user.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
@@ -77,11 +77,11 @@ class Batch(BaseModel):
         None, description="Target vector store for handoff"
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(tz=timezone.utc),
+        default_factory=lambda: datetime.now(tz=UTC),
         description="Batch creation timestamp",
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(tz=timezone.utc),
+        default_factory=lambda: datetime.now(tz=UTC),
         description="Last update timestamp",
     )
 
@@ -90,7 +90,7 @@ class Batch(BaseModel):
 
         Calculates the appropriate status based on completed and failed counts.
         """
-        self.updated_at = datetime.now(tz=timezone.utc)
+        self.updated_at = datetime.now(tz=UTC)
 
         if self.completed_files + self.failed_files < self.total_files:
             self.status = BatchStatus.PROCESSING

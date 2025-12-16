@@ -7,7 +7,7 @@ Supports bypass mode for local development without Cloudflare.
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import httpx
@@ -156,7 +156,7 @@ class CloudflareAuthMiddleware(BaseHTTPMiddleware):
         Returns:
             Mock CloudflareUser for development.
         """
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         return CloudflareUser(
             email="dev@localhost",
             user_id="dev-user-001",

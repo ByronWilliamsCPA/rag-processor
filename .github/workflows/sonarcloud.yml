@@ -8,7 +8,7 @@
 #   - Quality gate enforcement
 #   - Pull request decoration
 #
-# SonarCloud Dashboard: https://sonarcloud.io/dashboard?id=ByronWilliamsCPA_rag_processor
+# SonarCloud Dashboard: https://sonarcloud.io/dashboard?id=ByronWilliamsCPA_rag-processor
 # Documentation: https://docs.sonarsource.com/sonarqube-cloud/
 name: SonarCloud
 
@@ -39,8 +39,8 @@ jobs:
     name: SonarCloud Analysis
     uses: ByronWilliamsCPA/.github/.github/workflows/python-sonarcloud.yml@main
     with:
-      sonar-organization: 'williaby'
-      sonar-project-key: 'ByronWilliamsCPA_rag_processor'
+      sonar-organization: 'byronwilliamscpa'
+      sonar-project-key: 'ByronWilliamsCPA_rag-processor'
       python-version: '3.12'
       source-directory: 'src'
       coverage-paths: 'coverage.xml'

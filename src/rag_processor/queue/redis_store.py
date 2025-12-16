@@ -5,7 +5,7 @@ Provides Redis-based storage for batch and job metadata.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID  # noqa: TC003 - Used at runtime in function signatures
 
 import redis
@@ -182,7 +182,7 @@ class RedisStore:
             updates["completed_at"] = completed_at
 
         if updates:
-            updates["updated_at"] = datetime.now(tz=timezone.utc).isoformat()
+            updates["updated_at"] = datetime.now(tz=UTC).isoformat()
             self._redis.hset(key, mapping=updates)
             logger.debug("Job status updated", job_id=str(job_id), updates=updates)
 
