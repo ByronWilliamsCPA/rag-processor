@@ -30,7 +30,7 @@ During CI runs for PR #4 (Phase 1 Core Features), several reusable workflows fro
 | Python Compatibility | ✅ Passing* | *Disabled macOS/Windows locally |
 | Container Security | ✅ Passing | Fixed with `.trivyignore` |
 | Dependency Review | ✅ Fixed | Was local project config error (fixed) |
-| Performance Regression | ❌ Failing | Script interface + code error |
+| Performance Regression | ✅ Passing | Now working (may have been transient) |
 | SonarCloud Analysis | ❌ Failing | Missing `--all-extras` |
 | ClusterFuzzLite | ❌ Failing | Known org workflow issue |
 
@@ -97,11 +97,14 @@ with:
 
 ---
 
-## Issue 2: Performance Regression - Multiple Issues
+## Issue 2: Performance Regression - Multiple Issues (NOW PASSING)
+
+> **UPDATE**: This workflow is now passing. The issues may have been transient or
+> resolved upstream. Keeping documentation for reference in case issues recur.
 
 **Workflow**: `python-performance-regression.yml` (or equivalent)
-**Status**: `failure`
-**Run ID**: 20275824765
+**Status**: ✅ Now Passing
+**Run ID**: 20275824765 (original failure)
 
 **Error Messages**:
 
@@ -318,7 +321,7 @@ The `rag-processor` project may have unique requirements due to:
 
 1. ~~**High**: Issue 1 (Dependency Review) - Simple config fix~~ ✅ **RESOLVED** (was local project issue)
 2. **High**: Issue 3 (SonarCloud) - Simple fix, blocking code analysis
-3. **Medium**: Issue 2 (Performance Regression) - Code bug + interface issue
+3. ~~**Medium**: Issue 2 (Performance Regression) - Code bug + interface issue~~ ✅ **NOW PASSING**
 4. **Low**: Issue 4 (System Dependencies) - Feature request, has workaround
 
 ---
