@@ -5,7 +5,7 @@ Defines Pydantic models for JWT claims and user context.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field
 
@@ -62,6 +62,6 @@ class TokenClaims(BaseModel):
             email=self.email,
             user_id=self.sub,
             groups=self.groups,
-            issued_at=datetime.fromtimestamp(self.iat, tz=UTC),
-            expires_at=datetime.fromtimestamp(self.exp, tz=UTC),
+            issued_at=datetime.fromtimestamp(self.iat, tz=timezone.utc),
+            expires_at=datetime.fromtimestamp(self.exp, tz=timezone.utc),
         )

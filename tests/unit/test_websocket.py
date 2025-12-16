@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -468,7 +468,7 @@ class TestWebSocketRouter:
             created_by_email="test@example.com",
             status=BatchStatus.PROCESSING,
             total_files=1,
-            created_at=datetime.now(tz=UTC),
+            created_at=datetime.now(tz=timezone.utc),
         )
 
     @pytest.mark.asyncio

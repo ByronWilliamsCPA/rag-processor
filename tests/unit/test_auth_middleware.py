@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
@@ -72,7 +72,7 @@ def create_test_token(
     """Create a test JWT token."""
     # Use timezone-aware datetime to avoid timestamp conversion issues
     # datetime.utcnow() is deprecated and produces incorrect timestamps
-    now = datetime.now(UTC)
+    now = datetime.now(tz=timezone.utc)
     payload = {
         "iss": issuer,
         "sub": "user-123",
@@ -204,7 +204,7 @@ class TestAuthenticatedEndpoints:
             format=serialization.PrivateFormat.PKCS8,
             encryption_algorithm=serialization.NoEncryption(),
         )
-        now = datetime.now(UTC)
+        now = datetime.now(tz=timezone.utc)
         token = jwt.encode(
             {
                 "iss": f"https://{TEST_TEAM_DOMAIN}",
@@ -250,7 +250,7 @@ class TestAuthenticatedEndpoints:
 
     def test_missing_kid_returns_401(self, client: TestClient, mock_settings):
         """Token without key ID should return 401."""
-        now = datetime.now(UTC)
+        now = datetime.now(tz=timezone.utc)
         payload = {
             "iss": f"https://{TEST_TEAM_DOMAIN}",
             "sub": "user-123",

@@ -53,6 +53,7 @@ path = [
     "requirements/**/*.txt",  # Generated from poetry export
     "benchmarks/labelmaps/**/*.yaml",  # Benchmark label mappings
     ".zenodo.json",  # Zenodo metadata for DOI
+    "config/**/*.yaml",  # Pipeline and other configuration
 ]
 SPDX-License-Identifier = "CC0-1.0"
 SPDX-FileCopyrightText = "2025 Byron Williams"
@@ -178,9 +179,11 @@ path = [
     "frontend/src/assets/**",
     "frontend/tsconfig*.json",
     "frontend/vite.config.ts",
+    "frontend/vitest.config.ts",  # Vitest test configuration
     "frontend/playwright.config.ts",  # Playwright E2E config
     "frontend/src/vite-env.d.ts",
     "frontend/src/test/setup.ts",
+    "frontend/package-lock.json",  # NPM dependency lockfile
 ]
 SPDX-License-Identifier = "CC0-1.0"
 SPDX-FileCopyrightText = "2025 Byron Williams"

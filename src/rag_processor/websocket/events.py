@@ -6,7 +6,7 @@ Defines event structure and functions for publishing events to Redis.
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any
 from uuid import UUID, uuid4
@@ -67,7 +67,7 @@ class BatchEvent(BaseModel):
     status: str
     message: str = ""
     data: dict[str, Any] = Field(default_factory=dict)
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(tz=UTC))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc))
 
     def to_json_dict(self) -> dict[str, Any]:
         """Convert event to JSON-serializable dict.

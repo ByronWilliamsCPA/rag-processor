@@ -1,3 +1,12 @@
+# Validate Cruft Status for RAG Processor
+# Ensures project stays in sync with cookiecutter template using org-level reusable workflow.
+#
+# Features:
+#   - Template synchronization validation
+#   - Detection of manual .cruft.json edits
+#   - Orphaned conditional file detection (project-specific)
+#
+# Documentation: https://cruft.github.io/cruft/
 name: Validate Cruft Status
 
 on:
@@ -10,73 +19,45 @@ on:
     - cron: '0 9 * * 1'
   workflow_dispatch:
 
+# Cancel in-progress runs for same PR/branch
+concurrency:
+  group: cruft-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+# Uses org-level reusable workflow for core cruft checks
 jobs:
-  validate-cruft:
+  cruft-validation:
+    name: Cruft Validation
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-supplemental-checks.yml@main
+    with:
+      # Cruft checking
+      enable-cruft-check: true
+      cruft-fail-on-diff: ${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}
+      python-version: '3.12'
+      # Disable other supplemental checks (handled by other workflows)
+      enable-link-check: false
+      enable-changelog-check: false
+      enable-automerge: false
+
+  # Project-specific: Check for orphaned conditional files
+  orphaned-files:
+    name: Check Orphaned Files
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          fetch-depth: 2
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up Python
         uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: '3.12'
 
-      - name: Install cruft
-        run: pip install cruft
-
-      - name: Check for manual .cruft.json edits
-        if: github.event_name == 'push' || github.event_name == 'pull_request'
-        run: |
-          if git diff HEAD^ HEAD --name-only | grep -q '\.cruft\.json'; then
-            # .cruft.json was changed
-            changed_files=$(git diff HEAD^ HEAD --name-only | wc -l)
-            cruft_only=$(git diff HEAD^ HEAD --name-only | grep -c '\.cruft\.json' || true)
-
-            if [ "$changed_files" -eq 1 ] && [ "$cruft_only" -eq 1 ]; then
-              echo "❌ ERROR: Only .cruft.json was modified"
-              echo ""
-              echo "This suggests manual editing instead of running 'cruft update'."
-              echo ""
-              echo "To fix:"
-              echo "  1. Revert the manual edit: git checkout HEAD^ -- .cruft.json"
-              echo "  2. Run: cruft update"
-              echo "  3. Review changes: git diff"
-              echo "  4. Commit if successful: git add . && git commit -m 'chore: update from template'"
-              exit 1
-            fi
-          fi
-
-      - name: Verify cruft status
-        run: |
-          echo "Checking if project is in sync with template..."
-          if cruft check; then
-            echo "✅ Project is up to date with template"
-          else
-            echo "⚠️  Project is out of sync with template"
-            echo ""
-            echo "To update:"
-            echo "  cruft diff   # Preview changes"
-            echo "  cruft update # Apply changes"
-            echo ""
-            # Don't fail on scheduled runs or manual triggers (just warn)
-            if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-              echo "Creating an issue to track this..."
-              exit 0
-            else
-              echo "Failing CI to prevent merging out-of-date code"
-              exit 1
-            fi
-          fi
-
-      - name: Show template diff (if out of sync)
-        if: failure()
-        run: |
-          echo "Template changes that need to be applied:"
-          cruft diff || true
-
       - name: Check for orphaned conditional files
+        id: orphan-check
         run: |
           echo "Checking for orphaned conditional files..."
           echo ""
@@ -104,3 +85,32 @@ jobs:
           echo "  git add -A"
           echo "  git commit -m 'chore: remove orphaned conditional files'"
           echo ""
+
+  # Summary job
+  validation-summary:
+    name: Validation Summary
+    runs-on: ubuntu-latest
+    needs: [cruft-validation, orphaned-files]
+    if: always()
+    steps:
+      - name: Check results
+        run: |
+          echo "## Cruft Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.cruft-validation.result }}" == "success" ]; then
+            echo "✅ Cruft Validation: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Cruft Validation: ${{ needs.cruft-validation.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.orphaned-files.result }}" == "success" ]; then
+            echo "✅ Orphaned Files Check: Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Orphaned Files Check: ${{ needs.orphaned-files.result }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Fail if either check failed
+          if [ "${{ needs.cruft-validation.result }}" == "failure" ] || [ "${{ needs.orphaned-files.result }}" == "failure" ]; then
+            exit 1
+          fi

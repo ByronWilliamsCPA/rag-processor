@@ -1,6 +1,6 @@
 """Tests for Batch and Job models."""
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from rag_processor.models.batch import Batch, BatchStatus
@@ -113,7 +113,7 @@ class TestBatchModel:
 
     def test_batch_from_redis_dict(self):
         """Test creation from Redis hash data."""
-        now = datetime.now(tz=UTC)
+        now = datetime.now(tz=timezone.utc)
         data = {
             "batch_id": "550e8400-e29b-41d4-a716-446655440000",
             "created_by_email": "test@example.com",
@@ -248,7 +248,7 @@ class TestJobModel:
 
     def test_job_from_redis_dict(self):
         """Test creation from Redis hash data."""
-        now = datetime.now(tz=UTC)
+        now = datetime.now(tz=timezone.utc)
         data = {
             "job_id": "12345678-1234-1234-1234-123456789012",
             "batch_id": "550e8400-e29b-41d4-a716-446655440000",
