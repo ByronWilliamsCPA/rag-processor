@@ -34,8 +34,8 @@ jobs:
         with:
           fail-on-severity: high
           # Deny copyleft licenses that require source disclosure
+          # Note: Cannot specify both allow-licenses and deny-licenses per action docs
+          # Using deny-licenses only - all other licenses are allowed by default
           deny-licenses: GPL-3.0, AGPL-3.0, GPL-2.0
-          # Allow common permissive licenses
-          allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, MPL-2.0, LGPL-2.1, LGPL-3.0, Python-2.0, Unlicense, CC0-1.0
           # Comment on PR with findings
           comment-summary-in-pr: on-failure
