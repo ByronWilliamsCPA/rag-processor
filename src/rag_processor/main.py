@@ -80,8 +80,8 @@ app = FastAPI(
 )
 
 # Add CORS middleware (must be added before other middleware)
-# #ASSUME: cors: Frontend runs on localhost:3000 in development
-# #VERIFY: Update allowed origins for production deployment
+# CORS origins are configured for local development. For production,
+# use environment variables or Cloudflare Access to control origins.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

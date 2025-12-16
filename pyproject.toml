@@ -335,8 +335,11 @@ known-first-party = ["rag_processor"]
     "EM",     # Error messages (test exceptions)
     "TRY",    # Exception handling (test assertions)
     "INP",    # No __init__.py required for test directories
+    "TC",     # Type checking block issues
+    "F401",   # Unused imports (test fixtures)
     # Security rules OK to skip in tests (specific, not blanket S)
     "S101",   # assert_used - pytest uses asserts
+    "S110",   # try-except-pass for expected test failures
     "S105",   # hardcoded_password_string - test credentials are fake
     "S106",   # hardcoded_password_funcarg - test fixtures with fake passwords
     "S107",   # hardcoded_password_default - test default values
@@ -431,6 +434,35 @@ known-first-party = ["rag_processor"]
 "src/*/utils/logging.py" = [
     "ARG001",  # Unused args required by structlog processor interface
     "TC002",   # Processor needs to be runtime-available
+]
+
+# Sentry integration - Optional dependency with lazy imports
+"src/*/core/sentry.py" = [
+    "PLC0415", # Lazy imports for optional sentry-sdk dependency
+    "TRY300",  # Return in try block is clearer for simple cases
+    "BLE001",  # Blind except for version detection fallbacks
+    "S110",    # try-except-pass for optional feature fallbacks
+    "ARG001",  # Sentry hooks have required signature
+    "SIM102",  # Nested if is more readable for data filtering
+    "S607",    # Partial path for git is intentional
+    "RUF059",  # Unpacking for future use / clarity
+]
+
+# Cache module - Optional Redis dependency with lazy imports
+"src/*/core/cache.py" = [
+    "PLC0415", # Lazy imports for optional redis dependency
+    "PLW0603", # Global state for connection pooling is intentional
+    "TRY300",  # Return in try block is clearer for simple cases
+    "TRY400",  # logging.error vs exception - structured logging preference
+    "PERF401", # Async for loop is clearer than comprehension for scan_iter
+    "TC003",   # Callable needs to be runtime-available for type checks
+]
+
+# Correlation middleware - Sentry integration with lazy imports
+"src/*/middleware/correlation.py" = [
+    "PLC0415", # Lazy import for optional sentry-sdk
+    "ANN001",  # Sentry hooks have complex types
+    "ANN202",  # Sentry hooks return type is Any
 ]
 
 # Quality gate script - Intentional URL handling
