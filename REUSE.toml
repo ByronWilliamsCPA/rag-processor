@@ -127,6 +127,7 @@ path = [
     ".shellcheckrc",  # ShellCheck config
     ".yamllint",  # YAML linting config
     ".hadolint.yaml",  # Hadolint Docker linting config
+    ".trivyignore",  # Trivy vulnerability ignore list
     "Dockerfile",  # Main Dockerfile
     "uv.lock",  # UV dependency lockfile
 ]
