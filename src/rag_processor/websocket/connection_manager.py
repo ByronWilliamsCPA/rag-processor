@@ -100,7 +100,7 @@ class ConnectionManager:
             try:
                 await websocket.send_json(message)
                 sent_count += 1
-            except (RuntimeError, ConnectionError, OSError) as e:
+            except (RuntimeError, OSError) as e:
                 logger.warning(
                     "Failed to send WebSocket message",
                     batch_id=batch_key,
@@ -137,7 +137,7 @@ class ConnectionManager:
         """
         try:
             await websocket.send_json(message)
-        except (RuntimeError, ConnectionError, OSError) as e:
+        except (RuntimeError, OSError) as e:
             logger.warning("Failed to send personal message", error=str(e))
             return False
         else:

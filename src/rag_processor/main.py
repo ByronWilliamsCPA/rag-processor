@@ -23,7 +23,11 @@ from rag_processor.api.ingest import router as ingest_router
 from rag_processor.api.user import router as user_router
 from rag_processor.auth.cloudflare import CloudflareAuthMiddleware
 from rag_processor.core.config import settings
-from rag_processor.middleware import CorrelationMiddleware, add_security_middleware
+from rag_processor.middleware import (
+    CorrelationMiddleware,
+    SecurityConfig,
+    add_security_middleware,
+)
 from rag_processor.utils.logging import get_logger, setup_logging
 from rag_processor.websocket.router import router as websocket_router
 
@@ -99,11 +103,11 @@ app.add_middleware(CorrelationMiddleware)
 app.add_middleware(CloudflareAuthMiddleware)
 
 # Add security middleware (headers, rate limiting, SSRF prevention)
-add_security_middleware(
-    app,
+security_config = SecurityConfig(
     enable_rate_limiting=settings.rate_limiting_enabled,
     rate_limit_rpm=settings.rate_limit_rpm,
 )
+add_security_middleware(app, security_config)
 
 # Include routers
 app.include_router(health_router)
