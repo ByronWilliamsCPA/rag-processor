@@ -74,6 +74,8 @@ export function useUpload(): UseUploadReturn {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
+            withCredentials: true, // Send cookies for Cloudflare Access auth
+            timeout: 300000, // 5 minute timeout for large file uploads
             onUploadProgress: (progressEvent: AxiosProgressEvent) => {
               if (progressEvent.total) {
                 const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
