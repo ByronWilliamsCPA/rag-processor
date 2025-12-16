@@ -31,7 +31,7 @@ During CI runs for PR #4 (Phase 1 Core Features), several reusable workflows fro
 | Container Security | ✅ Passing | Fixed with `.trivyignore` |
 | Dependency Review | ✅ Fixed | Was local project config error (fixed) |
 | Performance Regression | ✅ Passing | Now working (may have been transient) |
-| SonarCloud Analysis | ❌ Failing | Missing `--all-extras` |
+| SonarCloud Analysis | ✅ Fixed | Was local config error (extra-dependencies: 'dev' → 'all') |
 | ClusterFuzzLite | ❌ Failing | Known org workflow issue |
 
 ---
@@ -156,11 +156,16 @@ if regression_detected:
 
 ---
 
-## Issue 3: SonarCloud Analysis - Missing Dependencies
+## Issue 3: SonarCloud Analysis - Missing Dependencies (RESOLVED)
 
-**Workflow**: `python-sonarcloud.yml` (or equivalent)
-**Status**: `failure`
-**Run ID**: 20275824797
+> **UPDATE**: This was a **local project configuration error**, not an org workflow issue.
+> The project's `.github/workflows/sonarcloud.yml` was passing `extra-dependencies: 'dev'`
+> which only installs dev extras. Changed to `extra-dependencies: 'all'` to install all
+> optional dependencies including FastAPI (in the 'api' extra group).
+
+**Workflow**: `sonarcloud.yml` (local project workflow)
+**Status**: ✅ Fixed
+**Run ID**: 20275824797 (original failure)
 
 **Error Messages**:
 
@@ -320,7 +325,7 @@ The `rag-processor` project may have unique requirements due to:
 ## Recommended Priority
 
 1. ~~**High**: Issue 1 (Dependency Review) - Simple config fix~~ ✅ **RESOLVED** (was local project issue)
-2. **High**: Issue 3 (SonarCloud) - Simple fix, blocking code analysis
+2. ~~**High**: Issue 3 (SonarCloud) - Simple fix, blocking code analysis~~ ✅ **RESOLVED** (was local config issue)
 3. ~~**Medium**: Issue 2 (Performance Regression) - Code bug + interface issue~~ ✅ **NOW PASSING**
 4. **Low**: Issue 4 (System Dependencies) - Feature request, has workaround
 

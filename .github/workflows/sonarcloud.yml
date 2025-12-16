@@ -44,7 +44,9 @@ jobs:
       python-version: '3.12'
       source-directory: 'src'
       coverage-paths: 'coverage.xml'
-      extra-dependencies: 'dev'
+      # Use 'all' to install all optional dependencies (including FastAPI in 'api' extra)
+      # The org workflow runs 'uv sync --all-extras' when this is set to 'all'
+      extra-dependencies: 'all'
       fail-on-quality-gate: false
       skip-if-no-token: true
       timeout-minutes: 15
