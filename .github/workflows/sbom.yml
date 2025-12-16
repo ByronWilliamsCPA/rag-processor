@@ -28,14 +28,23 @@ on:
     - cron: "0 8 * * 1"
   workflow_dispatch:
 
-# Note: The org workflow needs various permissions for SBOM generation and SARIF upload
-# - read permissions for artifact-metadata, attestations, packages, etc.
-# - security-events:write for SARIF upload to GitHub Security tab
+# Note: The org workflow uses permissions: read-all and needs security-events:write
+# We must grant all permissions the org workflow expects
 permissions:
   contents: read
   actions: read
   packages: read
   security-events: write
+  # Additional read permissions required by org workflow's read-all
+  checks: read
+  deployments: read
+  discussions: read
+  issues: read
+  pages: read
+  pull-requests: read
+  repository-projects: read
+  statuses: read
+  id-token: write  # Required for OIDC token generation
 
 env:
   INFISICAL_DOMAIN: https://infisical.williamshome.family
