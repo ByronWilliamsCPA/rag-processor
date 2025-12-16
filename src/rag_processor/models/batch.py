@@ -12,6 +12,24 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
 
 
+def _parse_iso_datetime(value: str) -> datetime:
+    """Parse ISO format datetime string with Python 3.10 compatibility.
+
+    Python 3.10's fromisoformat() doesn't support 'Z' suffix for UTC.
+    This function handles both 'Z' suffix and '+00:00' format.
+
+    Args:
+        value: ISO format datetime string.
+
+    Returns:
+        Parsed datetime object.
+    """
+    # Replace Z suffix with +00:00 for Python 3.10 compatibility
+    if value.endswith("Z"):
+        value = value[:-1] + "+00:00"
+    return datetime.fromisoformat(value)
+
+
 class BatchStatus(str, Enum):
     """Status of a batch of uploaded files.
 
@@ -121,6 +139,6 @@ class Batch(BaseModel):
             completed_files=int(data["completed_files"]),
             failed_files=int(data["failed_files"]),
             target_vector_store=data["target_vector_store"] or None,
-            created_at=datetime.fromisoformat(data["created_at"]),
-            updated_at=datetime.fromisoformat(data["updated_at"]),
+            created_at=_parse_iso_datetime(data["created_at"]),
+            updated_at=_parse_iso_datetime(data["updated_at"]),
         )
