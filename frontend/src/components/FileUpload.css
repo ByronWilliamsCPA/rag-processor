@@ -62,7 +62,7 @@
 /* Error Alert */
 .upload-error {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   margin-top: 1rem;
@@ -74,20 +74,46 @@
 
 .error-icon {
   flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.error-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.error-message {
+  line-height: 1.4;
 }
 
 .error-dismiss {
-  margin-left: auto;
+  flex-shrink: 0;
   background: none;
   border: none;
   font-size: 1.25rem;
   color: #dc2626;
   cursor: pointer;
   padding: 0 0.25rem;
+  line-height: 1;
 }
 
 .error-dismiss:hover {
   color: #b91c1c;
+}
+
+.btn-retry {
+  align-self: flex-start;
+  background-color: #dc2626;
+  color: #fff;
+  border: none;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+.btn-retry:hover:not(:disabled) {
+  background-color: #b91c1c;
 }
 
 /* File List */

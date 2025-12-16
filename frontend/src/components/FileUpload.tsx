@@ -3,8 +3,9 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useDropzone, type FileRejection } from 'react-dropzone';
 import { useUploadStore } from '@/store/uploadStore';
+import { useUpload } from '@/hooks/useUpload';
 import {
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE_BYTES,
@@ -54,11 +55,19 @@ export function FileUpload() {
     setError,
   } = useUploadStore();
 
+  const { upload } = useUpload();
+
+  const handleRetry = useCallback(() => {
+    // Clear the error and retry the upload
+    setError(null);
+    upload();
+  }, [setError, upload]);
+
   const onDrop = useCallback(
-    (acceptedFiles: File[], rejectedFiles: { file: File; errors: { message: string }[] }[]) => {
+    (acceptedFiles: File[], fileRejections: FileRejection[]) => {
       // Handle rejected files
-      if (rejectedFiles.length > 0) {
-        const errors = rejectedFiles.map((r) => `${r.file.name}: ${r.errors[0]?.message || 'Invalid file'}`);
+      if (fileRejections.length > 0) {
+        const errors = fileRejections.map((r) => `${r.file.name}: ${r.errors[0]?.message || 'Invalid file'}`);
         setError(errors.join('; '));
         return;
       }
@@ -117,7 +126,19 @@ export function FileUpload() {
       {error && (
         <div className="upload-error" role="alert">
           <span className="error-icon">⚠️</span>
-          <span>{error}</span>
+          <div className="error-content">
+            <span className="error-message">{error}</span>
+            {files.length > 0 && (
+              <button
+                type="button"
+                className="btn btn-retry"
+                onClick={handleRetry}
+                aria-label="Retry upload"
+              >
+                Retry
+              </button>
+            )}
+          </div>
           <button
             type="button"
             className="error-dismiss"

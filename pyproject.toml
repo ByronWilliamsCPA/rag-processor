@@ -556,6 +556,9 @@ omit = [
     "scripts/*",        # Utility scripts
     "notebooks/*",      # Jupyter notebooks
     "tmp_cleanup/*",    # Temporary files
+
+    # External service integrations (tested via integration tests)
+    "*/sentry.py",      # Sentry error tracking - requires external service
 ]
 
 [tool.coverage.report]

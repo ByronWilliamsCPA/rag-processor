@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import asyncio
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -18,9 +16,6 @@ from rag_processor.websocket.events import (
     create_batch_event,
     create_job_event,
 )
-
-if TYPE_CHECKING:
-    from uuid import UUID
 
 
 class TestConnectionManager:
@@ -314,6 +309,147 @@ class TestEventTypes:
         assert EventType.BATCH_FAILED.value == "batch_failed"
 
 
+class TestPublishEvent:
+    """Tests for publish_event function."""
+
+    def test_publish_event_to_redis(self) -> None:
+        """Test publishing event to Redis channel and history."""
+        from rag_processor.websocket.events import publish_event
+
+        batch_id = uuid4()
+        event = BatchEvent(
+            event_type=EventType.JOB_QUEUED,
+            batch_id=batch_id,
+            status="queued",
+            message="Job queued",
+        )
+
+        mock_redis = MagicMock()
+
+        with patch("rag_processor.websocket.events.logger"):
+            publish_event(event, redis_client=mock_redis)
+
+        # Should publish to channel
+        mock_redis.publish.assert_called_once()
+        # Should store in history list
+        mock_redis.lpush.assert_called_once()
+        # Should trim to keep last 100
+        mock_redis.ltrim.assert_called_once()
+
+    def test_publish_event_creates_client_if_not_provided(self) -> None:
+        """Test that publish_event creates Redis client when not provided."""
+        from rag_processor.websocket.events import publish_event
+
+        batch_id = uuid4()
+        event = BatchEvent(
+            event_type=EventType.JOB_COMPLETED,
+            batch_id=batch_id,
+            status="completed",
+        )
+
+        mock_redis = MagicMock()
+
+        with (
+            patch(
+                "rag_processor.websocket.events.get_redis_client",
+                return_value=mock_redis,
+            ) as mock_get_client,
+            patch("rag_processor.websocket.events.logger"),
+        ):
+            publish_event(event)
+
+        mock_get_client.assert_called_once()
+
+
+class TestGetEventHistory:
+    """Tests for get_event_history function."""
+
+    def test_get_event_history_success(self) -> None:
+        """Test getting event history from Redis."""
+        import json
+
+        from rag_processor.websocket.events import get_event_history
+
+        batch_id = uuid4()
+        event1 = {"event_id": str(uuid4()), "type": "first"}
+        event2 = {"event_id": str(uuid4()), "type": "second"}
+
+        # Redis stores newest first, we should reverse
+        mock_redis = MagicMock()
+        mock_redis.lrange.return_value = [
+            json.dumps(event2),
+            json.dumps(event1),
+        ]
+
+        with patch("rag_processor.websocket.events.logger"):
+            result = get_event_history(batch_id, redis_client=mock_redis)
+
+        # Should return oldest first
+        assert len(result) == 2
+        assert result[0]["type"] == "first"
+        assert result[1]["type"] == "second"
+
+    def test_get_event_history_handles_invalid_json(self) -> None:
+        """Test get_event_history handles malformed JSON gracefully."""
+        import json
+
+        from rag_processor.websocket.events import get_event_history
+
+        batch_id = uuid4()
+        valid_event = {"event_id": str(uuid4()), "type": "valid"}
+
+        mock_redis = MagicMock()
+        mock_redis.lrange.return_value = [
+            "not valid json",
+            json.dumps(valid_event),
+        ]
+
+        with patch("rag_processor.websocket.events.logger"):
+            result = get_event_history(batch_id, redis_client=mock_redis)
+
+        # Should only contain the valid event
+        assert len(result) == 1
+        assert result[0]["type"] == "valid"
+
+    def test_get_event_history_creates_client_if_not_provided(self) -> None:
+        """Test that get_event_history creates Redis client when not provided."""
+        from rag_processor.websocket.events import get_event_history
+
+        batch_id = uuid4()
+
+        mock_redis = MagicMock()
+        mock_redis.lrange.return_value = []
+
+        with (
+            patch(
+                "rag_processor.websocket.events.get_redis_client",
+                return_value=mock_redis,
+            ) as mock_get_client,
+            patch("rag_processor.websocket.events.logger"),
+        ):
+            get_event_history(batch_id)
+
+        mock_get_client.assert_called_once()
+
+    def test_get_event_history_with_limit(self) -> None:
+        """Test get_event_history respects limit parameter."""
+        from rag_processor.websocket.events import get_event_history
+
+        batch_id = uuid4()
+
+        mock_redis = MagicMock()
+        mock_redis.lrange.return_value = []
+
+        with patch("rag_processor.websocket.events.logger"):
+            get_event_history(batch_id, redis_client=mock_redis, limit=50)
+
+        # Should call lrange with 0 to limit-1
+        mock_redis.lrange.assert_called_once()
+        call_args = mock_redis.lrange.call_args[0]
+        assert call_args[1] == 0
+        assert call_args[2] == 49
+
+
 class TestWebSocketRouter:
     """Tests for WebSocket router."""
 
@@ -382,9 +518,7 @@ class TestWebSocketRouter:
                 "rag_processor.websocket.router.get_event_history",
                 return_value=mock_history,
             ),
-            patch(
-                "rag_processor.websocket.router.connection_manager"
-            ) as mock_manager,
+            patch("rag_processor.websocket.router.connection_manager") as mock_manager,
         ):
             mock_manager.send_personal = AsyncMock()
 
@@ -400,9 +534,7 @@ class TestWebSocketRouter:
 
         mock_websocket = MagicMock()
 
-        with patch(
-            "rag_processor.websocket.router.connection_manager"
-        ) as mock_manager:
+        with patch("rag_processor.websocket.router.connection_manager") as mock_manager:
             mock_manager.send_personal = AsyncMock()
 
             await _handle_client_message(
