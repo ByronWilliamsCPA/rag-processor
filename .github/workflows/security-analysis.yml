@@ -38,7 +38,10 @@ jobs:
       python-version: '3.12'
       fail-on-high: true
       fail-on-medium: false
-      run-codeql: true
+      # CodeQL is disabled here because the repository uses GitHub's default CodeQL setup.
+      # Running both default and advanced configurations causes SARIF upload conflicts.
+      # See: https://docs.github.com/en/code-security/code-scanning/enabling-code-scanning
+      run-codeql: false
       run-dependency-review: true
       run-bandit: true
       run-safety: true
