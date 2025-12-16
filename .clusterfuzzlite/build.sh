@@ -2,17 +2,33 @@
 # ClusterFuzzLite Build Script
 # Compiles Python fuzz targets with coverage instrumentation
 #
-# Reference: https://google.github.io/clusterfuzzlite/build-integration/python/
+# Reference: https://google.github.io/clusterfuzzlite/build-integration/python-lang/
 
-# Install the package with fuzzing support
-pip3 install -e .
+# Install the project
+pip3 install .
 
-# Copy fuzz targets to the output directory
-# Each Python file in fuzz/ directory becomes a fuzz target
-for fuzzer in $SRC/rag_processor/fuzz/fuzz_*.py; do
-    if [ -f "$fuzzer" ]; then
-        fuzzer_basename=$(basename -s .py $fuzzer)
-        cp $fuzzer $OUT/$fuzzer_basename
-        chmod +x $OUT/$fuzzer_basename
-    fi
+# Build each fuzzer
+for fuzzer in $(find $SRC/rag_processor/fuzz -name 'fuzz_*.py'); do
+    fuzzer_basename=$(basename -s .py "$fuzzer")
+    fuzzer_package=${fuzzer_basename}.pkg
+
+    echo "Building fuzzer: $fuzzer_basename"
+
+    # Package the fuzzer using pyinstaller for reproducibility
+    pyinstaller --distpath "$OUT" --onefile --name "$fuzzer_package" "$fuzzer"
+
+    # Create the execution wrapper script
+    # Note: No LD_PRELOAD for pure Python code (no C extensions)
+    cat > "$OUT/$fuzzer_basename" << EOF
+#!/bin/bash
+# Wrapper script for $fuzzer_basename fuzzer
+# LF
+this_dir=\$(dirname "\$0")
+exec "\$this_dir/$fuzzer_package" "\$@"
+EOF
+    chmod +x "$OUT/$fuzzer_basename"
 done
+
+# List what was created
+echo "=== Fuzz targets in $OUT ==="
+ls -la "$OUT"/fuzz_* 2>/dev/null || echo "No fuzz targets found"
