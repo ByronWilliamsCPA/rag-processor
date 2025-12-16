@@ -23,16 +23,25 @@ During CI runs for PR #4 (Phase 1 Core Features), several reusable workflows fro
 
 **Key Finding**: The `rag-processor` project uses `python-magic` which requires the `libmagic` system library. This dependency is not available by default on GitHub's macOS/Windows runners, and the reusable workflows don't provide a mechanism to install system dependencies before running tests.
 
-### Workflows Status Summary
+### Workflows Status Summary (Updated 2025-12-16 18:50 UTC)
 
 | Workflow | Status | Issue Type |
 |----------|--------|------------|
 | Python Compatibility | ✅ Passing* | *Disabled macOS/Windows locally |
 | Container Security | ✅ Passing | Fixed with `.trivyignore` |
-| Dependency Review | ✅ Fixed | Was local project config error (fixed) |
-| Performance Regression | ✅ Passing | Now working (may have been transient) |
-| SonarCloud Analysis | ✅ Fixed | Was local config error (extra-dependencies: 'dev' → 'all') |
-| ClusterFuzzLite | ❌ Failing | Known org workflow issue |
+| Dependency Review | ✅ Passing | Was local project config error (fixed) |
+| Performance Regression | ✅ Passing | Now working |
+| SonarCloud Analysis | ⚠️ Config Issue | SonarCloud project not set up |
+| ClusterFuzzLite | ⚠️ Config Issue | No fuzz targets in project |
+| CI Pipeline | ❌ startup_failure | Org workflow issue |
+| Security Analysis | ❌ startup_failure | Org workflow issue |
+| SBOM & Security Scan | ❌ startup_failure | Org workflow issue |
+| PR Validation | ❌ startup_failure | Org workflow issue |
+| FIPS Compatibility | ✅ Passing | Working correctly |
+| Mutation Testing | ✅ Passing | Working correctly |
+| REUSE Compliance | ✅ Passing | Working correctly |
+| Documentation | ✅ Passing | Working correctly |
+| Validate Cruft | ✅ Passing | Working correctly |
 
 ---
 
@@ -299,75 +308,100 @@ jobs:
 
 ---
 
-## Issue 5: ClusterFuzzLite - Missing 'prune' Action
+## Issue 5: ClusterFuzzLite - No Fuzz Targets (PROJECT CONFIG ISSUE)
+
+> **UPDATE**: The org workflow's prune action issue was resolved by adding `enable-corpus-prune: false`
+> input parameter (defaults to false). The current failure is because the **project has no fuzz targets**.
 
 **Workflow**: `python-fuzzing.yml` (org reusable workflow)
-**Status**: ❌ Failing
-**Run ID**: 20277101404
+**Status**: ⚠️ Project configuration issue (not org workflow issue)
+**Run ID**: 20279077118
 
 **Error Message**:
 
 ```text
-##[error]Can't find 'action.yml', 'action.yaml' or 'Dockerfile' for action 'google/clusterfuzzlite/actions/prune@v1'.
+2025-12-16 18:49:25,585 - root - ERROR - No fuzz targets found in out dir.
+2025-12-16 18:49:25,705 - root - ERROR - Build check failed.
+ERROR: No fuzz targets found.
 ```
 
 **Root Cause**:
 
-The org's `python-fuzzing.yml` reusable workflow attempts to use `google/clusterfuzzlite/actions/prune@v1`, but **this action does not exist** in the ClusterFuzzLite repository.
+The project does not have any fuzzing harnesses set up. ClusterFuzzLite expects fuzzing targets in a `fuzz/` directory with Atheris-based harnesses.
 
-**Available ClusterFuzzLite Actions** (verified via GitHub API):
+**Required Setup for Fuzzing**:
 
-- `google/clusterfuzzlite/actions/build_fuzzers` ✅ Exists
-- `google/clusterfuzzlite/actions/run_fuzzers` ✅ Exists
-- `google/clusterfuzzlite/actions/prune` ❌ **Does NOT exist**
+1. Create a `fuzz/` directory at project root
+1. Add fuzzing harnesses using Atheris for Python:
 
-**Suggested Fix**:
+```python
+# fuzz/fuzz_classifier.py
+import atheris
+import sys
 
-The org workflow needs to either:
+with atheris.instrument_imports():
+    from rag_processor.routing.classifier import DocumentClassifier
 
-1. **Remove the prune step** if it's not essential:
+@atheris.instrument_func
+def TestOneInput(data):
+    try:
+        classifier = DocumentClassifier()
+        classifier.classify(data.decode('utf-8', errors='ignore'))
+    except Exception:
+        pass
 
-   ```yaml
-   # Remove or comment out:
-   # - uses: google/clusterfuzzlite/actions/prune@v1
-   ```
-
-2. **Use OSS-Fuzz prune action** if pruning is needed:
-
-   ```yaml
-   # OSS-Fuzz has a prune action
-   - uses: google/oss-fuzz/infra/cifuzz/actions/prune@master
-   ```
-
-3. **Implement custom pruning** if the functionality is required:
-
-   ```yaml
-   - name: Prune old corpus files
-     run: |
-       # Custom pruning logic
-       find corpus/ -mtime +30 -delete || true
-   ```
-
-**Local Workflow Reference**:
-
-The local project workflow (`.github/workflows/cifuzzy.yml`) correctly calls the org reusable workflow:
-
-```yaml
-jobs:
-  fuzzing:
-    name: ClusterFuzzLite
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-fuzzing.yml@main
-    with:
-      python-version: '3.12'
-      fuzz-seconds: 600
-      # ... other parameters
+if __name__ == "__main__":
+    atheris.Setup(sys.argv, TestOneInput)
+    atheris.Fuzz()
 ```
 
-The issue is in the **org-level reusable workflow**, not this project's configuration.
+1. Add atheris to dev dependencies in `pyproject.toml`
 
-**Previous Issue (for reference)**:
+**Action Items**:
 
-This is related to but distinct from the SHA issue documented in `docs/ci-workflow-issues-handoff.md` (Issue 2). The SHA issue was fixed by updating to `@v1`, but now the `prune` action reference is the problem.
+- **For this PR**: Can disable fuzzing workflow by not including it, or accept the failure as known
+- **Future**: Set up fuzzing targets for security-critical functions (parsers, validators)
+
+---
+
+## Issue 6: Multiple Workflows - startup_failure (ORG WORKFLOW ISSUE)
+
+**Workflows**: `python-ci.yml`, `python-security-analysis.yml`, `python-sbom.yml`, `pr-validation.yml`
+**Status**: ❌ startup_failure
+**Run IDs**: 20279077003, 20279077121, 20279077050, 20279077090
+
+**Error Pattern**:
+
+All these workflows fail immediately at startup with no jobs being created:
+
+```text
+X This run likely failed because of a workflow file issue.
+```
+
+**Root Cause**:
+
+The `startup_failure` status indicates GitHub Actions cannot parse or validate the reusable workflow file. This is an **org-level workflow configuration issue**.
+
+**Verified**: The raw workflow files exist and appear syntactically valid when fetched via GitHub API. The issue may be:
+
+1. A circular dependency in workflow references
+2. An invalid action SHA or reference in the workflow
+3. A permissions or secrets configuration issue
+4. GitHub Actions cache serving stale workflow versions
+
+**Suggested Investigation**:
+
+1. Check the GitHub Actions workflow cache
+2. Verify all action references in the affected workflows use valid SHAs/tags
+3. Test the workflows in isolation on a simple repository
+4. Check for any recent changes to the org workflows that might have introduced errors
+
+**Affected Local Workflows**:
+
+- `.github/workflows/ci.yml` → calls `python-ci.yml@main`
+- `.github/workflows/security-analysis.yml` → calls `python-security-analysis.yml@main`
+- `.github/workflows/sbom.yml` → calls `python-sbom.yml@main`
+- `.github/workflows/pr-validation.yml` → calls `pr-validation.yml@main` (if exists)
 
 ---
 
@@ -387,10 +421,26 @@ The `rag-processor` project may have unique requirements due to:
 
 ## Recommended Priority
 
-1. ~~**High**: Issue 1 (Dependency Review) - Simple config fix~~ ✅ **RESOLVED** (was local project issue)
-2. ~~**High**: Issue 3 (SonarCloud) - Simple fix, blocking code analysis~~ ✅ **RESOLVED** (was local config issue)
-3. ~~**Medium**: Issue 2 (Performance Regression) - Code bug + interface issue~~ ✅ **NOW PASSING**
-4. **Low**: Issue 4 (System Dependencies) - Feature request, has workaround
+### Resolved Issues (No Action Needed)
+
+1. ~~**High**: Issue 1 (Dependency Review)~~ ✅ **RESOLVED** (was local project config)
+1. ~~**High**: Issue 3 (SonarCloud extras)~~ ✅ **RESOLVED** (was local config - changed to 'all')
+1. ~~**Medium**: Issue 2 (Performance Regression)~~ ✅ **NOW PASSING**
+
+### Org Workflow Issues (Needs .github Team Action)
+
+1. **Critical**: Issue 6 (startup_failure) - Multiple org workflows failing at startup
+   - `python-ci.yml`, `python-security-analysis.yml`, `python-sbom.yml`, `pr-validation.yml`
+   - These prevent CI from running at all
+
+### Project Configuration Issues (Not Org Workflow Issues)
+
+1. **Low**: Issue 5 (ClusterFuzzLite) - Project needs fuzz targets (can disable workflow)
+1. **Low**: SonarCloud - Project needs to be set up on SonarCloud dashboard
+
+### Feature Requests
+
+1. **Low**: Issue 4 (System Dependencies) - Feature request for system dep installation
 
 ---
 
