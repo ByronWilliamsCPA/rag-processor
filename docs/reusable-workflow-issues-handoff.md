@@ -299,12 +299,75 @@ jobs:
 
 ---
 
-## Issue 5: ClusterFuzzLite - Known Issue
+## Issue 5: ClusterFuzzLite - Missing 'prune' Action
 
-**Workflow**: `clusterfuzzlite.yml`
-**Status**: `failure`
+**Workflow**: `python-fuzzing.yml` (org reusable workflow)
+**Status**: ❌ Failing
+**Run ID**: 20277101404
 
-This appears to be a pre-existing issue documented in `docs/ci-workflow-issues-handoff.md`. Please refer to that document for details on the ClusterFuzzLite action SHA issues.
+**Error Message**:
+
+```text
+##[error]Can't find 'action.yml', 'action.yaml' or 'Dockerfile' for action 'google/clusterfuzzlite/actions/prune@v1'.
+```
+
+**Root Cause**:
+
+The org's `python-fuzzing.yml` reusable workflow attempts to use `google/clusterfuzzlite/actions/prune@v1`, but **this action does not exist** in the ClusterFuzzLite repository.
+
+**Available ClusterFuzzLite Actions** (verified via GitHub API):
+
+- `google/clusterfuzzlite/actions/build_fuzzers` ✅ Exists
+- `google/clusterfuzzlite/actions/run_fuzzers` ✅ Exists
+- `google/clusterfuzzlite/actions/prune` ❌ **Does NOT exist**
+
+**Suggested Fix**:
+
+The org workflow needs to either:
+
+1. **Remove the prune step** if it's not essential:
+
+   ```yaml
+   # Remove or comment out:
+   # - uses: google/clusterfuzzlite/actions/prune@v1
+   ```
+
+2. **Use OSS-Fuzz prune action** if pruning is needed:
+
+   ```yaml
+   # OSS-Fuzz has a prune action
+   - uses: google/oss-fuzz/infra/cifuzz/actions/prune@master
+   ```
+
+3. **Implement custom pruning** if the functionality is required:
+
+   ```yaml
+   - name: Prune old corpus files
+     run: |
+       # Custom pruning logic
+       find corpus/ -mtime +30 -delete || true
+   ```
+
+**Local Workflow Reference**:
+
+The local project workflow (`.github/workflows/cifuzzy.yml`) correctly calls the org reusable workflow:
+
+```yaml
+jobs:
+  fuzzing:
+    name: ClusterFuzzLite
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-fuzzing.yml@main
+    with:
+      python-version: '3.12'
+      fuzz-seconds: 600
+      # ... other parameters
+```
+
+The issue is in the **org-level reusable workflow**, not this project's configuration.
+
+**Previous Issue (for reference)**:
+
+This is related to but distinct from the SHA issue documented in `docs/ci-workflow-issues-handoff.md` (Issue 2). The SHA issue was fixed by updating to `@v1`, but now the `prune` action reference is the problem.
 
 ---
 
