@@ -5,15 +5,13 @@ Provides endpoints for accessing current user information.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from rag_processor.auth.dependencies import get_current_user
-
-if TYPE_CHECKING:
-    from rag_processor.auth.models import CloudflareUser
+from rag_processor.auth.models import (
+    CloudflareUser,  # noqa: TC001 - FastAPI needs runtime access
+)
 
 router = APIRouter(prefix="/user", tags=["user"])
 
