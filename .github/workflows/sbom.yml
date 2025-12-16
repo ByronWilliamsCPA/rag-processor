@@ -28,23 +28,10 @@ on:
     - cron: "0 8 * * 1"
   workflow_dispatch:
 
-# Note: The org workflow uses permissions: read-all and needs security-events:write
-# We must grant all permissions the org workflow expects
-permissions:
-  contents: read
-  actions: read
-  packages: read
-  security-events: write
-  # Additional read permissions required by org workflow's read-all
-  checks: read
-  deployments: read
-  discussions: read
-  issues: read
-  pages: read
-  pull-requests: read
-  repository-projects: read
-  statuses: read
-  id-token: write  # Required for OIDC token generation
+# Note: The org workflow uses 'permissions: read-all' which requires non-standard
+# permissions (artifact-metadata, attestations, models) that cannot be explicitly
+# granted in YAML. Remove permissions block to use default GITHUB_TOKEN permissions.
+# TODO: Report to .github team - org workflow should use explicit permissions
 
 env:
   INFISICAL_DOMAIN: https://infisical.williamshome.family
