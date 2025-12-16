@@ -15,10 +15,8 @@ on:
     branches: [main, master, develop]
   workflow_dispatch:
 
-# Cancel in-progress runs for same PR/branch
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+# Note: Concurrency is handled by the org-level reusable workflow
+# Do NOT define concurrency here to avoid deadlock with called workflow
 
 permissions:
   contents: read

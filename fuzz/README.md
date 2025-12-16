@@ -11,15 +11,33 @@ Fuzzing is an automated testing technique that feeds random or mutated data into
 
 ## Fuzz Harnesses
 
-### `fuzz_input_validation.py`
+### `fuzz_file_classifier.py`
 
-Tests input validation and sanitization:
+Tests the `FileClassifier.classify_from_bytes()` method for PDF classification:
 
-- Empty inputs and edge cases
-- Invalid UTF-8 sequences
-- Special characters and format strings
-- Buffer overflow attempts
-- Type confusion
+- Malformed PDF headers
+- Corrupted PDF streams
+- Invalid page structures
+- Empty and edge-case inputs
+- Memory-safety issues in PDF parsing
+
+### `fuzz_file_detector.py`
+
+Tests the `FileTypeDetector.detect_from_bytes()` method for MIME type detection:
+
+- Magic byte parsing with random data
+- Edge cases in file type detection
+- MIME type detection resilience
+- Filename hint handling
+
+### `fuzz_jwt_validation.py`
+
+Tests JWT token parsing and header extraction:
+
+- Malformed JWT tokens
+- Invalid Base64 encoding
+- UTF-8 decoding edge cases
+- Header parsing vulnerabilities
 
 ## Running Locally
 
@@ -36,18 +54,24 @@ uv pip install atheris
 Run each fuzzer for 60 seconds:
 
 ```bash
-# Input validation fuzzer
-python fuzz/fuzz_input_validation.py -max_total_time=60
+# File classifier fuzzer
+uv run python fuzz/fuzz_file_classifier.py -max_total_time=60
+
+# File type detector fuzzer
+uv run python fuzz/fuzz_file_detector.py -max_total_time=60
+
+# JWT validation fuzzer
+uv run python fuzz/fuzz_jwt_validation.py -max_total_time=60
 ```
 
 For longer fuzzing sessions:
 
 ```bash
 # Run for 10 minutes
-python fuzz/fuzz_input_validation.py -max_total_time=600
+uv run python fuzz/fuzz_file_classifier.py -max_total_time=600
 
 # Run with specific seed for reproducibility
-python fuzz/fuzz_input_validation.py -seed=12345
+uv run python fuzz/fuzz_file_detector.py -seed=12345
 ```
 
 ## CI/CD Integration

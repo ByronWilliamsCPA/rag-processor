@@ -18,9 +18,11 @@ concurrency:
   group: pr-validation-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+# Note: checks:write needed for org workflow to post check results
 permissions:
   contents: read
   pull-requests: write
+  checks: write
 
 jobs:
   # ==========================================================================

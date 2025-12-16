@@ -28,9 +28,9 @@ on:
     - cron: "0 8 * * 1"
   workflow_dispatch:
 
-permissions:
-  contents: read
-  security-events: write
+# Note: read-all required because org workflow needs various read permissions
+# for artifact metadata, attestations, packages, etc.
+permissions: read-all
 
 env:
   INFISICAL_DOMAIN: https://infisical.williamshome.family

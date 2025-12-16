@@ -124,6 +124,8 @@ dev = [
     "nox>=2024.10.16",  # Fixed: was 2025 (typo)
     "nox-uv>=0.6.3",    # Fixed: max available version is 0.6.3, not 1.0.0
     "mutmut>=3.3.1",
+    # Fuzzing
+    "atheris>=2.3.0",  # Google's Python fuzzing engine for security testing
     # Google Cloud Assured OSS (optional - uncomment if using Assured OSS)
     "google-auth>=2.0.0",
     # "google-cloud-assured-oss>=0.1.0",  # Package not yet available in PyPI
@@ -389,6 +391,8 @@ known-first-party = ["rag_processor"]
     "BLE",    # Blind except is necessary in fuzz targets
     "INP",    # Fuzz tests are not packages
     "ANN", "D", "TRY",
+    "SIM105", # contextlib.suppress not suitable for fuzz targets
+    "PLC0415", # Imports inside function for coverage tracking
 ]
 
 # Claude skills and scripts

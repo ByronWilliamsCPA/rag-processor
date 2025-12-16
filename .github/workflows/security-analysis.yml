@@ -23,8 +23,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# Note: CodeQL and other security tools need actions:read and security-events:write
 permissions:
   contents: read
+  actions: read
   security-events: write
   pull-requests: write
 
