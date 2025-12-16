@@ -6,13 +6,13 @@ A batch represents a group of files uploaded together by a user.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from enum import StrEnum
+from enum import Enum
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
 
-class BatchStatus(StrEnum):
+class BatchStatus(str, Enum):
     """Status of a batch of uploaded files.
 
     Attributes:

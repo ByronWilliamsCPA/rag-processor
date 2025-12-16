@@ -6,13 +6,13 @@ A job represents a single file being processed through a pipeline.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from enum import StrEnum
+from enum import Enum
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
 
-class JobStatus(StrEnum):
+class JobStatus(str, Enum):
     """Status of an individual job.
 
     Attributes:
@@ -28,7 +28,7 @@ class JobStatus(StrEnum):
     FAILED = "failed"
 
 
-class Priority(StrEnum):
+class Priority(str, Enum):
     """Job priority levels.
 
     Attributes:
@@ -42,7 +42,7 @@ class Priority(StrEnum):
     LOW = "low"
 
 
-class FileClassification(StrEnum):
+class FileClassification(str, Enum):
     """Classification of file types for routing.
 
     Attributes:
@@ -64,7 +64,7 @@ class FileClassification(StrEnum):
     UNKNOWN = "unknown"
 
 
-class Pipeline(StrEnum):
+class Pipeline(str, Enum):
     """Target processing pipelines.
 
     Attributes:

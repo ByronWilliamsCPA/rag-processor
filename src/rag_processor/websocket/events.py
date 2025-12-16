@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from enum import StrEnum
+from enum import Enum
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -24,7 +24,7 @@ BATCH_EVENTS_CHANNEL = "batch:{batch_id}:events"
 BATCH_EVENTS_LIST = "batch:{batch_id}:event_history"
 
 
-class EventType(StrEnum):
+class EventType(str, Enum):
     """Types of batch events.
 
     Attributes:

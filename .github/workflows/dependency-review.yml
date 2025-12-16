@@ -1,10 +1,16 @@
 # Dependency Review - Analyzes dependency changes in PRs
 # Checks for vulnerabilities and license compliance
 #
+# Note: This workflow is intentionally separate from security-analysis.yml because:
+#   1. It covers PRs to develop branch (security-analysis only covers main/master)
+#   2. It provides explicit license deny/allow lists for compliance
+#   3. Uses GitHub's native dependency-review-action for manifest-based analysis
+#
 # Features:
 #   - Vulnerability detection in dependency changes
-#   - License compliance checking
+#   - License compliance checking (denies GPL/AGPL copyleft licenses)
 #   - Blocks PRs with high severity vulnerabilities
+#   - PR commenting on failures
 name: Dependency Review
 
 on:
