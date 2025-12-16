@@ -562,7 +562,9 @@ class TestFileClassifier:
                     extension_match=True,
                 ),
             ),
-            patch("pdfplumber.open", side_effect=PDFPasswordIncorrect("Password required")),
+            patch(
+                "pdfplumber.open", side_effect=PDFPasswordIncorrect("Password required")
+            ),
         ):
             result = classifier.classify_from_bytes(b"%PDF-1.4", "encrypted.pdf")
 
@@ -585,7 +587,10 @@ class TestFileRouter:
     def test_default_routing_config(self) -> None:
         """Test default routing configuration."""
         assert DEFAULT_ROUTING[FileClassification.SCANNED_PDF] == Pipeline.OCR
-        assert DEFAULT_ROUTING[FileClassification.BORN_DIGITAL_PDF] == Pipeline.DOC_PROCESSING
+        assert (
+            DEFAULT_ROUTING[FileClassification.BORN_DIGITAL_PDF]
+            == Pipeline.DOC_PROCESSING
+        )
         assert DEFAULT_ROUTING[FileClassification.IMAGE] == Pipeline.OCR
         assert DEFAULT_ROUTING[FileClassification.AUDIO] == Pipeline.TRANSCRIPTION
         assert DEFAULT_ROUTING[FileClassification.VIDEO] == Pipeline.TRANSCRIPTION
@@ -693,7 +698,9 @@ class TestFileRouter:
             return_value=ClassificationResult(
                 classification=FileClassification.DOCUMENT,
                 confidence="high",
-                details={"mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+                details={
+                    "mime_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                },
             ),
         ):
             result = router.route_from_bytes(b"docx content", "test.docx")
@@ -744,15 +751,24 @@ class TestFileRouter:
         """Test getting pipeline for a classification."""
         router = FileRouter()
 
-        assert router.get_pipeline_for_classification(
-            FileClassification.SCANNED_PDF,
-        ) == Pipeline.OCR
-        assert router.get_pipeline_for_classification(
-            FileClassification.AUDIO,
-        ) == Pipeline.TRANSCRIPTION
-        assert router.get_pipeline_for_classification(
-            FileClassification.UNKNOWN,
-        ) == Pipeline.NONE
+        assert (
+            router.get_pipeline_for_classification(
+                FileClassification.SCANNED_PDF,
+            )
+            == Pipeline.OCR
+        )
+        assert (
+            router.get_pipeline_for_classification(
+                FileClassification.AUDIO,
+            )
+            == Pipeline.TRANSCRIPTION
+        )
+        assert (
+            router.get_pipeline_for_classification(
+                FileClassification.UNKNOWN,
+            )
+            == Pipeline.NONE
+        )
 
     def test_is_supported(self) -> None:
         """Test checking if classification is supported."""

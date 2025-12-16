@@ -315,9 +315,7 @@ class TestJWKSCaching:
             call_count += 1
             return {"keys": [PUBLIC_JWK]}
 
-        with patch.object(
-            CloudflareAuthMiddleware, "_get_jwks", mock_get_jwks
-        ):
+        with patch.object(CloudflareAuthMiddleware, "_get_jwks", mock_get_jwks):
             # Make two requests
             client.get(
                 "/api/v1/user/me",

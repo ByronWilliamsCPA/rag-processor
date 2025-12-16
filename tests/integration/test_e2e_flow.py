@@ -99,9 +99,7 @@ class TestEndToEndUploadFlow:
         assert "classification" in job
         assert "pipeline" in job
 
-    def test_upload_multiple_files_creates_batch(
-        self, client: TestClient
-    ) -> None:
+    def test_upload_multiple_files_creates_batch(self, client: TestClient) -> None:
         """Test uploading multiple files creates single batch with multiple jobs."""
         with patch("rag_processor.api.ingest.detect_mime_type") as mock_detect:
             mock_detect.side_effect = ["application/pdf", "text/plain"]
@@ -143,7 +141,12 @@ class TestErrorHandling:
 
             response = client.post(
                 "/api/v1/ingest",
-                files=[("files", ("bad.exe", BytesIO(b"MZ..."), "application/octet-stream"))],
+                files=[
+                    (
+                        "files",
+                        ("bad.exe", BytesIO(b"MZ..."), "application/octet-stream"),
+                    )
+                ],
             )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST

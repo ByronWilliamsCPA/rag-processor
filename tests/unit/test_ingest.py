@@ -142,7 +142,12 @@ class TestIngestEndpoint:
 
             response = client.post(
                 "/api/v1/ingest",
-                files=[("files", ("bad.exe", BytesIO(b"MZ..."), "application/octet-stream"))],
+                files=[
+                    (
+                        "files",
+                        ("bad.exe", BytesIO(b"MZ..."), "application/octet-stream"),
+                    )
+                ],
             )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -175,7 +180,9 @@ class TestFilenameSanitization:
 
             response = client.post(
                 "/api/v1/ingest",
-                files=[("files", ("../../../etc/passwd", BytesIO(b"test"), "text/plain"))],
+                files=[
+                    ("files", ("../../../etc/passwd", BytesIO(b"test"), "text/plain"))
+                ],
             )
 
         assert response.status_code == status.HTTP_201_CREATED

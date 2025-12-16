@@ -83,7 +83,11 @@ def init_sentry(
         logger.info("SENTRY_DSN not set. Sentry integration disabled.")
         return
 
-    environment = environment or os.getenv("SENTRY_ENVIRONMENT") or os.getenv("ENVIRONMENT", "development")
+    environment = (
+        environment
+        or os.getenv("SENTRY_ENVIRONMENT")
+        or os.getenv("ENVIRONMENT", "development")
+    )
     release = release or os.getenv("SENTRY_RELEASE") or _get_release_version()
 
     # Configure integrations
@@ -96,20 +100,20 @@ def init_sentry(
     ]
 
     # FastAPI integration - automatic request tracking
-    integrations.extend([
-        StarletteIntegration(
-            transaction_style="endpoint",  # Use endpoint name as transaction
-            failed_request_status_codes=[range(500, 599)],  # Only 5xx errors
-        ),
-        FastApiIntegration(
-            transaction_style="endpoint",
-            failed_request_status_codes=[range(500, 599)],
-        ),
-    ])
-    # SQLAlchemy integration - track database queries
-    integrations.append(
-        SqlalchemyIntegration()
+    integrations.extend(
+        [
+            StarletteIntegration(
+                transaction_style="endpoint",  # Use endpoint name as transaction
+                failed_request_status_codes=[range(500, 599)],  # Only 5xx errors
+            ),
+            FastApiIntegration(
+                transaction_style="endpoint",
+                failed_request_status_codes=[range(500, 599)],
+            ),
+        ]
     )
+    # SQLAlchemy integration - track database queries
+    integrations.append(SqlalchemyIntegration())
     # Initialize Sentry
     sentry_sdk.init(
         dsn=dsn,
@@ -148,10 +152,14 @@ def _get_release_version() -> str:
     try:
         import subprocess
 
-        sha = subprocess.check_output(
-            ["git", "rev-parse", "--short", "HEAD"],
-            stderr=subprocess.DEVNULL,
-        ).decode().strip()
+        sha = (
+            subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"],
+                stderr=subprocess.DEVNULL,
+            )
+            .decode()
+            .strip()
+        )
         return f"rag_processor@{sha}"
     except (subprocess.CalledProcessError, FileNotFoundError):
         pass
@@ -159,6 +167,7 @@ def _get_release_version() -> str:
     # Fallback to package version
     try:
         from importlib.metadata import version
+
         pkg_version = version("rag-processor")
         return f"rag_processor@{pkg_version}"
     except Exception:
@@ -168,7 +177,9 @@ def _get_release_version() -> str:
     return "rag_processor@0.1.0"
 
 
-def before_send_hook(event: dict[str, Any], hint: dict[str, Any]) -> dict[str, Any] | None:
+def before_send_hook(
+    event: dict[str, Any], hint: dict[str, Any]
+) -> dict[str, Any] | None:
     """Filter and modify events before sending to Sentry.
 
     This hook allows you to:
@@ -206,7 +217,9 @@ def before_send_hook(event: dict[str, Any], hint: dict[str, Any]) -> dict[str, A
     return event
 
 
-def before_breadcrumb_hook(crumb: dict[str, Any], hint: dict[str, Any]) -> dict[str, Any] | None:
+def before_breadcrumb_hook(
+    crumb: dict[str, Any], hint: dict[str, Any]
+) -> dict[str, Any] | None:
     """Filter and modify breadcrumbs before adding to events.
 
     Breadcrumbs are actions/events leading up to an error.

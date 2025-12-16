@@ -107,7 +107,9 @@ class RedisStore:
 
         if updates:
             self._redis.hset(key, mapping=updates)
-            logger.debug("Batch status updated", batch_id=str(batch_id), updates=updates)
+            logger.debug(
+                "Batch status updated", batch_id=str(batch_id), updates=updates
+            )
 
     def save_job(self, job: Job) -> None:
         """Save a job to Redis.

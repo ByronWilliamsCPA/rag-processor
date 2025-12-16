@@ -498,9 +498,7 @@ class TestJobFunctions:
         )
         self.store.save_job(job)
 
-        with patch(
-            "rag_processor.queue.jobs.get_redis_store", return_value=self.store
-        ):
+        with patch("rag_processor.queue.jobs.get_redis_store", return_value=self.store):
             from rag_processor.queue.jobs import get_job_status
 
             result = get_job_status(job.job_id)
@@ -513,9 +511,7 @@ class TestJobFunctions:
         """Test getting status of non-existent job."""
         from unittest.mock import patch
 
-        with patch(
-            "rag_processor.queue.jobs.get_redis_store", return_value=self.store
-        ):
+        with patch("rag_processor.queue.jobs.get_redis_store", return_value=self.store):
             from rag_processor.queue.jobs import get_job_status
 
             result = get_job_status(uuid4())
@@ -550,9 +546,7 @@ class TestJobFunctions:
         self.store.save_job(job1)
         self.store.save_job(job2)
 
-        with patch(
-            "rag_processor.queue.jobs.get_redis_store", return_value=self.store
-        ):
+        with patch("rag_processor.queue.jobs.get_redis_store", return_value=self.store):
             from rag_processor.queue.jobs import get_batch_status
 
             result_batch, result_jobs = get_batch_status(batch.batch_id)
@@ -565,9 +559,7 @@ class TestJobFunctions:
         """Test getting status of non-existent batch."""
         from unittest.mock import patch
 
-        with patch(
-            "rag_processor.queue.jobs.get_redis_store", return_value=self.store
-        ):
+        with patch("rag_processor.queue.jobs.get_redis_store", return_value=self.store):
             from rag_processor.queue.jobs import get_batch_status
 
             result_batch, result_jobs = get_batch_status(uuid4())
@@ -605,9 +597,7 @@ class TestJobFunctions:
         self.store.save_job(job1)
         self.store.save_job(job2)
 
-        with patch(
-            "rag_processor.queue.jobs.get_redis_store", return_value=self.store
-        ):
+        with patch("rag_processor.queue.jobs.get_redis_store", return_value=self.store):
             from rag_processor.queue.jobs import update_batch_progress
 
             update_batch_progress(batch.batch_id)
@@ -648,9 +638,7 @@ class TestJobFunctions:
         self.store.save_job(job1)
         self.store.save_job(job2)
 
-        with patch(
-            "rag_processor.queue.jobs.get_redis_store", return_value=self.store
-        ):
+        with patch("rag_processor.queue.jobs.get_redis_store", return_value=self.store):
             from rag_processor.queue.jobs import update_batch_progress
 
             update_batch_progress(batch.batch_id)
@@ -691,9 +679,7 @@ class TestJobFunctions:
         self.store.save_job(job1)
         self.store.save_job(job2)
 
-        with patch(
-            "rag_processor.queue.jobs.get_redis_store", return_value=self.store
-        ):
+        with patch("rag_processor.queue.jobs.get_redis_store", return_value=self.store):
             from rag_processor.queue.jobs import update_batch_progress
 
             update_batch_progress(batch.batch_id)
@@ -734,9 +720,7 @@ class TestJobFunctions:
         self.store.save_job(job1)
         self.store.save_job(job2)
 
-        with patch(
-            "rag_processor.queue.jobs.get_redis_store", return_value=self.store
-        ):
+        with patch("rag_processor.queue.jobs.get_redis_store", return_value=self.store):
             from rag_processor.queue.jobs import update_batch_progress
 
             update_batch_progress(batch.batch_id)
@@ -749,9 +733,7 @@ class TestJobFunctions:
         """Test batch progress update for non-existent batch."""
         from unittest.mock import patch
 
-        with patch(
-            "rag_processor.queue.jobs.get_redis_store", return_value=self.store
-        ):
+        with patch("rag_processor.queue.jobs.get_redis_store", return_value=self.store):
             from rag_processor.queue.jobs import update_batch_progress
 
             # Should not raise, just log warning
@@ -779,9 +761,7 @@ class TestJobFunctions:
         )
         self.store.save_job(job)
 
-        with patch(
-            "rag_processor.queue.jobs.get_redis_store", return_value=self.store
-        ):
+        with patch("rag_processor.queue.jobs.get_redis_store", return_value=self.store):
             from rag_processor.queue.jobs import process_job_task
 
             result = process_job_task(str(job.job_id))
@@ -798,9 +778,7 @@ class TestJobFunctions:
         """Test processing a non-existent job."""
         from unittest.mock import patch
 
-        with patch(
-            "rag_processor.queue.jobs.get_redis_store", return_value=self.store
-        ):
+        with patch("rag_processor.queue.jobs.get_redis_store", return_value=self.store):
             from rag_processor.queue.jobs import process_job_task
 
             result = process_job_task(str(uuid4()))
@@ -824,6 +802,7 @@ class TestQueueClientExtended:
 
     def test_enqueue_with_timeout(self) -> None:
         """Test enqueueing with job timeout."""
+
         def dummy_task(x: int) -> int:
             return x * 2
 
@@ -843,6 +822,7 @@ class TestQueueClientExtended:
 
     def test_enqueue_with_retry(self) -> None:
         """Test enqueueing with retry count."""
+
         def dummy_task(x: int) -> int:
             return x * 2
 
@@ -860,6 +840,7 @@ class TestQueueClientExtended:
 
     def test_enqueue_low_priority(self) -> None:
         """Test enqueueing to low priority queue."""
+
         def dummy_task() -> str:
             return "done"
 
