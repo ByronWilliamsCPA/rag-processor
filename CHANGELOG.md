@@ -31,6 +31,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - python-magic for file type detection
   - pdfplumber for PDF text extraction
 
+#### CI/CD Improvements
+
+- **Fuzzing Infrastructure**: Added ClusterFuzzLite integration with Atheris
+  - `fuzz_file_classifier.py` - Tests PDF classification with malformed input
+  - `fuzz_file_detector.py` - Tests MIME type detection
+  - `fuzz_jwt_validation.py` - Tests JWT header parsing
+- **Workflow Fixes**: Resolved permission and concurrency issues in reusable workflows
+  - Fixed CI concurrency deadlock with org workflow
+  - Fixed SBOM permission requirements for artifact metadata
+  - Fixed Security Analysis permissions for CodeQL
+
 ### Changed
 
 - Updated `.env.example` with Redis, Cloudflare, and pipeline configuration
