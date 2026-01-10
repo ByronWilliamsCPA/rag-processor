@@ -417,6 +417,64 @@ Each sprint includes:
 - Testing requirements
 - Integration points
 
+---
+
+## Architecture Pivot: Paperless-ngx Integration (2026-01-10)
+
+> **Status**: Proposed | See [ADR-002](./adr/adr-002-paperless-ngx-integration.md)
+
+### Rationale
+
+After researching the open-source ecosystem, we propose integrating with **Paperless-ngx** as the user-facing document management system rather than building a custom React WebUI. This decision is driven by:
+
+1. **Paperless-ngx** provides a mature, feature-rich document management UI
+2. **Paperless-AI** demonstrates successful RAG integration patterns
+3. **Docling** (IBM) offers superior OCR with layout-aware extraction
+
+### New Architecture
+
+```
+┌─────────────────────────────────────┐
+│     Paperless-ngx (User-Facing)     │
+│  • Document upload, preview, tags   │
+│  • Full-text search (Whoosh)        │
+│  • User management                  │
+└──────────────┬──────────────────────┘
+               │ Webhook / API
+               ▼
+┌─────────────────────────────────────┐
+│     RAG Processor (This Project)    │
+│  • Docling OCR pipeline             │
+│  • Hierarchical chunking            │
+│  • Vector embedding generation      │
+│  • Semantic search                  │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│     Vector Database (Qdrant)        │
+│  • Semantic embeddings              │
+│  • Metadata filtering               │
+│  • Hybrid search (vector + BM25)    │
+└─────────────────────────────────────┘
+```
+
+### Impact on Phases
+
+| Original Phase | Updated Focus |
+|----------------|---------------|
+| Phase 0: Foundation | Add Paperless-ngx to Docker Compose, configure integration |
+| Phase 1: MVP Core | Replace custom UI with Paperless webhook integration, Docling pipeline |
+| Phase 2: Enhancement | Vector store indexing, hybrid search |
+| Phase 3: Polish | RAG query API, metadata sync, documentation |
+
+### Key Documents
+
+- **Architecture Decision**: [ADR-002: Paperless-ngx Integration](./adr/adr-002-paperless-ngx-integration.md)
+- **Technical Analysis**: [Paperless Integration Analysis](./paperless-integration-analysis.md)
+
+---
+
 ## Document References
 
 **Planning Documents**:
@@ -424,7 +482,8 @@ Each sprint includes:
 - [Project Vision & Scope](./project-vision.md): Problem statement, target users, scope boundaries, success metrics
 - [Technical Specification](./tech-spec.md): Architecture, API endpoints, data model, security, performance
 - [Development Roadmap](./roadmap.md): Phase overview with user stories and dependencies
-- [Architecture Decisions](./adr/): ADR-001 (React + FastAPI architecture)
+- [Architecture Decisions](./adr/): ADR-001 (React + FastAPI), ADR-002 (Paperless-ngx Integration)
+- [Paperless Integration Analysis](./paperless-integration-analysis.md): Deep dive technical analysis
 
 **Phase Plans** (Sprint-Level Detail):
 
