@@ -123,6 +123,234 @@ However, Paperless-ngx has limitations:
 - Requires building user management, preview, thumbnails from scratch
 - Longer time to production
 
+## Multi-Tenancy Architecture
+
+### Constraint: Paperless-ngx Has No Native Multi-Tenancy
+
+Research confirms that **Paperless-ngx was not designed for multi-tenancy**. Key limitations:
+
+| Limitation | Impact |
+|------------|--------|
+| **Shared Search Index** | All users share Whoosh index - document existence leaks across tenants |
+| **Global Tags/Correspondents** | Metadata is not scoped per tenant |
+| **File Duplicate Detection** | Same file uploaded by different clients triggers duplicate error |
+| **API Token Scope** | Tokens inherit all permissions of owner - no granular scoping |
+| **Consumption Templates** | Cannot filter by uploader - all uploads get same automation |
+
+### Decision: Separate Paperless Instances Per Client
+
+For client isolation, we adopt **one Paperless-ngx instance per client** with RAG Processor as the central orchestration layer.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         RAG PROCESSOR GATEWAY                           │
+│                      (Central Tenant Router)                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   ┌──────────────────────────────────────────────────────────────────┐  │
+│   │                    Tenant Router                                  │  │
+│   │  • Authentication (OIDC/OAuth)                                   │  │
+│   │  • Tenant identification from JWT claims                         │  │
+│   │  • API request routing                                           │  │
+│   │  • Query federation across tenants (admin only)                  │  │
+│   └───────────────────────────────┬──────────────────────────────────┘  │
+│                                   │                                      │
+│           ┌───────────────────────┼───────────────────────┐             │
+│           │                       │                       │             │
+│           ▼                       ▼                       ▼             │
+│   ┌───────────────┐     ┌─────────────────┐     ┌─────────────────┐    │
+│   │ Tenant A      │     │ Tenant B        │     │ Tenant C        │    │
+│   │ Config        │     │ Config          │     │ Config          │    │
+│   │               │     │                 │     │                 │    │
+│   │ • API URL     │     │ • API URL       │     │ • API URL       │    │
+│   │ • API Token   │     │ • API Token     │     │ • API Token     │    │
+│   │ • Vector NS   │     │ • Vector NS     │     │ • Vector NS     │    │
+│   └───────┬───────┘     └───────┬─────────┘     └───────┬─────────┘    │
+│           │                     │                       │               │
+└───────────┼─────────────────────┼───────────────────────┼───────────────┘
+            │                     │                       │
+            ▼                     ▼                       ▼
+┌───────────────────┐  ┌───────────────────┐  ┌───────────────────┐
+│  Paperless-ngx    │  │  Paperless-ngx    │  │  Paperless-ngx    │
+│  (Tenant A)       │  │  (Tenant B)       │  │  (Tenant C)       │
+│                   │  │                   │  │                   │
+│  • Separate DB    │  │  • Separate DB    │  │  • Separate DB    │
+│  • Separate files │  │  • Separate files │  │  • Separate files │
+│  • Own users      │  │  • Own users      │  │  • Own users      │
+└─────────┬─────────┘  └─────────┬─────────┘  └─────────┬─────────┘
+          │                      │                      │
+          └──────────────────────┼──────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         VECTOR DATABASE (Qdrant)                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐        │
+│   │ Collection:     │  │ Collection:     │  │ Collection:     │        │
+│   │ tenant_a        │  │ tenant_b        │  │ tenant_c        │        │
+│   │                 │  │                 │  │                 │        │
+│   │ • Embeddings    │  │ • Embeddings    │  │ • Embeddings    │        │
+│   │ • Metadata      │  │ • Metadata      │  │ • Metadata      │        │
+│   │ • Isolated      │  │ • Isolated      │  │ • Isolated      │        │
+│   └─────────────────┘  └─────────────────┘  └─────────────────┘        │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Tenant Configuration Model
+
+```python
+from pydantic import BaseModel, SecretStr
+from enum import Enum
+
+class TenantStatus(str, Enum):
+    ACTIVE = "active"
+    SUSPENDED = "suspended"
+    PROVISIONING = "provisioning"
+
+class TenantConfig(BaseModel):
+    """Configuration for a single tenant's Paperless-ngx instance."""
+    tenant_id: str                          # Unique identifier (e.g., "acme-corp")
+    tenant_name: str                        # Display name
+    status: TenantStatus
+
+    # Paperless-ngx connection
+    paperless_url: str                      # e.g., "https://docs.acme.example.com"
+    paperless_api_token: SecretStr          # API token for this instance
+    paperless_webhook_secret: SecretStr     # Webhook signature verification
+
+    # Vector database isolation
+    vector_collection: str                  # e.g., "tenant_acme_corp"
+
+    # Resource limits
+    max_documents: int | None = None        # Document quota
+    max_storage_gb: float | None = None     # Storage quota
+
+    # Feature flags
+    docling_enabled: bool = True            # Use advanced OCR
+    audio_transcription: bool = False       # Whisper integration
+
+
+class TenantRegistry:
+    """Registry of all tenant configurations."""
+
+    def get_tenant(self, tenant_id: str) -> TenantConfig | None:
+        """Look up tenant by ID."""
+        ...
+
+    def get_tenant_by_domain(self, domain: str) -> TenantConfig | None:
+        """Look up tenant by Paperless instance domain."""
+        ...
+
+    def get_tenant_from_jwt(self, jwt_claims: dict) -> TenantConfig | None:
+        """Extract tenant from JWT claims (e.g., organization claim)."""
+        ...
+```
+
+### Authentication Strategy
+
+**Option 1: Centralized OIDC (Recommended)**
+
+RAG Processor handles authentication via OIDC (Keycloak, Auth0, Authentik):
+
+```
+User → RAG Processor (OIDC auth) → Route to tenant → Paperless API (service token)
+```
+
+- Users authenticate against central IdP
+- JWT contains `tenant_id` or `organization` claim
+- RAG Processor uses per-tenant service tokens to call Paperless APIs
+
+**Option 2: Paperless-Passthrough**
+
+Users authenticate directly against their Paperless instance:
+
+```
+User → Paperless-ngx (OIDC/local auth) → Webhook → RAG Processor (API key)
+```
+
+- Each Paperless instance configured with its own OIDC provider or local auth
+- Webhooks include tenant identification
+- RAG Processor validates webhook signatures per tenant
+
+### Deployment Pattern: Docker Compose Per Tenant
+
+Each tenant gets an isolated Docker Compose stack:
+
+```yaml
+# docker-compose.tenant-a.yml
+services:
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    environment:
+      PAPERLESS_URL: https://docs.tenant-a.example.com
+      PAPERLESS_DBHOST: postgres-tenant-a
+      PAPERLESS_REDIS: redis://redis-tenant-a:6379
+    networks:
+      - tenant-a-internal
+      - rag-processor-shared
+
+  postgres-tenant-a:
+    image: postgres:15-alpine
+    volumes:
+      - tenant-a-db:/var/lib/postgresql/data
+    networks:
+      - tenant-a-internal
+
+  redis-tenant-a:
+    image: redis:7-alpine
+    networks:
+      - tenant-a-internal
+
+networks:
+  tenant-a-internal:
+    internal: true
+  rag-processor-shared:
+    external: true
+
+volumes:
+  tenant-a-db:
+  tenant-a-data:
+  tenant-a-media:
+```
+
+### Resource Considerations
+
+| Component | Per-Tenant Overhead | Notes |
+|-----------|---------------------|-------|
+| Paperless-ngx | ~500MB RAM | Django + Celery workers |
+| PostgreSQL | ~100MB RAM | Per-tenant database |
+| Redis | ~50MB RAM | Can potentially share with prefix |
+| Vector Collection | Variable | Based on document count |
+
+**Scaling Recommendation**: For >10 tenants, consider Kubernetes with per-tenant namespaces.
+
+### Cross-Tenant Queries (Admin Only)
+
+For administrative dashboards or global search (with proper authorization):
+
+```python
+async def federated_search(
+    query: str,
+    tenant_ids: list[str],  # Must be authorized
+    top_k: int = 10
+) -> list[SearchResult]:
+    """Search across multiple tenant vector stores."""
+    results = []
+    for tenant_id in tenant_ids:
+        tenant = registry.get_tenant(tenant_id)
+        tenant_results = await vector_db.search(
+            collection=tenant.vector_collection,
+            query=query,
+            limit=top_k
+        )
+        results.extend(tenant_results)
+
+    # Re-rank combined results
+    return rerank(results, query)[:top_k]
+```
+
 ## Architecture
 
 ### System Components
@@ -425,22 +653,27 @@ Create these custom fields in Paperless-ngx for RAG integration:
 | Webhook reliability | Medium | Medium | Periodic scanner as backup |
 | Data sync drift | Medium | High | Reconciliation job, checksums |
 | Docling performance at scale | Low | Medium | Batch processing, worker scaling |
+| Multi-tenant resource overhead | Medium | High | Kubernetes scaling, shared components where safe |
+| Cross-tenant data leakage | Low | Critical | Strict tenant isolation, separate collections, audit logging |
+| Tenant provisioning complexity | Medium | Medium | Terraform/Pulumi automation, tenant templates |
+| Authentication token management | Medium | High | Secret rotation, HashiCorp Vault integration |
 
 ## Implementation Plan
 
-### Phase 1: Foundation (Current Phase 0 + Integration)
+### Phase 1: Foundation (Single Tenant)
 
-- [ ] Deploy Paperless-ngx via Docker Compose alongside RAG Processor
+- [ ] Deploy single Paperless-ngx instance via Docker Compose (separate from RAG Processor)
 - [ ] Implement Paperless API client in RAG Processor
 - [ ] Create webhook endpoint for document consumption events
 - [ ] Implement periodic scanner as webhook backup
+- [ ] Basic authentication (API token)
 
 ### Phase 2: Docling Pipeline
 
 - [ ] Integrate Docling for advanced OCR processing
 - [ ] Implement hierarchical chunking with metadata preservation
 - [ ] Build embedding generation pipeline
-- [ ] Configure vector database (Qdrant or Milvus)
+- [ ] Configure vector database (Qdrant) with single collection
 
 ### Phase 3: RAG Service
 
@@ -449,12 +682,37 @@ Create these custom fields in Paperless-ngx for RAG integration:
 - [ ] Build RAG query API
 - [ ] Create chat interface (optional, can use existing tools)
 
-### Phase 4: Metadata Sync
+### Phase 4: Multi-Tenancy Foundation
+
+- [ ] Design tenant configuration schema
+- [ ] Implement tenant registry (database-backed)
+- [ ] Add tenant routing middleware
+- [ ] Create per-tenant vector collections in Qdrant
+- [ ] Webhook signature verification per tenant
+
+### Phase 5: Authentication & RBAC
+
+- [ ] Integrate OIDC provider (Keycloak/Authentik/Auth0)
+- [ ] Tenant extraction from JWT claims
+- [ ] Per-tenant API token management
+- [ ] Admin vs user role separation
+- [ ] Audit logging for cross-tenant operations
+
+### Phase 6: Tenant Provisioning
+
+- [ ] Tenant onboarding API/workflow
+- [ ] Docker Compose template generation per tenant
+- [ ] Terraform/Pulumi modules for infrastructure
+- [ ] Automated Paperless-ngx instance deployment
+- [ ] Custom field and tag setup automation
+
+### Phase 7: Metadata Sync & Operations
 
 - [ ] Paperless custom fields for RAG metadata
 - [ ] Bidirectional sync for document updates
-- [ ] Reconciliation job for drift detection
-- [ ] Admin dashboard for monitoring
+- [ ] Per-tenant reconciliation jobs
+- [ ] Admin dashboard for tenant monitoring
+- [ ] Resource usage tracking per tenant
 
 ## References
 

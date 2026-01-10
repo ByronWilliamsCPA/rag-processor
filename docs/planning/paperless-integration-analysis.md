@@ -815,13 +815,74 @@ services:
 
 ---
 
-## 6. Open Questions
+## 6. Multi-Tenancy Considerations
+
+> **Decision**: Separate Paperless-ngx instances per client. See [ADR-002](./adr/adr-002-paperless-ngx-integration.md#multi-tenancy-architecture) for full details.
+
+### Why Separate Instances?
+
+Paperless-ngx **lacks native multi-tenancy**. Key limitations:
+
+| Limitation | Risk |
+|------------|------|
+| Shared Whoosh search index | Document existence leaks across tenants |
+| Global tags/correspondents | Metadata mixing between clients |
+| Single duplicate detection | Same file for different clients = error |
+| No API token scoping | Token gives full owner permissions |
+
+### Recommended Architecture
+
+```
+                    ┌─────────────────────────┐
+                    │    RAG Processor        │
+                    │   (Tenant Router)       │
+                    └───────────┬─────────────┘
+                                │
+        ┌───────────────────────┼───────────────────────┐
+        │                       │                       │
+        ▼                       ▼                       ▼
+┌───────────────┐      ┌───────────────┐      ┌───────────────┐
+│ Paperless-ngx │      │ Paperless-ngx │      │ Paperless-ngx │
+│  (Client A)   │      │  (Client B)   │      │  (Client C)   │
+└───────────────┘      └───────────────┘      └───────────────┘
+        │                       │                       │
+        └───────────────────────┼───────────────────────┘
+                                │
+                                ▼
+                    ┌─────────────────────────┐
+                    │  Qdrant Vector Store    │
+                    │  (Per-tenant collections)│
+                    └─────────────────────────┘
+```
+
+### Key Design Decisions
+
+1. **Paperless runs in separate Docker stacks** (not co-located with RAG Processor)
+2. **RAG Processor acts as central gateway** with tenant routing
+3. **Per-tenant vector collections** in Qdrant for isolation
+4. **Centralized OIDC authentication** with tenant claims in JWT
+5. **Per-tenant API tokens** stored securely (Vault recommended)
+
+### Resource Planning
+
+| Tenants | Paperless RAM | PostgreSQL RAM | Total Overhead |
+|---------|---------------|----------------|----------------|
+| 1 | ~500MB | ~100MB | ~650MB |
+| 5 | ~2.5GB | ~500MB | ~3.25GB |
+| 10 | ~5GB | ~1GB | ~6.5GB |
+| 20+ | Consider Kubernetes | | |
+
+---
+
+## 7. Open Questions
 
 1. **Vector Database Selection**: Qdrant vs Milvus vs PGVector - need to evaluate based on expected document volume
 2. **Embedding Model**: OpenAI (cost) vs open-source (latency/quality trade-off)
 3. **Chat Interface**: Build custom or use existing tools (Chainlit, Streamlit)?
-4. **Multi-tenancy**: Single Paperless instance or per-tenant isolation?
+4. ~~**Multi-tenancy**: Single Paperless instance or per-tenant isolation?~~ **Decided: Per-tenant instances**
 5. **Backup Strategy**: How to handle vector store backups in sync with Paperless?
+6. **Tenant Provisioning**: Manual vs automated Paperless instance deployment?
+7. **OIDC Provider**: Keycloak (self-hosted) vs Auth0 (SaaS) vs Authentik?
 
 ---
 
