@@ -250,29 +250,29 @@ class TenantRegistry:
 
 ### Authentication Strategy
 
-**Option 1: Centralized OIDC (Recommended)**
+> **Decision**: Authentication is handled externally via **Authentik**. RAG Processor only validates JWTs.
 
-RAG Processor handles authentication via OIDC (Keycloak, Auth0, Authentik):
-
-```
-User → RAG Processor (OIDC auth) → Route to tenant → Paperless API (service token)
-```
-
-- Users authenticate against central IdP
-- JWT contains `tenant_id` or `organization` claim
-- RAG Processor uses per-tenant service tokens to call Paperless APIs
-
-**Option 2: Paperless-Passthrough**
-
-Users authenticate directly against their Paperless instance:
+**Architecture**:
 
 ```
-User → Paperless-ngx (OIDC/local auth) → Webhook → RAG Processor (API key)
+User → Authentik (OIDC) → JWT with tenant claim → RAG Processor (validates JWT)
+                                                          │
+                                                          ▼
+                                               Route to tenant's Paperless
+                                               (using stored service token)
 ```
 
-- Each Paperless instance configured with its own OIDC provider or local auth
-- Webhooks include tenant identification
-- RAG Processor validates webhook signatures per tenant
+**RAG Processor Responsibilities**:
+- Validate JWT signature against Authentik JWKS endpoint
+- Extract tenant ID from JWT claims
+- Look up tenant configuration (Paperless URL, API token)
+- Route requests to correct Paperless instance
+
+**Out of Scope** (handled externally):
+- User provisioning
+- Tenant provisioning
+- Authentik configuration
+- SSO setup for Paperless instances
 
 ### Deployment Pattern: Docker Compose Per Tenant
 
@@ -660,65 +660,58 @@ Create these custom fields in Paperless-ngx for RAG integration:
 
 ## Implementation Plan
 
+> **Scope Note**: Authentication (Authentik) and tenant provisioning are handled externally.
+
 ### Phase 1: Foundation (Single Tenant)
 
-- [ ] Deploy single Paperless-ngx instance via Docker Compose (separate from RAG Processor)
 - [ ] Implement Paperless API client in RAG Processor
 - [ ] Create webhook endpoint for document consumption events
+- [ ] Implement webhook signature verification
 - [ ] Implement periodic scanner as webhook backup
-- [ ] Basic authentication (API token)
+- [ ] JWT validation against Authentik JWKS
+- [ ] Tenant configuration loading (environment/config file)
 
 ### Phase 2: Docling Pipeline
 
 - [ ] Integrate Docling for advanced OCR processing
-- [ ] Implement hierarchical chunking with metadata preservation
+- [ ] Implement document classification (scanned vs born-digital)
+- [ ] Build hierarchical chunking with metadata preservation
 - [ ] Build embedding generation pipeline
-- [ ] Configure vector database (Qdrant) with single collection
+- [ ] Configure Qdrant vector database
 
 ### Phase 3: RAG Service
 
-- [ ] Implement hybrid search (vector + BM25)
-- [ ] Add cross-encoder reranking
-- [ ] Build RAG query API
-- [ ] Create chat interface (optional, can use existing tools)
+- [ ] Implement semantic search with filters
+- [ ] Add BM25 keyword search component
+- [ ] Implement cross-encoder reranking
+- [ ] Build RAG query API with LLM generation
+- [ ] Create search/query response formatting
 
-### Phase 4: Multi-Tenancy Foundation
+### Phase 4: Multi-Tenancy Support
 
-- [ ] Design tenant configuration schema
-- [ ] Implement tenant registry (database-backed)
-- [ ] Add tenant routing middleware
+- [ ] Implement tenant registry (config-based)
+- [ ] Add tenant routing middleware (from JWT claims)
 - [ ] Create per-tenant vector collections in Qdrant
-- [ ] Webhook signature verification per tenant
+- [ ] Per-tenant Paperless API token management
+- [ ] Tenant isolation validation
 
-### Phase 5: Authentication & RBAC
-
-- [ ] Integrate OIDC provider (Keycloak/Authentik/Auth0)
-- [ ] Tenant extraction from JWT claims
-- [ ] Per-tenant API token management
-- [ ] Admin vs user role separation
-- [ ] Audit logging for cross-tenant operations
-
-### Phase 6: Tenant Provisioning
-
-- [ ] Tenant onboarding API/workflow
-- [ ] Docker Compose template generation per tenant
-- [ ] Terraform/Pulumi modules for infrastructure
-- [ ] Automated Paperless-ngx instance deployment
-- [ ] Custom field and tag setup automation
-
-### Phase 7: Metadata Sync & Operations
+### Phase 5: Metadata Sync & Operations
 
 - [ ] Paperless custom fields for RAG metadata
-- [ ] Bidirectional sync for document updates
+- [ ] Document update sync (re-indexing on changes)
+- [ ] Document deletion sync (remove from vector store)
 - [ ] Per-tenant reconciliation jobs
-- [ ] Admin dashboard for tenant monitoring
-- [ ] Resource usage tracking per tenant
+- [ ] Monitoring and health checks
 
 ## References
 
+- [API Contracts](../api-contracts.md) - Inter-service communication contracts
+- [Paperless Integration Analysis](../paperless-integration-analysis.md) - Technical deep dive
 - [Paperless-ngx GitHub](https://github.com/paperless-ngx/paperless-ngx)
 - [Paperless-ngx Documentation](https://docs.paperless-ngx.com/)
 - [Paperless-AI GitHub](https://github.com/clusterzx/paperless-ai)
 - [Docling Documentation](https://docling-project.github.io/docling/)
 - [Docling GitHub](https://github.com/docling-project/docling)
+- [Qdrant Documentation](https://qdrant.tech/documentation/)
+- [Authentik Documentation](https://goauthentik.io/docs/)
 - [ADR-001: React-FastAPI Architecture](./adr-001-react-fastapi-architecture.md)
