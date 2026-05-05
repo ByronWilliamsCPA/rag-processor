@@ -112,7 +112,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}      # SonarCloud authentication
         with:
           args: >
-            -Dsonar.organization=williaby
+            -Dsonar.organization=byronwilliamscpa
             -Dsonar.projectKey=ByronWilliamsCPA_rag_processor
             -Dsonar.python.version=3.12
 
