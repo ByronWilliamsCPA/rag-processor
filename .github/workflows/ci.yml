@@ -35,13 +35,6 @@ jobs:
       coverage-threshold: 80
       source-directory: 'src'
       test-directory: 'tests'
-      enable-sonarcloud: true
-      sonarcloud-organization: 'ByronWilliamsCPA'
-      sonarcloud-project-key: 'ByronWilliamsCPA_rag_processor'
-      enable-codecov: true
       run-integration-tests: true
       run-security-tests: true
       fail-on-llm-tags: false
-    secrets:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
