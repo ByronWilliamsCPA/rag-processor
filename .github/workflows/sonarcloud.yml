@@ -113,7 +113,7 @@ jobs:
         with:
           args: >
             -Dsonar.organization=byronwilliamscpa
-            -Dsonar.projectKey=ByronWilliamsCPA_rag_processor
+            -Dsonar.projectKey=ByronWilliamsCPA_rag-processor
             -Dsonar.python.version=3.12
 
       - name: Check Quality Gate
