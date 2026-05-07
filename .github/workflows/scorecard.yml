@@ -1,4 +1,3 @@
----
 # OpenSSF Scorecard for RAG Processor
 # Security posture assessment and supply chain security validation.
 #
@@ -32,3 +31,5 @@ jobs:
       publish-results: true
       upload-sarif: true
       artifact-retention-days: 5
+    secrets:
+      SCORECARD_TOKEN: ${{ secrets.SCORECARD_TOKEN }}
