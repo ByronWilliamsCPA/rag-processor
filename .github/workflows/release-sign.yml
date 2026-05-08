@@ -1,0 +1,86 @@
+name: Sign Release Artifacts
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  sign:
+    name: Sign release artifacts with cosign
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da  # v3.7.0
+
+      - name: Download release assets
+        id: download
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          mkdir -p release-assets
+          if ! gh release download "$RELEASE_TAG" --dir release-assets/; then
+            asset_count=$(gh release view "$RELEASE_TAG" --json assets --jq '.assets | length' 2>/dev/null || echo "unknown")
+            if [ "$asset_count" = "0" ]; then
+              echo "No assets attached to release $RELEASE_TAG; skipping signing" >&2
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Failed to download assets for release $RELEASE_TAG (asset count: $asset_count)" >&2
+            exit 1
+          fi
+
+      - name: Sign release artifacts
+        if: steps.download.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          cd release-assets
+          signed_count=0
+          for artifact in *.whl *.tar.gz; do
+            [ -f "$artifact" ] || continue
+            cosign sign-blob \
+              --yes \
+              --output-signature "${artifact}.sig" \
+              --output-certificate "${artifact}.pem" \
+              "$artifact"
+            signed_count=$((signed_count + 1))
+          done
+          if [ "$signed_count" -eq 0 ]; then
+            echo "No .whl or .tar.gz artifacts found in release-assets; expected at least one" >&2
+            exit 1
+          fi
+
+      - name: Upload signatures
+        if: steps.download.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          cd release-assets
+          sig_files=()
+          for f in *.sig *.pem; do
+            [ -f "$f" ] && sig_files+=("$f")
+          done
+          if [ "${#sig_files[@]}" -gt 0 ]; then
+            gh release upload "$RELEASE_TAG" "${sig_files[@]}" --clobber
+          else
+            echo "No signature files found to upload; expected .sig and .pem from cosign" >&2
+            exit 1
+          fi
