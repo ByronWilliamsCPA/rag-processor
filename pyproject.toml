@@ -827,3 +827,10 @@ token = { env = "GH_TOKEN" }
 [tool.semantic_release.publish]
 dist_glob_patterns = ["dist/*"]
 upload_to_vcs_release = true
+
+# pip-audit configuration
+# See docs/known-vulnerabilities.md for documented rationale on each ignored CVE.
+[tool.pip-audit]
+ignore-vuln = [
+    "PYSEC-2022-42969",  # py 1.11.0 - transitive via interrogate; no fix available
+]
