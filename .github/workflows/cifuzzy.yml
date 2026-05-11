@@ -68,6 +68,7 @@ jobs:
           github-token: ${{  secrets.GITHUB_TOKEN  }}
           fuzz-seconds: 600
           mode: 'code-change'
+          language: python
           sanitizer: ${{  matrix.sanitizer  }}
           output-sarif: true
 
