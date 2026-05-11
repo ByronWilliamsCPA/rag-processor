@@ -7,6 +7,7 @@ Note: These tests use mocked Redis via the ingest endpoint's internal storage.
 from __future__ import annotations
 
 import tempfile
+from collections.abc import Generator
 from io import BytesIO
 from unittest.mock import patch
 from uuid import uuid4
@@ -24,13 +25,14 @@ from rag_processor.websocket.events import (
 
 
 @pytest.fixture
-def temp_upload_dir() -> str:
-    """Create a temporary upload directory."""
-    return tempfile.mkdtemp()
+def temp_upload_dir() -> Generator[str, None, None]:
+    """Create a temporary upload directory, cleaned up after the test."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        yield tmpdir
 
 
 @pytest.fixture(autouse=True)
-def mock_auth_settings() -> None:
+def mock_auth_settings() -> Generator[None, None, None]:
     """Mock auth settings to enable bypass mode."""
     with patch("rag_processor.auth.cloudflare.settings") as mock:
         mock.cloudflare_enabled = False
@@ -38,7 +40,7 @@ def mock_auth_settings() -> None:
 
 
 @pytest.fixture(autouse=True)
-def mock_ingest_settings(temp_upload_dir: str) -> None:
+def mock_ingest_settings(temp_upload_dir: str) -> Generator[None, None, None]:
     """Mock ingest settings for file upload."""
     with patch("rag_processor.api.ingest.settings") as mock:
         mock.max_file_size_mb = 100

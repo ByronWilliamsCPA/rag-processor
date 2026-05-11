@@ -167,9 +167,6 @@ validation/
 scripts/
 tools/
 
-# Fuzz testing
-fuzz/
-
 # REUSE compliance (not needed in runtime)
 REUSE.toml
 LICENSES/
