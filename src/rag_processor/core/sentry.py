@@ -178,9 +178,7 @@ def _get_release_version() -> str:
     return "rag_processor@0.1.0"
 
 
-def before_send_hook(
-    event: Event, hint: Hint
-) -> Event | None:
+def before_send_hook(event: Event, hint: Hint) -> Event | None:
     """Filter and modify events before sending to Sentry.
 
     This hook allows you to:
