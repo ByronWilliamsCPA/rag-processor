@@ -6,6 +6,7 @@ Provides Redis-based storage for batch and job metadata.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import cast
 from uuid import UUID  # noqa: TC003 - Used at runtime in function signatures
 
 import redis
@@ -72,7 +73,7 @@ class RedisStore:
             Batch if found, None otherwise.
         """
         key = f"{BATCH_KEY_PREFIX}{batch_id}"
-        data = self._redis.hgetall(key)
+        data = cast("dict[str, str]", self._redis.hgetall(key))
 
         if not data:
             return None
@@ -140,7 +141,7 @@ class RedisStore:
             Job if found, None otherwise.
         """
         key = f"{JOB_KEY_PREFIX}{job_id}"
-        data = self._redis.hgetall(key)
+        data = cast("dict[str, str]", self._redis.hgetall(key))
 
         if not data:
             return None
@@ -196,7 +197,7 @@ class RedisStore:
             List of jobs in the batch.
         """
         batch_jobs_key = f"{BATCH_JOBS_KEY_PREFIX}{batch_id}"
-        job_ids = self._redis.smembers(batch_jobs_key)
+        job_ids = cast("set[str]", self._redis.smembers(batch_jobs_key))
 
         jobs = []
         for job_id in job_ids:
@@ -214,7 +215,7 @@ class RedisStore:
         """
         # Get all job IDs
         batch_jobs_key = f"{BATCH_JOBS_KEY_PREFIX}{batch_id}"
-        job_ids = self._redis.smembers(batch_jobs_key)
+        job_ids = cast("set[str]", self._redis.smembers(batch_jobs_key))
 
         # Delete jobs
         for job_id in job_ids:
@@ -235,7 +236,7 @@ class RedisStore:
             True if Redis is reachable.
         """
         try:
-            return self._redis.ping()
+            return cast("bool", self._redis.ping())
         except redis.ConnectionError:
             return False
 

@@ -91,6 +91,7 @@ async def check_database() -> ReadinessCheck:
             name="database",
             status=True,
             latency_ms=round(latency_ms, 2),
+            error=None,
         )
     except Exception as e:
         latency_ms = (time.time() - start) * 1000
@@ -120,6 +121,7 @@ async def check_cache() -> ReadinessCheck:
             name="cache",
             status=True,
             latency_ms=round(latency_ms, 2),
+            error=None,
         )
     except Exception as e:
         latency_ms = (time.time() - start) * 1000
@@ -151,6 +153,7 @@ async def check_external_service() -> ReadinessCheck:
             name="external_api",
             status=True,
             latency_ms=round(latency_ms, 2),
+            error=None,
         )
     except Exception as e:
         latency_ms = (time.time() - start) * 1000

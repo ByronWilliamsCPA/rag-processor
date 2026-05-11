@@ -25,9 +25,15 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any
+import subprocess
+from typing import TYPE_CHECKING, Any
 
-logger = logging.getLogger(__name__)
+from rag_processor.utils.logging import get_logger
+
+if TYPE_CHECKING:
+    from sentry_sdk.types import Event, Hint
+
+logger = get_logger(__name__)
 
 
 def init_sentry(
@@ -147,8 +153,6 @@ def _get_release_version() -> str:
     """
     # Try to get git SHA
     try:
-        import subprocess
-
         sha = (
             subprocess.check_output(  # nosec B607 - git is safe, intentional partial path
                 ["git", "rev-parse", "--short", "HEAD"],
@@ -175,8 +179,8 @@ def _get_release_version() -> str:
 
 
 def before_send_hook(
-    event: dict[str, Any], hint: dict[str, Any]
-) -> dict[str, Any] | None:
+    event: Event, hint: Hint
+) -> Event | None:
     """Filter and modify events before sending to Sentry.
 
     This hook allows you to:
@@ -194,7 +198,7 @@ def before_send_hook(
     """
     # Example: Filter out specific exceptions
     if "exc_info" in hint:
-        exc_type, exc_value, _tb = hint["exc_info"]
+        exc_type, _exc_value, _tb = hint["exc_info"]
 
         # Don't send certain exception types
         if exc_type.__name__ in ("KeyboardInterrupt", "SystemExit"):

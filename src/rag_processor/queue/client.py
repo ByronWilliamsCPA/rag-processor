@@ -5,7 +5,7 @@ Provides interface for enqueueing jobs to Redis queues.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import redis
 from rq import Queue
@@ -138,7 +138,7 @@ class QueueClient:
         """
         total = 0
         for queue in self._queues.values():
-            cleared = queue.empty()
+            cleared = cast("int", queue.empty())
             total += cleared
         logger.warning("All queues cleared", total_jobs=total)
         return total
@@ -150,7 +150,7 @@ class QueueClient:
             True if Redis is reachable.
         """
         try:
-            return self._redis.ping()
+            return cast("bool", self._redis.ping())
         except redis.ConnectionError:
             return False
 
