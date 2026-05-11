@@ -7,9 +7,18 @@ This module provides:
 - Temporary directory management
 """
 
+import os
 from pathlib import Path
 
 import pytest
+
+# Disable rate limiting for tests to prevent 429 errors
+# This must be set before importing the app/settings
+os.environ.setdefault("RAG_PROCESSOR_RATE_LIMITING_ENABLED", "false")
+
+# Disable Cloudflare authentication for integration tests (bypass mode)
+# Auth middleware tests explicitly enable it when needed
+os.environ.setdefault("RAG_PROCESSOR_CLOUDFLARE_ENABLED", "false")
 
 # ============================================================================
 # Test Fixture Paths

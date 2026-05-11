@@ -1,0 +1,23 @@
+# Trivy Vulnerability Ignore File
+# ================================
+# This file lists vulnerabilities that have been reviewed and accepted
+# due to mitigating factors or lack of upstream fixes.
+#
+# Format: One vulnerability ID per line (CVE, GHSA, etc.)
+# Comments start with #
+
+# pdfminer.six Insecure Deserialization (GHSA-f83h-ghpp-7wcc)
+# ----------------------------------------------------------
+# Status: No upstream fix available (as of December 2025)
+# Severity: HIGH (CVSS 7.8) - Local privilege escalation
+#
+# Risk Assessment:
+# - Requires local access + write permissions to CMap cache
+# - Container runs as non-root user with read-only CMap dirs
+# - PDF files are only from authenticated users
+# - Attack surface is significantly reduced in containerized deployment
+#
+# Decision: Accept risk with monitoring for upstream fix
+# Review Date: 2025-12-16
+# Documented: docs/ci-workflow-issues-handoff.md (Issue 6)
+GHSA-f83h-ghpp-7wcc

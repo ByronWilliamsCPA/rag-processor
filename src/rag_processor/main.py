@@ -5,6 +5,7 @@ This module creates and configures the FastAPI application with:
 - CORS middleware for frontend integration
 - Security middleware (headers, rate limiting, SSRF prevention)
 - Correlation ID middleware for distributed tracing
+- Cloudflare Access authentication middleware
 """
 
 from __future__ import annotations
@@ -17,9 +18,18 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from rag_processor import __version__
 from rag_processor.api import health_router
+from rag_processor.api.batch import router as batch_router
+from rag_processor.api.ingest import router as ingest_router
+from rag_processor.api.user import router as user_router
+from rag_processor.auth.cloudflare import CloudflareAuthMiddleware
 from rag_processor.core.config import settings
-from rag_processor.middleware import CorrelationMiddleware, add_security_middleware
+from rag_processor.middleware import (
+    CorrelationMiddleware,
+    SecurityConfig,
+    add_security_middleware,
+)
 from rag_processor.utils.logging import get_logger, setup_logging
+from rag_processor.websocket.router import router as websocket_router
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -49,6 +59,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
         "Starting RAG Processor Gateway",
         version=__version__,
         log_level=settings.log_level,
+        cloudflare_enabled=settings.cloudflare_enabled,
     )
 
     yield
@@ -69,12 +80,13 @@ app = FastAPI(
 )
 
 # Add CORS middleware (must be added before other middleware)
-# #ASSUME: cors: Frontend runs on localhost:3000 in development
-# #VERIFY: Update allowed origins for production deployment
+# CORS origins are configured for local development. For production,
+# use environment variables or Cloudflare Access to control origins.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
+        "http://localhost:5173",  # Vite dev server
         "http://127.0.0.1:3000",
         "http://frontend:3000",  # Docker service name
     ],
@@ -87,11 +99,22 @@ app.add_middleware(
 # Add correlation ID middleware for distributed tracing
 app.add_middleware(CorrelationMiddleware)
 
+# Add Cloudflare Access authentication middleware
+app.add_middleware(CloudflareAuthMiddleware)
+
 # Add security middleware (headers, rate limiting, SSRF prevention)
-add_security_middleware(app)
+security_config = SecurityConfig(
+    enable_rate_limiting=settings.rate_limiting_enabled,
+    rate_limit_rpm=settings.rate_limit_rpm,
+)
+add_security_middleware(app, security_config)
 
 # Include routers
 app.include_router(health_router)
+app.include_router(user_router, prefix="/api/v1")
+app.include_router(ingest_router, prefix="/api/v1")
+app.include_router(batch_router, prefix="/api/v1")
+app.include_router(websocket_router)
 
 
 @app.get("/", tags=["root"])

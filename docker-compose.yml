@@ -163,6 +163,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        BUILD_ENV: ${ENVIRONMENT:-development}
     image: rag_processor:${VERSION:-latest}
     container_name: rag_processor-worker
     # Process jobs from high, default, and low priority queues

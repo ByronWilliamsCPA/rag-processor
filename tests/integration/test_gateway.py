@@ -83,7 +83,9 @@ class TestCORSHeaders:
         assert response.status_code == 200
         # CORS headers should be present when Origin header is sent
         assert "access-control-allow-origin" in response.headers
-        assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+        assert (
+            response.headers["access-control-allow-origin"] == "http://localhost:3000"
+        )
 
 
 @pytest.mark.integration
@@ -101,9 +103,7 @@ class TestCorrelationID:
         assert "x-correlation-id" in response.headers
         assert response.headers["x-correlation-id"] != ""
 
-    def test_correlation_id_preserved_when_provided(
-        self, client: TestClient
-    ) -> None:
+    def test_correlation_id_preserved_when_provided(self, client: TestClient) -> None:
         """Test that provided correlation ID is preserved."""
         custom_correlation_id = "test-correlation-12345"
         response = client.get(

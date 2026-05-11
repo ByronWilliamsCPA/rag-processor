@@ -54,6 +54,12 @@ jobs:
         with:
           language: python
           sanitizer: ${{  matrix.sanitizer  }}
+          keep-unaffected-fuzz-targets: true
+          # bad-build-check fails in GitHub Actions due to Docker-in-Docker $OUT path
+          # resolution: the check container mounts the build container's /github/workspace
+          # path as a host path, which doesn't exist on the runner. Fuzz targets are
+          # confirmed built correctly by the explicit ls in build.sh.
+          bad-build-check: false
 
       - name: Run Fuzzers
         id: run
@@ -62,11 +68,12 @@ jobs:
           github-token: ${{  secrets.GITHUB_TOKEN  }}
           fuzz-seconds: 600
           mode: 'code-change'
+          language: python
           sanitizer: ${{  matrix.sanitizer  }}
           output-sarif: true
 
       - name: Upload SARIF
-        if: always()
+        if: always() && hashFiles('results.sarif') != ''
         uses: github/codeql-action/upload-sarif@0daab03d71ff584ef619d027a3fd9146679c5d84 # v3.35.3
         with:
           sarif_file: results.sarif

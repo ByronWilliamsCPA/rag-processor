@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2025 Byron Williams <byron@williamscpa.dev>
+# SPDX-License-Identifier: MIT
+"""Fuzz harness for JWT token parsing.
+
+Tests JWT header parsing and validation logic with random string input
+to detect crashes, hangs, and security vulnerabilities.
+"""
+
+from __future__ import annotations
+
+import sys
+
+import atheris
+
+# Instrument jwt library for better coverage
+with atheris.instrument_imports():
+    import jwt
+
+
+def test_one_input(data: bytes) -> None:
+    """Fuzz target for JWT parsing functions.
+
+    Args:
+        data: Random byte sequence from the fuzzer.
+    """
+    # Test with both bytes and string representations
+    try:
+        token_str = data.decode("utf-8", errors="replace")
+    except Exception:
+        return
+
+    # Test jwt.get_unverified_header - used in cloudflare.py
+    try:
+        jwt.get_unverified_header(token_str)
+    except Exception:
+        # Expected for malformed tokens
+        pass
+
+    # Test jwt.decode without verification (header parsing)
+    try:
+        jwt.decode(
+            token_str,
+            options={
+                "verify_signature": False,
+                "verify_exp": False,
+                "verify_aud": False,
+            },
+        )
+    except Exception:
+        pass
+
+    # Test with bytes directly
+    try:
+        jwt.get_unverified_header(data)  # type: ignore[arg-type]
+    except Exception:
+        pass
+
+
+def main() -> None:
+    """Entry point for fuzzing."""
+    atheris.Setup(sys.argv, test_one_input)
+    atheris.Fuzz()
+
+
+if __name__ == "__main__":
+    main()

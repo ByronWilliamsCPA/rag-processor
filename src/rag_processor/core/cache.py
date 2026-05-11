@@ -29,17 +29,18 @@ from __future__ import annotations
 import functools
 import hashlib
 import json
-import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from redis.asyncio import Redis, from_url
 from redis.exceptions import RedisError
 
+from rag_processor.utils.logging import get_logger
+
 if TYPE_CHECKING:
     from collections.abc import Awaitable
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 T = TypeVar("T")
 

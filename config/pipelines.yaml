@@ -1,0 +1,108 @@
+# Pipeline Configuration
+# This file maps file classifications to processing pipelines
+# and configures external pipeline service endpoints.
+
+# Version of the config schema
+version: "1.0"
+
+# Default timeout for pipeline HTTP requests (in seconds)
+default_timeout: 30
+
+# Default retry configuration
+default_retries:
+  max_attempts: 3
+  backoff_multiplier: 2.0
+  initial_delay: 1.0
+  max_delay: 60.0
+
+# Pipeline definitions
+pipelines:
+  ocr:
+    name: "OCR Pipeline"
+    description: "Optical character recognition for scanned documents and images"
+    url: "${OCR_PIPELINE_URL:-http://localhost:8001/api/v1/ocr}"
+    timeout: 120
+    auth:
+      type: "bearer"
+      token_env: "OCR_PIPELINE_TOKEN"
+    health_check:
+      enabled: true
+      path: "/health"
+      interval: 60
+    retries:
+      max_attempts: 3
+      backoff_multiplier: 2.0
+
+  transcription:
+    name: "Transcription Pipeline"
+    description: "Audio and video transcription using speech-to-text"
+    url: "${TRANSCRIPTION_PIPELINE_URL:-http://localhost:8002/api/v1/transcribe}"
+    timeout: 300
+    auth:
+      type: "bearer"
+      token_env: "TRANSCRIPTION_PIPELINE_TOKEN"
+    health_check:
+      enabled: true
+      path: "/health"
+      interval: 60
+    retries:
+      max_attempts: 2
+      backoff_multiplier: 3.0
+
+  doc_processing:
+    name: "Document Processing Pipeline"
+    description: "Text extraction from born-digital documents"
+    url: "${DOC_PROCESSING_PIPELINE_URL:-http://localhost:8003/api/v1/extract}"
+    timeout: 60
+    auth:
+      type: "bearer"
+      token_env: "DOC_PROCESSING_PIPELINE_TOKEN"
+    health_check:
+      enabled: true
+      path: "/health"
+      interval: 60
+    retries:
+      max_attempts: 3
+      backoff_multiplier: 2.0
+
+  fusion:
+    name: "Multi-Modal Fusion Pipeline"
+    description: "Combines results from multiple pipelines for complex documents"
+    url: "${FUSION_PIPELINE_URL:-http://localhost:8004/api/v1/fuse}"
+    timeout: 180
+    auth:
+      type: "bearer"
+      token_env: "FUSION_PIPELINE_TOKEN"
+    health_check:
+      enabled: true
+      path: "/health"
+      interval: 60
+    retries:
+      max_attempts: 2
+      backoff_multiplier: 2.0
+
+# File classification to pipeline routing
+# Maps file classifications to their target pipelines
+routing:
+  scanned_pdf: ocr
+  born_digital_pdf: doc_processing
+  image: ocr
+  audio: transcription
+  video: transcription
+  document: doc_processing
+  # unknown files are not routed to any pipeline
+
+# Vector store configurations
+vector_stores:
+  default:
+    name: "Default Vector Store"
+    type: "qdrant"
+    url: "${QDRANT_URL:-http://localhost:6333}"
+    collection: "${QDRANT_COLLECTION:-documents}"
+    api_key_env: "QDRANT_API_KEY"
+
+# Rate limiting for pipeline calls
+rate_limiting:
+  enabled: true
+  requests_per_minute: 100
+  burst_size: 20

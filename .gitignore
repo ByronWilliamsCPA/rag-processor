@@ -263,11 +263,13 @@ secrets.json
 logs/
 *.log
 
-# Data and models (customize as needed)
+# Data and ML models (customize as needed)
 data/raw/
 data/processed/
 models/
 weights/
+# Exception: Allow Pydantic models in source code
+!src/*/models/
 
 # Notebooks
 .ipynb_checkpoints/
@@ -285,3 +287,9 @@ tmp_cleanup/.tmp-*
 # SonarCloud
 .scannerwork/
 .sonar/
+
+# Qlty cache (machine-specific symlinks)
+.qlty/logs
+.qlty/out
+.qlty/plugin_cachedir
+.qlty/results

@@ -26,6 +26,15 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "structlog>=23.1.0",
     "rich>=13.5.0",
+    # Authentication
+    "pyjwt[crypto]>=2.8.0", # JWT validation with RSA support
+    "httpx>=0.27.0", # Async HTTP client for JWKS fetch
+    # Job Queue
+    "rq>=1.16.0", # Redis Queue for background jobs
+    # File Processing
+    "python-magic>=0.4.27", # MIME type detection via magic bytes
+    "aiofiles>=24.1.0", # Async file operations
+    "pdfplumber>=0.11.0", # PDF text extraction for classification
     # Cross-Version Compatibility Dependencies
     # =========================================
     # This template targets Python 3.10-3.14. Add version-specific dependencies
@@ -70,6 +79,8 @@ dependencies = [
     #
     # UV handles these automatically based on the Python version being used.
     # See: https://docs.astral.sh/uv/concepts/dependencies/#dependency-specifiers
+    "pdfminer-six>=20251230",
+    "pymdown-extensions>=10.21.2",
 ]
 
 # Optional dependency groups
@@ -82,7 +93,7 @@ dev = [
     "pytest-asyncio>=0.21.0",
     "pytest-xdist>=3.3.0",
     "hypothesis>=6.82.0",
-    "fakeredis>=2.25.0",    # In-memory Redis for testing
+    "fakeredis>=2.32.1",    # In-memory Redis for testing
     "respx>=0.21.0",        # HTTP mocking for httpx
 
     # Code Quality (always included)
@@ -114,6 +125,8 @@ dev = [
     "nox>=2024.10.16",  # Fixed: was 2025 (typo)
     "nox-uv>=0.6.3",    # Fixed: max available version is 0.6.3, not 1.0.0
     "mutmut>=3.3.1",
+    # Fuzzing
+    "atheris>=2.3.0",  # Google's Python fuzzing engine for security testing
     # Google Cloud Assured OSS (optional - uncomment if using Assured OSS)
     "google-auth>=2.0.0",
     # "google-cloud-assured-oss>=0.1.0",  # Package not yet available in PyPI
@@ -209,7 +222,7 @@ select = [
 
     # Type annotations (Google requires type hints)
     "ANN",  # flake8-annotations (type hint enforcement)
-    "TCH",  # flake8-type-checking (TYPE_CHECKING imports)
+    "TC",   # flake8-type-checking (TYPE_CHECKING imports; renamed from TCH in ruff 0.11)
     "FA",   # flake8-future-annotations (use from __future__ import annotations)
 
     # Code quality (Pylint-equivalent rules)
@@ -323,8 +336,11 @@ known-first-party = ["rag_processor"]
     "EM",     # Error messages (test exceptions)
     "TRY",    # Exception handling (test assertions)
     "INP",    # No __init__.py required for test directories
+    "TC",     # Type checking block issues
+    "F401",   # Unused imports (test fixtures)
     # Security rules OK to skip in tests (specific, not blanket S)
     "S101",   # assert_used - pytest uses asserts
+    "S110",   # try-except-pass for expected test failures
     "S105",   # hardcoded_password_string - test credentials are fake
     "S106",   # hardcoded_password_funcarg - test fixtures with fake passwords
     "S107",   # hardcoded_password_default - test default values
@@ -379,6 +395,8 @@ known-first-party = ["rag_processor"]
     "BLE",    # Blind except is necessary in fuzz targets
     "INP",    # Fuzz tests are not packages
     "ANN", "D", "TRY",
+    "SIM105", # contextlib.suppress not suitable for fuzz targets
+    "PLC0415", # Imports inside function for coverage tracking
 ]
 
 # Claude skills and scripts
@@ -417,6 +435,47 @@ known-first-party = ["rag_processor"]
 "src/*/utils/logging.py" = [
     "ARG001",  # Unused args required by structlog processor interface
     "TC002",   # Processor needs to be runtime-available
+]
+
+# FastAPI route files - Pydantic/FastAPI resolve types via get_type_hints() at runtime;
+# moving these imports to TYPE_CHECKING would break schema generation and dependency injection.
+"src/*/api/*.py" = [
+    "TC001",  # App imports kept at runtime for FastAPI/Pydantic schema resolution
+    "TC003",  # Stdlib imports (UUID, etc.) kept at runtime for FastAPI path parsing
+]
+
+# FastAPI auth dependencies - CloudflareUser return type resolved by FastAPI at runtime
+"src/*/auth/dependencies.py" = [
+    "TC001",  # CloudflareUser kept at runtime for FastAPI dependency injection
+]
+
+# Sentry integration - Optional dependency with lazy imports
+"src/*/core/sentry.py" = [
+    "PLC0415", # Lazy imports for optional sentry-sdk dependency
+    "TRY300",  # Return in try block is clearer for simple cases
+    "BLE001",  # Blind except for version detection fallbacks
+    "S110",    # try-except-pass for optional feature fallbacks
+    "ARG001",  # Sentry hooks have required signature
+    "SIM102",  # Nested if is more readable for data filtering
+    "S607",    # Partial path for git is intentional
+    "RUF059",  # Unpacking for future use / clarity
+]
+
+# Cache module - Optional Redis dependency with lazy imports
+"src/*/core/cache.py" = [
+    "PLC0415", # Lazy imports for optional redis dependency
+    "PLW0603", # Global state for connection pooling is intentional
+    "TRY300",  # Return in try block is clearer for simple cases
+    "TRY400",  # logging.error vs exception - structured logging preference
+    "PERF401", # Async for loop is clearer than comprehension for scan_iter
+    "TC003",   # Callable needs to be runtime-available for type checks
+]
+
+# Correlation middleware - Sentry integration with lazy imports
+"src/*/middleware/correlation.py" = [
+    "PLC0415", # Lazy import for optional sentry-sdk
+    "ANN001",  # Sentry hooks have complex types
+    "ANN202",  # Sentry hooks return type is Any
 ]
 
 # Quality gate script - Intentional URL handling
@@ -546,6 +605,9 @@ omit = [
     "scripts/*",        # Utility scripts
     "notebooks/*",      # Jupyter notebooks
     "tmp_cleanup/*",    # Temporary files
+
+    # External service integrations (tested via integration tests)
+    "*/sentry.py",      # Sentry error tracking - requires external service
 ]
 
 [tool.coverage.report]
@@ -776,3 +838,10 @@ token = { env = "GH_TOKEN" }
 [tool.semantic_release.publish]
 dist_glob_patterns = ["dist/*"]
 upload_to_vcs_release = true
+
+# pip-audit configuration
+# See docs/known-vulnerabilities.md for documented rationale on each ignored CVE.
+[tool.pip-audit]
+ignore-vuln = [
+    "PYSEC-2022-42969",  # py 1.11.0 - transitive via interrogate; no fix available
+]

@@ -22,6 +22,7 @@ from rag_processor.middleware.correlation import (
 )
 from rag_processor.middleware.security import (
     RateLimitMiddleware,
+    SecurityConfig,
     SecurityHeadersMiddleware,
     SSRFPreventionMiddleware,
     add_security_middleware,
@@ -35,6 +36,7 @@ __all__ = [
     "CorrelationMiddleware",
     "RateLimitMiddleware",
     "SSRFPreventionMiddleware",
+    "SecurityConfig",
     "SecurityHeadersMiddleware",
     "add_security_middleware",
     "correlation_context_processor",
