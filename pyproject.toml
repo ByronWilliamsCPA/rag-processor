@@ -223,7 +223,7 @@ select = [
 
     # Type annotations (Google requires type hints)
     "ANN",  # flake8-annotations (type hint enforcement)
-    "TCH",  # flake8-type-checking (TYPE_CHECKING imports)
+    "TC",   # flake8-type-checking (TYPE_CHECKING imports; renamed from TCH in ruff 0.11)
     "FA",   # flake8-future-annotations (use from __future__ import annotations)
 
     # Code quality (Pylint-equivalent rules)
@@ -436,6 +436,18 @@ known-first-party = ["rag_processor"]
 "src/*/utils/logging.py" = [
     "ARG001",  # Unused args required by structlog processor interface
     "TC002",   # Processor needs to be runtime-available
+]
+
+# FastAPI route files - Pydantic/FastAPI resolve types via get_type_hints() at runtime;
+# moving these imports to TYPE_CHECKING would break schema generation and dependency injection.
+"src/*/api/*.py" = [
+    "TC001",  # App imports kept at runtime for FastAPI/Pydantic schema resolution
+    "TC003",  # Stdlib imports (UUID, etc.) kept at runtime for FastAPI path parsing
+]
+
+# FastAPI auth dependencies - CloudflareUser return type resolved by FastAPI at runtime
+"src/*/auth/dependencies.py" = [
+    "TC001",  # CloudflareUser kept at runtime for FastAPI dependency injection
 ]
 
 # Sentry integration - Optional dependency with lazy imports

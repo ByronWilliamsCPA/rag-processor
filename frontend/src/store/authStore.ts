@@ -49,9 +49,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }),
 
   logout: () => {
-    // Clear state
-    set(initialState);
-    set({ isLoading: false });
+    set({ ...initialState, isLoading: false });
 
     // Redirect to Cloudflare logout
     // The logout URL will be configured via environment variable

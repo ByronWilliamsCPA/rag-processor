@@ -3,7 +3,7 @@
  */
 
 import { create } from 'zustand';
-import type { FileWithPreview, IngestResponse } from '@/types/upload';
+import type { FileWithPreview, IngestResponse, Priority } from '@/types/upload';
 
 interface UploadStore {
   // State
@@ -12,7 +12,7 @@ interface UploadStore {
   uploadProgress: number;
   error: string | null;
   response: IngestResponse | null;
-  priority: 'high' | 'normal' | 'low';
+  priority: Priority;
   targetVectorStore: string | null;
 
   // Actions
@@ -23,7 +23,7 @@ interface UploadStore {
   setProgress: (progress: number) => void;
   setError: (error: string | null) => void;
   setResponse: (response: IngestResponse | null) => void;
-  setPriority: (priority: 'high' | 'normal' | 'low') => void;
+  setPriority: (priority: Priority) => void;
   setTargetVectorStore: (store: string | null) => void;
   reset: () => void;
 }
@@ -60,10 +60,7 @@ export const useUploadStore = create<UploadStore>((set) => ({
     }),
 
   setUploading: (uploading) =>
-    set({
-      isUploading: uploading,
-      error: uploading ? null : undefined,
-    }),
+    set(uploading ? { isUploading: true, error: null } : { isUploading: false }),
 
   setProgress: (progress) =>
     set({

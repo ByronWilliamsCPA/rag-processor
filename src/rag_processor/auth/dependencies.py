@@ -6,9 +6,11 @@ in protected endpoints.
 
 from __future__ import annotations
 
+from typing import cast
+
 from fastapi import HTTPException, Request, status
 
-from rag_processor.auth.models import CloudflareUser  # noqa: TC001 - Used at runtime
+from rag_processor.auth.models import CloudflareUser
 
 
 async def get_current_user(request: Request) -> CloudflareUser:
@@ -33,7 +35,7 @@ async def get_current_user(request: Request) -> CloudflareUser:
             return {"email": user.email}
         ```
     """
-    user = getattr(request.state, "user", None)
+    user = cast("CloudflareUser | None", getattr(request.state, "user", None))
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -55,4 +57,4 @@ async def get_optional_user(request: Request) -> CloudflareUser | None:
     Returns:
         The authenticated CloudflareUser or None.
     """
-    return getattr(request.state, "user", None)
+    return cast("CloudflareUser | None", getattr(request.state, "user", None))

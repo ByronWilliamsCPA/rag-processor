@@ -92,7 +92,11 @@ class Batch(BaseModel):
         """
         self.updated_at = datetime.now(tz=UTC)
 
-        if self.completed_files + self.failed_files < self.total_files:
+        if self.total_files == 0:
+            return  # No files yet; keep current status (typically PENDING)
+
+        finished = min(self.completed_files + self.failed_files, self.total_files)
+        if finished < self.total_files:
             self.status = BatchStatus.PROCESSING
         elif self.failed_files == 0:
             self.status = BatchStatus.COMPLETED

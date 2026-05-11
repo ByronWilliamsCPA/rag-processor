@@ -5,15 +5,15 @@ Provides endpoints for querying batch and job status.
 
 from __future__ import annotations
 
-from uuid import UUID  # noqa: TC003 - Used at runtime by FastAPI
+from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
 from rag_processor.models.batch import (
-    BatchStatus,  # noqa: TC001 - Used at runtime by Pydantic
+    BatchStatus,
 )
-from rag_processor.models.job import (  # noqa: TC001 - Used at runtime by Pydantic
+from rag_processor.models.job import (
     FileClassification,
     JobStatus,
     Pipeline,
