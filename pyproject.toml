@@ -80,6 +80,7 @@ dependencies = [
     # UV handles these automatically based on the Python version being used.
     # See: https://docs.astral.sh/uv/concepts/dependencies/#dependency-specifiers
     "fakeredis>=2.32.1",
+    "pdfminer-six>=20251230",
 ]
 
 # Optional dependency groups
