@@ -1,6 +1,6 @@
 """Tests for Batch and Job models."""
 
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from rag_processor.models.batch import Batch, BatchStatus

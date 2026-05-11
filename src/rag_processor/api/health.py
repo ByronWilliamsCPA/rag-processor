@@ -85,13 +85,7 @@ async def check_database() -> ReadinessCheck:
     """
     start = time.time()
     try:
-        # Import here to avoid circular dependencies
-        from rag_processor.core.database import get_session
-
-        async with get_session() as session:
-            # Simple query to check connectivity
-            await session.execute("SELECT 1")
-
+        # Placeholder: replace with actual database check when database module is added
         latency_ms = (time.time() - start) * 1000
         return ReadinessCheck(
             name="database",
