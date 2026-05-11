@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from typing import Annotated
-from uuid import UUID  # noqa: TC003 - Used at runtime by Pydantic models
+from uuid import UUID
 
 import aiofiles
 import magic
@@ -16,9 +16,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from pydantic import BaseModel, Field
 
 from rag_processor.auth.dependencies import get_current_user
-from rag_processor.auth.models import (
-    CloudflareUser,  # noqa: TC001 - Used at runtime by FastAPI
-)
+from rag_processor.auth.models import CloudflareUser
 from rag_processor.core.config import settings
 from rag_processor.models.batch import Batch, BatchStatus
 from rag_processor.models.job import (

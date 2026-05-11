@@ -6,12 +6,10 @@ Provides endpoints for accessing current user information.
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from rag_processor.auth.dependencies import get_current_user
-from rag_processor.auth.models import (
-    CloudflareUser,  # noqa: TC001 - FastAPI needs runtime access
-)
+from rag_processor.auth.models import CloudflareUser
 
 router = APIRouter(prefix="/user", tags=["user"])
 
@@ -24,7 +22,7 @@ class UserResponse(BaseModel):
 
     email: str
     user_id: str | None = None
-    groups: list[str] = []
+    groups: list[str] = Field(default_factory=list)
 
 
 @router.get(
