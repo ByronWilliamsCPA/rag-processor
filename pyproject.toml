@@ -81,6 +81,7 @@ dependencies = [
     # See: https://docs.astral.sh/uv/concepts/dependencies/#dependency-specifiers
     "fakeredis>=2.32.1",
     "pdfminer-six>=20251230",
+    "pymdown-extensions>=10.21.2",
 ]
 
 # Optional dependency groups
