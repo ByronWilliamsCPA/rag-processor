@@ -10,9 +10,9 @@ COPY . $SRC/rag_processor
 WORKDIR $SRC/rag_processor
 
 # Install dependencies for fuzzing
-# pyinstaller is needed to package fuzzers for reproducibility
+# atheris is pre-installed in base-builder-python, reinstalling pins a known version
 RUN pip3 install --upgrade pip && \
-    pip3 install atheris pyinstaller && \
+    pip3 install atheris && \
     pip3 install .
 
 # Copy build script

@@ -4,19 +4,17 @@
 #
 # Reference: https://google.github.io/clusterfuzzlite/build-integration/python-lang/
 
-# Install the project
+# Install the project so fuzz targets can import from rag_processor
 pip3 install .
 
-# Build each fuzzer as a single self-contained binary named fuzz_<name>
+# compile_python_fuzzer (provided by base-builder-python:v1) creates an
+# Atheris-instrumented binary with LibFuzzer entry points that the CFL
+# run_fuzzers action can discover and execute. Plain pyinstaller ELFs are
+# not recognized by the CFL Python runner.
 for fuzzer in $(find $SRC/rag_processor/fuzz -name 'fuzz_*.py'); do
     fuzzer_basename=$(basename -s .py "$fuzzer")
-
     echo "Building fuzzer: $fuzzer_basename"
-
-    # --onefile creates a single ELF at $OUT/<name> that bad-build-check can validate
-    pyinstaller --distpath "$OUT" --onefile --name "$fuzzer_basename" "$fuzzer"
-
-    chmod +x "$OUT/$fuzzer_basename"
+    compile_python_fuzzer "$fuzzer"
 done
 
 # List what was created
