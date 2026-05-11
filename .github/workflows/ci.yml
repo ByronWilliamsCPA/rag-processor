@@ -15,8 +15,10 @@ on:
     branches: [main, master, develop]
   workflow_dispatch:
 
-# Note: Concurrency is handled by the org-level reusable workflow
-# Do NOT define concurrency here to avoid deadlock with called workflow
+# Cancel in-progress runs for same PR/branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -33,13 +35,6 @@ jobs:
       coverage-threshold: 80
       source-directory: 'src'
       test-directory: 'tests'
-      enable-sonarcloud: true
-      sonarcloud-organization: 'byronwilliamscpa'
-      sonarcloud-project-key: 'ByronWilliamsCPA_rag-processor'
-      enable-codecov: true
       run-integration-tests: true
       run-security-tests: true
       fail-on-llm-tags: false
-    secrets:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

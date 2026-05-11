@@ -1,16 +1,21 @@
-# RAG Processor - Continuous Fuzzing
-# ClusterFuzzLite workflow for automated security testing using org-level reusable workflow.
+# {{ cookiecutter.project_name }} - Continuous Fuzzing
+# ClusterFuzzLite workflow for automated security testing
+#
+# This workflow uses Google's ClusterFuzzLite to continuously fuzz test
+# the codebase for vulnerabilities, crashes, and edge cases.
 #
 # Fuzzing Targets:
 #   - Input validation functions
 #   - Data parsers and sanitizers
 #   - File format handlers
 #
-# Documentation: https://google.github.io/clusterfuzzlite/
+# Duration: 600 seconds per run
+# Sanitizer: AddressSanitizer for memory safety
+# Reporting: SARIF format uploaded to Security tab
 name: Continuous Fuzzing
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Manual trigger
   push:
     branches:
       - main
@@ -20,26 +25,67 @@ on:
       - main
       - develop
 
-# Cancel in-progress runs for same PR/branch
-concurrency:
-  group: fuzzing-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 permissions:
   contents: read
-  security-events: write
+  security-events: write  # For SARIF upload
 
-# Uses org-level reusable workflow
 jobs:
   fuzzing:
     name: ClusterFuzzLite
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-fuzzing.yml@main
-    with:
-      python-version: '3.12'
-      fuzz-seconds: 600
-      sanitizer: 'address'
-      upload-sarif: true
-      crash-retention-days: 7
-      timeout-minutes: 30
-      fail-on-crash: true
-      dry-run: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer: [address]
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@a5ad31d6a139d249332a2605b85202e8c0b78450 # v2.19.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Build Fuzzers
+        id: build
+        uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          language: python
+          sanitizer: ${{  matrix.sanitizer  }}
+
+      - name: Run Fuzzers
+        id: run
+        uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+        with:
+          github-token: ${{  secrets.GITHUB_TOKEN  }}
+          fuzz-seconds: 600
+          mode: 'code-change'
+          sanitizer: ${{  matrix.sanitizer  }}
+          output-sarif: true
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@0daab03d71ff584ef619d027a3fd9146679c5d84 # v3.35.3
+        with:
+          sarif_file: results.sarif
+          category: fuzzing-${{  matrix.sanitizer  }}
+
+      - name: Upload Crash Artifacts
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fuzzing-crashes-${{  matrix.sanitizer  }}
+          path: build/out/
+          retention-days: 7
+
+      - name: Fuzzing Summary
+        if: always()
+        run: |
+          echo "## Fuzzing Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Sanitizer**: ${{  matrix.sanitizer  }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Duration**: 600 seconds" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Status**: ${{  steps.build.outcome  }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Run Status**: ${{  steps.run.outcome  }}" >> $GITHUB_STEP_SUMMARY
