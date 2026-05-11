@@ -55,6 +55,11 @@ jobs:
           language: python
           sanitizer: ${{  matrix.sanitizer  }}
           keep-unaffected-fuzz-targets: true
+          # bad-build-check fails in GitHub Actions due to Docker-in-Docker $OUT path
+          # resolution: the check container mounts the build container's /github/workspace
+          # path as a host path, which doesn't exist on the runner. Fuzz targets are
+          # confirmed built correctly by the explicit ls in build.sh.
+          bad-build-check: false
 
       - name: Run Fuzzers
         id: run
