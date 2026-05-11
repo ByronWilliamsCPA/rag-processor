@@ -7,25 +7,15 @@
 # Install the project
 pip3 install .
 
-# Build each fuzzer
+# Build each fuzzer as a single self-contained binary named fuzz_<name>
 for fuzzer in $(find $SRC/rag_processor/fuzz -name 'fuzz_*.py'); do
     fuzzer_basename=$(basename -s .py "$fuzzer")
-    fuzzer_package=${fuzzer_basename}.pkg
 
     echo "Building fuzzer: $fuzzer_basename"
 
-    # Package the fuzzer using pyinstaller for reproducibility
-    pyinstaller --distpath "$OUT" --onefile --name "$fuzzer_package" "$fuzzer"
+    # --onefile creates a single ELF at $OUT/<name> that bad-build-check can validate
+    pyinstaller --distpath "$OUT" --onefile --name "$fuzzer_basename" "$fuzzer"
 
-    # Create the execution wrapper script
-    # Note: No LD_PRELOAD for pure Python code (no C extensions)
-    cat > "$OUT/$fuzzer_basename" << EOF
-#!/bin/bash
-# Wrapper script for $fuzzer_basename fuzzer
-# LF
-this_dir=\$(dirname "\$0")
-exec "\$this_dir/$fuzzer_package" "\$@"
-EOF
     chmod +x "$OUT/$fuzzer_basename"
 done
 
