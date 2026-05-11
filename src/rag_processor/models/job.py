@@ -135,7 +135,9 @@ class Job(BaseModel):
     routed_to: Pipeline = Field(default=Pipeline.NONE, description="Target pipeline")
     status: JobStatus = Field(default=JobStatus.QUEUED, description="Job status")
     priority: Priority = Field(default=Priority.NORMAL, description="Job priority")
-    error_message: str | None = Field(default=None, description="Error message if failed")
+    error_message: str | None = Field(
+        default=None, description="Error message if failed"
+    )
     retry_count: int = Field(default=0, ge=0, description="Current retry count")
     max_retries: int = Field(default=3, ge=0, description="Maximum retries")
     created_at: datetime = Field(
@@ -146,7 +148,9 @@ class Job(BaseModel):
         default_factory=lambda: datetime.now(tz=UTC),
         description="Last update timestamp",
     )
-    started_at: datetime | None = Field(default=None, description="Processing start time")
+    started_at: datetime | None = Field(
+        default=None, description="Processing start time"
+    )
     completed_at: datetime | None = Field(
         default=None, description="Processing completion time"
     )
@@ -235,9 +239,7 @@ class Job(BaseModel):
             created_at=_parse_iso_datetime(data["created_at"]),
             updated_at=_parse_iso_datetime(data["updated_at"]),
             started_at=(
-                _parse_iso_datetime(data["started_at"])
-                if data["started_at"]
-                else None
+                _parse_iso_datetime(data["started_at"]) if data["started_at"] else None
             ),
             completed_at=(
                 _parse_iso_datetime(data["completed_at"])
