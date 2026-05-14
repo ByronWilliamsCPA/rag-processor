@@ -175,7 +175,6 @@
   "prHourlyLimit": 0,
   "rebaseWhen": "conflicted",
   "semanticCommits": "enabled",
-  "branchPrefix": "chore/",
   "commitMessagePrefix": "chore(deps):",
   "rangeStrategy": "bump",
   "vulnerabilityAlerts": {
