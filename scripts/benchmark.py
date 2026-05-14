@@ -37,7 +37,7 @@ import os
 import statistics
 import sys
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import Any
 
 # Suppress all logging during benchmarks for clean JSON output
@@ -433,12 +433,10 @@ def run_all_benchmarks(iterations: int, warmup: int) -> dict[str, Any]:
     ]
 
     results: list[BenchmarkResult] = []
-    benchmark_details: dict[str, dict[str, Any]] = {}
 
     for benchmark_func in benchmarks:
         result = benchmark_func(iterations, warmup)
         results.append(result)
-        benchmark_details[result.name] = asdict(result)
 
     # Aggregate statistics (use the primary benchmark - file_routing)
     primary_result = next((r for r in results if r.name == "file_routing"), results[0])
@@ -460,8 +458,6 @@ def run_all_benchmarks(iterations: int, warmup: int) -> dict[str, Any]:
         "total_iterations": iterations * len(benchmarks),
         "avg_p95_all_benchmarks_ms": round(statistics.mean(all_p95), 3),
         "avg_throughput_all_benchmarks_ops": round(statistics.mean(all_throughput), 2),
-        # Individual benchmark results
-        "benchmarks": benchmark_details,
     }
 
 
