@@ -16,14 +16,8 @@ name: Continuous Fuzzing
 
 on:
   workflow_dispatch:  # Manual trigger
-  push:
-    branches:
-      - main
-      - develop
-  pull_request:
-    branches:
-      - main
-      - develop
+  schedule:
+    - cron: '0 2 * * 0'  # Weekly on Sundays at 2 AM UTC
 
 permissions:
   contents: read
