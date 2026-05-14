@@ -38,3 +38,23 @@ jobs:
       run-integration-tests: true
       run-security-tests: true
       fail-on-llm-tags: false
+
+  ci-gate:
+    name: CI Gate
+    runs-on: ubuntu-latest
+    needs: [ci]
+    if: always()
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@a5ad31d6a139d249332a2605b85202e8c0b78450 # v2.19.1
+        with:
+          egress-policy: audit
+      - name: Check CI results
+        env:
+          CI_RESULT: ${{ needs.ci.result }}
+        run: |
+          if [ "$CI_RESULT" != "success" ]; then
+            echo "::error::CI Gate failed: CI result is $CI_RESULT"
+            exit 1
+          fi
+          echo "CI Gate passed"
