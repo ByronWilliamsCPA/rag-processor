@@ -41,7 +41,7 @@ permissions:
 jobs:
   compatibility:
     name: Python Compatibility Matrix
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-compatibility.yml@main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-compatibility.yml@e067cdb7294f6221dbde74ef1f4c3ca735eed570 # main
     with:
       # Match pyproject.toml `requires-python = ">=3.12,<3.14"`. Testing 3.10/3.11
       # would fail on Python-3.11+ features the project actively uses (e.g.
