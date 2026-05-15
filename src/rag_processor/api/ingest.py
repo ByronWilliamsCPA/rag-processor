@@ -190,10 +190,15 @@ async def validate_file(
     response_model=IngestResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Upload files for processing",
-    description="Upload one or more files for RAG pipeline processing.",
+    description=(
+        "Upload one or more files for RAG pipeline processing. Each file is "
+        "validated for size and MIME type, sanitized, then assigned to a "
+        "pipeline. Requires Cloudflare Access authentication."
+    ),
     responses={
         400: {"description": "Invalid file(s) provided"},
         413: {"description": "File(s) too large"},
+        422: {"description": "Validation error"},
     },
 )
 async def ingest_files(
@@ -214,19 +219,26 @@ async def ingest_files(
     """Upload files for RAG pipeline processing.
 
     Accepts multiple files via multipart/form-data. Each file is validated
-    for size and type, then saved to the upload directory.
+    for size and type, sanitized, then saved to the upload directory and
+    routed to the appropriate processing pipeline. A new batch is created
+    grouping the uploaded files together.
+
+    Authentication: Requires a valid Cloudflare Access JWT.
 
     Args:
-        files: List of files to upload.
+        files: List of files to upload (multipart/form-data).
         priority: Processing priority (high, normal, low).
-        target_vector_store: Optional target vector store.
+        target_vector_store: Optional target vector store identifier.
         user: Authenticated user from Cloudflare Access.
 
     Returns:
-        IngestResponse with batch and job information.
+        IngestResponse containing the new batch ID, batch status, total
+        accepted files, per-job metadata, and a human-readable message.
 
     Raises:
-        HTTPException: If no valid files provided or validation fails.
+        HTTPException: 400 if no files or all files fail validation;
+            413 if a file exceeds the configured size limit; 422 if
+            request validation fails.
     """
     if not files:
         raise HTTPException(
@@ -355,17 +367,31 @@ async def ingest_files(
 
 @router.get(
     "/health",
+    status_code=status.HTTP_200_OK,
     summary="Check ingest endpoint health",
-    description="Verify that the ingest endpoint is ready to accept uploads.",
+    description=(
+        "Verify the ingest endpoint can accept uploads by checking that the "
+        "upload directory is writable. Requires Cloudflare Access "
+        "authentication. Returns 503 if the upload directory is unavailable."
+    ),
+    responses={
+        503: {"description": "Upload directory not writable"},
+    },
 )
 async def ingest_health() -> dict[str, str]:
     """Check ingest endpoint health.
 
+    Verifies the upload directory exists and is writable by creating
+    and removing a probe file. Used to confirm the ingest service is
+    able to accept new uploads.
+
+    Authentication: Requires a valid Cloudflare Access JWT.
+
     Returns:
-        Health status dictionary.
+        Dictionary with `status` ("healthy") and `upload_dir` path.
 
     Raises:
-        HTTPException: If upload directory is not writable.
+        HTTPException: 503 if the upload directory is not writable.
     """
     # Check upload directory is writable
     upload_dir = Path(settings.upload_dir)

@@ -117,12 +117,27 @@ app.include_router(batch_router, prefix="/api/v1")
 app.include_router(websocket_router)
 
 
-@app.get("/", tags=["root"])
+@app.get(
+    "/",
+    tags=["root"],
+    summary="API information",
+    description=(
+        "Returns basic API metadata including the service name, version, "
+        "and the path to the interactive OpenAPI docs. Requires Cloudflare "
+        "Access authentication when `CLOUDFLARE_ENABLED=true`."
+    ),
+)
 async def root() -> dict[str, str]:
-    """Root endpoint returning API information.
+    """API information.
+
+    Returns metadata about the running gateway: service name, version,
+    and the URL of the interactive OpenAPI documentation.
+
+    Authentication: Requires a valid Cloudflare Access JWT in the
+    `Cf-Access-Jwt-Assertion` header when Cloudflare auth is enabled.
 
     Returns:
-        Dictionary with API name and version.
+        Dictionary with `name`, `version`, and `docs` URL.
     """
     return {
         "name": "RAG Processor Gateway",

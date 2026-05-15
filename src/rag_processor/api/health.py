@@ -58,18 +58,24 @@ class ReadinessStatus(HealthStatus):
     response_model=HealthStatus,
     status_code=status.HTTP_200_OK,
     summary="Liveness probe",
-    description="Indicates if the application is running. Used by Kubernetes liveness probe.",
+    description=(
+        "Indicates whether the application process is alive. Intended for "
+        "Kubernetes liveness probes. This endpoint is public and does not "
+        "require authentication."
+    ),
 )
 async def liveness() -> HealthStatus:
     """Kubernetes liveness probe.
 
-    Returns HTTP 200 if the application is alive.
-    If this fails, Kubernetes will restart the pod.
+    Returns HTTP 200 whenever the process is responsive. Performs no
+    dependency checks, so it should not fail due to transient downstream
+    issues. If this fails, Kubernetes will restart the pod.
 
-    This should be a simple, fast check that doesn't depend on external services.
+    Authentication: Public endpoint, no authentication required.
 
     Returns:
-        HealthStatus with status and uptime.
+        HealthStatus with current `status`, `uptime_seconds`, and
+        runtime version metadata.
     """
     return HealthStatus(
         status="ok",
@@ -168,29 +174,35 @@ async def check_external_service() -> ReadinessCheck:
 @router.get(
     "/ready",
     response_model=ReadinessStatus,
+    status_code=status.HTTP_200_OK,
     responses={
         200: {"description": "Application is ready to serve traffic"},
         503: {"description": "Application is not ready (dependencies unavailable)"},
     },
     summary="Readiness probe",
-    description="Checks if the application can serve traffic. Used by Kubernetes readiness probe.",
+    description=(
+        "Checks whether the application can serve traffic by exercising "
+        "all critical dependencies (database, cache, external services). "
+        "Intended for Kubernetes readiness probes. This endpoint is "
+        "public and does not require authentication."
+    ),
 )
 async def readiness() -> ReadinessStatus:
     """Kubernetes readiness probe.
 
-    Checks all critical dependencies:
-    - Database connectivity
-    - Cache availability (if configured)
-    - External service health (if applicable)
+    Runs the configured dependency health checks (database, cache, and
+    optional external services) and aggregates their results. Returns
+    HTTP 503 if any critical dependency is unavailable; if this fails,
+    Kubernetes will stop routing traffic to this pod.
 
-    Returns HTTP 503 if any critical dependency is unavailable.
-    If this fails, Kubernetes will stop sending traffic to this pod.
+    Authentication: Public endpoint, no authentication required.
 
     Returns:
-        ReadinessStatus with overall health and individual dependency checks.
+        ReadinessStatus with overall health and per-dependency check
+        results (latency and error details).
 
     Raises:
-        HTTPException: When the application is not ready (503 status).
+        HTTPException: 503 when one or more critical dependencies fail.
     """
     checks: dict[str, ReadinessCheck] = {}
 
@@ -230,18 +242,24 @@ async def readiness() -> ReadinessStatus:
     response_model=HealthStatus,
     status_code=status.HTTP_200_OK,
     summary="Startup probe",
-    description="Indicates if the application has completed startup. Used by Kubernetes startup probe.",
+    description=(
+        "Indicates whether the application has completed startup. Intended "
+        "for Kubernetes startup probes that delay liveness and readiness "
+        "checks during slow initialization. This endpoint is public and "
+        "does not require authentication."
+    ),
 )
 async def startup() -> HealthStatus:
     """Kubernetes startup probe.
 
-    Used during application startup to delay liveness and readiness checks.
-    This prevents the application from being killed during slow initialization.
+    Returns HTTP 200 once the application has finished initializing.
+    Kubernetes uses this to defer liveness and readiness checks during
+    boot so that slow startups don't trigger restarts.
 
-    Returns HTTP 200 once the application has fully started.
+    Authentication: Public endpoint, no authentication required.
 
     Returns:
-        HealthStatus indicating startup completion.
+        HealthStatus indicating startup completion and uptime.
     """
     # Add any startup checks here (e.g., database migrations completed)
     # For most applications, being alive means startup is complete
@@ -257,14 +275,20 @@ async def startup() -> HealthStatus:
     response_model=HealthStatus,
     status_code=status.HTTP_200_OK,
     summary="Basic health check",
-    description="Simple health check endpoint for load balancers and monitoring.",
+    description=(
+        "Compatibility alias for `/health/live`. Provided for load "
+        "balancers and monitors that expect a `/health` endpoint. "
+        "Public endpoint, no authentication required."
+    ),
     include_in_schema=False,  # Hide from OpenAPI docs (use /live instead)
 )
 async def health() -> HealthStatus:
     """Basic health check endpoint.
 
-    Alias for /health/live for compatibility with load balancers
-    that expect a /health endpoint.
+    Compatibility alias for `/health/live`, intended for load balancers
+    and monitoring systems that expect a `/health` path.
+
+    Authentication: Public endpoint, no authentication required.
 
     Returns:
         HealthStatus from the liveness check.
