@@ -137,9 +137,28 @@ async def websocket_batch_status(
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
-    # Verify batch exists
+    # Verify batch exists and the caller owns it. Treat "not found" and
+    # "not authorized" identically to avoid leaking batch IDs.
     batch, _ = get_batch_status(batch_id)
     if batch is None:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    requester_email = user.get("email")
+    requester_user_id = user.get("user_id")
+    owns_by_id = bool(batch.created_by_user_id) and bool(requester_user_id) and (
+        batch.created_by_user_id == requester_user_id
+    )
+    owns_by_email = bool(batch.created_by_email) and bool(requester_email) and (
+        batch.created_by_email == requester_email
+    )
+    if not (owns_by_id or owns_by_email):
+        logger.warning(
+            "Unauthorized WebSocket batch access attempt",
+            batch_id=str(batch_id),
+            requester_email=requester_email,
+            owner_email=batch.created_by_email,
+        )
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 

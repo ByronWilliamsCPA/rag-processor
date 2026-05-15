@@ -300,7 +300,11 @@ class TestWebSocketEndpoint:
             return_value={"email": "user@example.com", "user_id": "user-123"}
         )
 
+        # Batch must be owned by the authenticated user; otherwise the WS
+        # endpoint closes the connection without replaying events.
         mock_batch = MagicMock()
+        mock_batch.created_by_user_id = "user-123"
+        mock_batch.created_by_email = "user@example.com"
         mock_batch_status = MagicMock(return_value=(mock_batch, []))
 
         mock_cm = MagicMock()

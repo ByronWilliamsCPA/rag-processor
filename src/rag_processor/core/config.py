@@ -54,6 +54,21 @@ class Settings(BaseSettings):
         description="Enable Cloudflare authentication (set to false for local dev)",
     )
 
+    # CORS
+    cors_allowed_origins: list[str] = Field(
+        default=[
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://127.0.0.1:3000",
+            "http://frontend:3000",
+        ],
+        description=(
+            "Allowed CORS origins. Must be an explicit list of origins (no "
+            "wildcard) because allow_credentials=True. Override in production via "
+            "RAG_PROCESSOR_CORS_ALLOWED_ORIGINS as a JSON array."
+        ),
+    )
+
     # Rate Limiting
     rate_limiting_enabled: bool = Field(
         default=True,
