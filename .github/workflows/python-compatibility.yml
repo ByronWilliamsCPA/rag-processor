@@ -41,7 +41,9 @@ permissions:
 jobs:
   compatibility:
     name: Python Compatibility Matrix
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-compatibility.yml@main
+    # Pinned to a known-good SHA. @main was failing on all matrix Python
+    # versions due to an upstream regression; re-evaluate when verified.
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-compatibility.yml@b29a870cb21a8f913e5c6c5f08740a4bdd94d0ca  # main as of 2026-05-14
     with:
       python-versions: '["3.10", "3.11", "3.12", "3.13"]'
       operating-systems: '["ubuntu-latest"]'
