@@ -29,7 +29,11 @@ permissions:
 jobs:
   ci:
     name: CI Pipeline
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-ci.yml@main
+    # Pinned to a known-good SHA (matches pr-validation.yml).
+    # @main was failing on PR #28 due to an upstream regression while the
+    # same code passed against this pinned SHA. Re-evaluate when the org
+    # workflow has been verified.
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-ci.yml@b29a870cb21a8f913e5c6c5f08740a4bdd94d0ca  # main as of 2026-05-14
     with:
       python-version: '3.12'
       coverage-threshold: 80

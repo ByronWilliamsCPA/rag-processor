@@ -91,7 +91,13 @@ async def get_redis() -> Redis:
 async def close_redis() -> None:
     """Close Redis connection pool.
 
-    Call this on application shutdown.
+    Closes the global Redis connection pool and resets it to None so
+    the next call to `get_redis()` will create a fresh pool. Safe to
+    call when no pool has been initialized. Intended for invocation
+    from an application shutdown handler.
+
+    Returns:
+        None.
     """
     global _redis_pool
 

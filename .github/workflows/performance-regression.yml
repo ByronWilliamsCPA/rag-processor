@@ -76,7 +76,9 @@ jobs:
     name: Performance Regression
     needs: check-benchmarks
     if: needs.check-benchmarks.outputs.has-benchmarks == 'true'
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-performance-regression.yml@main
+    # Pinned to a known-good SHA. @main was failing due to an upstream
+    # regression; re-evaluate when verified.
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-performance-regression.yml@b29a870cb21a8f913e5c6c5f08740a4bdd94d0ca  # main as of 2026-05-14
     with:
       benchmark-script: 'scripts/benchmark.py'
       python-version: '3.12'

@@ -88,7 +88,14 @@ class Batch(BaseModel):
     def update_status(self) -> None:
         """Update batch status based on job counts.
 
-        Calculates the appropriate status based on completed and failed counts.
+        Recomputes `status` from `completed_files` and `failed_files`
+        relative to `total_files`, and refreshes `updated_at`. The
+        status transitions to PROCESSING while jobs remain, COMPLETED
+        when all succeed, FAILED when all fail, and PARTIAL when the
+        outcome is mixed.
+
+        Returns:
+            None. Mutates `self.status` and `self.updated_at` in place.
         """
         self.updated_at = datetime.now(tz=UTC)
 
