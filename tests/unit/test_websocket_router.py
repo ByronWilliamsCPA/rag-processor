@@ -265,6 +265,47 @@ class TestWebSocketEndpoint:
             code=status.WS_1008_POLICY_VIOLATION
         )
 
+    @pytest.mark.asyncio
+    async def test_websocket_rejects_non_owner(self, mock_ws_logger: MagicMock) -> None:
+        """Caller authenticated as user A cannot subscribe to user B's batch."""
+        from fastapi import WebSocket, status
+
+        batch_id = uuid4()
+        mock_websocket = AsyncMock(spec=WebSocket)
+
+        mock_verify = AsyncMock(
+            return_value={"email": "intruder@example.com", "user_id": "u-intruder"}
+        )
+
+        # Batch belongs to a different user.
+        mock_batch = MagicMock()
+        mock_batch.created_by_user_id = "u-owner"
+        mock_batch.created_by_email = "owner@example.com"
+        mock_batch_status = MagicMock(return_value=(mock_batch, []))
+
+        mock_cm = MagicMock()
+        mock_cm.connect = AsyncMock()
+        mock_cm.send_personal = AsyncMock()
+        mock_cm.disconnect = MagicMock()
+
+        with (
+            patch("rag_processor.websocket.router.verify_ws_token", mock_verify),
+            patch("rag_processor.websocket.router.get_batch_status", mock_batch_status),
+            patch("rag_processor.websocket.router.connection_manager", mock_cm),
+        ):
+            from rag_processor.websocket.router import websocket_batch_status
+
+            await websocket_batch_status(
+                mock_websocket, batch_id, cf_access_token="valid-token"
+            )
+
+        # Closes with the same code as "not found" so existence is not leaked.
+        mock_websocket.close.assert_called_once_with(
+            code=status.WS_1008_POLICY_VIOLATION
+        )
+        # Never accepted the connection.
+        mock_cm.connect.assert_not_called()
+
     @pytest.mark.skip(
         reason="Module-level Redis import happens before patches can be applied"
     )

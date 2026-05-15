@@ -146,11 +146,15 @@ async def websocket_batch_status(
 
     requester_email = user.get("email")
     requester_user_id = user.get("user_id")
-    owns_by_id = bool(batch.created_by_user_id) and bool(requester_user_id) and (
-        batch.created_by_user_id == requester_user_id
+    owns_by_id = (
+        bool(batch.created_by_user_id)
+        and bool(requester_user_id)
+        and (batch.created_by_user_id == requester_user_id)
     )
-    owns_by_email = bool(batch.created_by_email) and bool(requester_email) and (
-        batch.created_by_email == requester_email
+    owns_by_email = (
+        bool(batch.created_by_email)
+        and bool(requester_email)
+        and (batch.created_by_email == requester_email)
     )
     if not (owns_by_id or owns_by_email):
         logger.warning(
