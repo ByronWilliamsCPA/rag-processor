@@ -17,7 +17,7 @@ on:
 jobs:
   publish:
     name: Publish Package
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-publish-pypi.yml@main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-publish-pypi.yml@e067cdb7294f6221dbde74ef1f4c3ca735eed570 # main
     with:
       python-version: '3.12'
       package-name: 'rag-processor'

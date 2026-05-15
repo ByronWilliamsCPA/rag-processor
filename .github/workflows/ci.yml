@@ -29,7 +29,7 @@ permissions:
 jobs:
   ci:
     name: CI Pipeline
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-ci.yml@main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-ci.yml@e067cdb7294f6221dbde74ef1f4c3ca735eed570 # main
     with:
       python-version: '3.12'
       coverage-threshold: 80
@@ -38,6 +38,8 @@ jobs:
       run-integration-tests: true
       run-security-tests: true
       fail-on-llm-tags: false
+      enable-sonarcloud: false
+      sonarcloud-organization: 'williaby'
 
   ci-gate:
     name: CI Gate
