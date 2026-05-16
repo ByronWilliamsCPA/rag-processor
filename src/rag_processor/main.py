@@ -117,7 +117,12 @@ app.include_router(batch_router, prefix="/api/v1")
 app.include_router(websocket_router)
 
 
-@app.get("/", tags=["root"])
+@app.get(
+    "/",
+    tags=["root"],
+    summary="API root",
+    description="Returns the API name, version, and a link to the docs.",
+)
 async def root() -> dict[str, str]:
     """Root endpoint returning API information.
 
