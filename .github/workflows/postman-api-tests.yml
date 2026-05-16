@@ -1,0 +1,137 @@
+# Postman / Newman API Tests
+# Runs the Postman collection at docs/api/postman-collection.json against a
+# locally-spawned instance of the FastAPI app using Newman.
+#
+# Required secrets:
+#   (none required for the default in-process run)
+#
+# Optional secrets:
+#   POSTMAN_API_KEY        - Postman cloud API key, if you later switch to
+#                            `newman run` against a collection URL.
+#   CLOUDFLARE_TEAM_DOMAIN - Only needed if you set
+#                            RAG_PROCESSOR_CLOUDFLARE_ENABLED=true in the env
+#                            block below; this workflow runs with auth
+#                            disabled so the collection can exercise routes
+#                            without a live Cloudflare Access token.
+#   CLOUDFLARE_AUDIENCE_TAG - Companion to CLOUDFLARE_TEAM_DOMAIN.
+name: Postman API Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: postman-api-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  newman:
+    name: Run Newman against FastAPI app
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      RAG_PROCESSOR_CLOUDFLARE_ENABLED: "false"
+      RAG_PROCESSOR_RATE_LIMITING_ENABLED: "false"
+      RAG_PROCESSOR_LOG_LEVEL: "INFO"
+      RAG_PROCESSOR_UPLOAD_DIR: "/tmp/rag-processor-uploads"
+      RAG_PROCESSOR_RESULT_DIR: "/tmp/rag-processor-results"
+      RAG_PROCESSOR_REDIS_HOST: "127.0.0.1"
+      RAG_PROCESSOR_REDIS_PORT: "6379"
+      APP_HOST: "127.0.0.1"
+      APP_PORT: "8000"
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@a5ad31d6a139d249332a2605b85202e8c0b78450 # v2.19.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4.2.0
+        with:
+          enable-cache: true
+
+      - name: Install Python dependencies
+        run: uv sync --extra api --extra dev
+
+      - name: Set up Node.js (for Newman)
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "20"
+
+      - name: Install Newman
+        run: npm install --global newman@6.2.2
+
+      - name: Start FastAPI app in background
+        run: |
+          mkdir -p "$RAG_PROCESSOR_UPLOAD_DIR" "$RAG_PROCESSOR_RESULT_DIR"
+          nohup uv run uvicorn rag_processor.main:app \
+            --host "$APP_HOST" \
+            --port "$APP_PORT" \
+            > app.log 2>&1 &
+          echo "APP_PID=$!" >> "$GITHUB_ENV"
+
+      - name: Wait for /health/live to report ready
+        run: |
+          set -e
+          for i in $(seq 1 60); do
+            if curl -fsS "http://${APP_HOST}:${APP_PORT}/health/live" > /dev/null; then
+              echo "App is ready after ${i} attempt(s)"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "App did not become ready within 60 seconds"
+          echo "--- app.log ---"
+          cat app.log || true
+          exit 1
+
+      - name: Run Newman against Postman collection
+        run: |
+          newman run docs/api/postman-collection.json \
+            --env-var "baseUrl=http://${APP_HOST}:${APP_PORT}" \
+            --env-var "apiKey=" \
+            --reporters cli,junit \
+            --reporter-junit-export newman-results.xml
+
+      - name: Upload Newman results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: newman-results
+          path: |
+            newman-results.xml
+            app.log
+          if-no-files-found: warn
+
+      - name: Stop FastAPI app
+        if: always()
+        run: |
+          if [ -n "${APP_PID:-}" ]; then
+            kill "$APP_PID" 2>/dev/null || true
+            wait "$APP_PID" 2>/dev/null || true
+          fi
