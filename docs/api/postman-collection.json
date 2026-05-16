@@ -1,0 +1,390 @@
+{
+  "info": {
+    "name": "RAG Processor Gateway",
+    "description": "Postman collection for the RAG Processor Gateway FastAPI service. Generated from docs/api/openapi.json. Set the `baseUrl` and `apiKey` collection variables before running.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "rag-processor-gateway-collection"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "",
+      "type": "string",
+      "description": "Cloudflare Access JWT sent as the Cf-Access-Jwt-Assertion header. Leave empty when running against an instance with RAG_PROCESSOR_CLOUDFLARE_ENABLED=false."
+    },
+    {
+      "key": "sampleBatchId",
+      "value": "00000000-0000-0000-0000-000000000000",
+      "type": "string"
+    },
+    {
+      "key": "sampleJobId",
+      "value": "00000000-0000-0000-0000-000000000000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "root",
+      "item": [
+        {
+          "name": "API root",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cf-Access-Jwt-Assertion",
+                "value": "{{apiKey}}",
+                "type": "text",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            },
+            "description": "Returns the API name, version, and a link to the docs."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('body is JSON with name, version, docs', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('name');",
+                  "    pm.expect(body).to.have.property('version');",
+                  "    pm.expect(body).to.have.property('docs');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "health",
+      "item": [
+        {
+          "name": "Liveness probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/live",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "live"]
+            },
+            "description": "Indicates if the application is running. Used by Kubernetes liveness probe."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('body reports status ok', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql('ok');",
+                  "    pm.expect(body).to.have.property('uptime_seconds');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Readiness probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/ready",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "ready"]
+            },
+            "description": "Checks if the application can serve traffic. Used by Kubernetes readiness probe."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200 or 503', function () {",
+                  "    pm.expect([200, 503]).to.include(pm.response.code);",
+                  "});",
+                  "pm.test('body contains checks object', function () {",
+                  "    const body = pm.response.json();",
+                  "    const payload = body.detail ? body.detail : body;",
+                  "    pm.expect(payload).to.have.property('checks');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Startup probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/startup",
+              "host": ["{{baseUrl}}"],
+              "path": ["health", "startup"]
+            },
+            "description": "Indicates if the application has completed startup. Used by Kubernetes startup probe."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('body reports started', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql('started');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "user",
+      "item": [
+        {
+          "name": "Get current user",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cf-Access-Jwt-Assertion",
+                "value": "{{apiKey}}",
+                "type": "text",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/user/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "me"]
+            },
+            "description": "Returns the currently authenticated user's information."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('body has email and groups', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('email');",
+                  "    pm.expect(body).to.have.property('groups');",
+                  "    pm.expect(body.groups).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "ingest",
+      "item": [
+        {
+          "name": "Upload files for processing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cf-Access-Jwt-Assertion",
+                "value": "{{apiKey}}",
+                "type": "text",
+                "disabled": false
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ingest",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "ingest"]
+            },
+            "description": "Upload one or more files for RAG pipeline processing. This example sends no files to verify validation behavior."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is a client error (400/413/422)', function () {",
+                  "    pm.expect([400, 413, 422]).to.include(pm.response.code);",
+                  "});",
+                  "pm.test('body is JSON with detail', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('detail');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Check ingest endpoint health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cf-Access-Jwt-Assertion",
+                "value": "{{apiKey}}",
+                "type": "text",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ingest/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "ingest", "health"]
+            },
+            "description": "Verify that the ingest endpoint is ready to accept uploads."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('body reports healthy', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql('healthy');",
+                  "    pm.expect(body).to.have.property('upload_dir');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "batch",
+      "item": [
+        {
+          "name": "Get batch status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cf-Access-Jwt-Assertion",
+                "value": "{{apiKey}}",
+                "type": "text",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/batch/{{sampleBatchId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "batch", "{{sampleBatchId}}"]
+            },
+            "description": "Get the status and details of a batch and its jobs. Uses a placeholder UUID expected to be missing."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404 for unknown batch', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('body has detail', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('detail');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Get job status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cf-Access-Jwt-Assertion",
+                "value": "{{apiKey}}",
+                "type": "text",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/batch/job/{{sampleJobId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "batch", "job", "{{sampleJobId}}"]
+            },
+            "description": "Get the status and details of a specific job. Uses a placeholder UUID expected to be missing."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 404 for unknown job', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('body has detail', function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('detail');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ]
+}
