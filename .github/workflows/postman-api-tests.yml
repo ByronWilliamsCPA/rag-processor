@@ -84,7 +84,7 @@ jobs:
           node-version: "20"
 
       - name: Install Newman
-        run: npm install --global newman@6
+        run: npm install --global newman@6.2.2
 
       - name: Start FastAPI app in background
         run: |

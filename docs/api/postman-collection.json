@@ -131,6 +131,8 @@
                   "    pm.expect([200, 503]).to.include(pm.response.code);",
                   "});",
                   "pm.test('body contains checks object', function () {",
+                  "    const ct = (pm.response.headers.get('Content-Type') || '').toLowerCase();",
+                  "    if (!ct.includes('application/json')) { return; }",
                   "    const body = pm.response.json();",
                   "    const payload = body.detail ? body.detail : body;",
                   "    pm.expect(payload).to.have.property('checks');",

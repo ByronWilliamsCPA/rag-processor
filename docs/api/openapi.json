@@ -25,7 +25,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/health/ready": {
@@ -50,7 +51,8 @@
           "503": {
             "description": "Application is not ready (dependencies unavailable)"
           }
-        }
+        },
+        "security": []
       }
     },
     "/health/startup": {
@@ -72,7 +74,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/api/v1/user/me": {
@@ -94,7 +97,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "CloudflareAccessJwt": []
+          }
+        ]
       }
     },
     "/api/v1/ingest": {
@@ -142,7 +150,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "CloudflareAccessJwt": []
+          }
+        ]
       }
     },
     "/api/v1/ingest/health": {
@@ -168,7 +181,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "CloudflareAccessJwt": []
+          }
+        ]
       }
     },
     "/api/v1/batch/{batch_id}": {
@@ -215,7 +233,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "CloudflareAccessJwt": []
+          }
+        ]
       }
     },
     "/api/v1/batch/job/{job_id}": {
@@ -262,7 +285,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "CloudflareAccessJwt": []
+          }
+        ]
       }
     },
     "/": {
@@ -288,7 +316,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     }
   },
@@ -822,6 +851,14 @@
           "type"
         ],
         "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "CloudflareAccessJwt": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Cf-Access-Jwt-Assertion",
+        "description": "Cloudflare Access JWT assertion forwarded by the Cloudflare Access edge. Validated by CloudflareAuthMiddleware."
       }
     }
   }
