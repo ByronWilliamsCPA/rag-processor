@@ -127,7 +127,7 @@ async def root() -> dict[str, str]:
     """Root endpoint returning API information.
 
     Returns:
-        Dictionary with API name and version.
+        Dictionary with API name, version, and docs URL.
     """
     return {
         "name": "RAG Processor Gateway",
