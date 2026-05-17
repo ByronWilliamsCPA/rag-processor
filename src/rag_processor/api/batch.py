@@ -5,6 +5,7 @@ Provides endpoints for querying batch and job status.
 
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -124,7 +125,7 @@ class BatchDetailResponse(BaseModel):
 )
 async def get_batch(
     batch_id: UUID,
-    user: CloudflareUser = Depends(get_current_user),
+    user: Annotated[CloudflareUser, Depends(get_current_user)],
 ) -> BatchDetailResponse:
     """Get batch status and job list.
 
@@ -210,7 +211,7 @@ async def get_batch(
 )
 async def get_job(
     job_id: UUID,
-    user: CloudflareUser = Depends(get_current_user),
+    user: Annotated[CloudflareUser, Depends(get_current_user)],
 ) -> JobDetailResponse:
     """Get job status and details.
 
