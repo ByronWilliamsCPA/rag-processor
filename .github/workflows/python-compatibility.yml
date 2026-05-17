@@ -52,4 +52,6 @@ jobs:
       coverage-report: false
       fail-fast: false
       timeout-minutes: 30
+      # rag-processor uses hatchling; --no-build would reject the editable install.
+      no-build: false
     secrets: inherit

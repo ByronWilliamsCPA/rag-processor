@@ -38,6 +38,9 @@ jobs:
       run-integration-tests: true
       run-security-tests: true
       fail-on-llm-tags: false
+      # rag-processor uses hatchling, so --no-build would reject the editable
+      # install of the project itself. Disable the flag so uv builds the wheel.
+      no-build: false
 
   ci-gate:
     name: CI Gate
