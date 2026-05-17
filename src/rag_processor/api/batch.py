@@ -5,11 +5,14 @@ Provides endpoints for querying batch and job status.
 
 from __future__ import annotations
 
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
+from rag_processor.auth.dependencies import batch_is_owned_by, get_current_user
+from rag_processor.auth.models import CloudflareUser
 from rag_processor.models.batch import (
     BatchStatus,
 )
@@ -95,21 +98,37 @@ class BatchDetailResponse(BaseModel):
         404: {"description": "Batch not found"},
     },
 )
-async def get_batch(batch_id: UUID) -> BatchDetailResponse:
+async def get_batch(
+    batch_id: UUID,
+    user: Annotated[CloudflareUser, Depends(get_current_user)],
+) -> BatchDetailResponse:
     """Get batch status and job list.
 
     Args:
         batch_id: Batch identifier.
+        user: Authenticated user from Cloudflare Access.
 
     Returns:
         BatchDetailResponse with batch and job details.
 
     Raises:
-        HTTPException: If batch not found.
+        HTTPException: If batch not found or caller does not own it.
     """
     batch, jobs = get_batch_status(batch_id)
 
-    if batch is None:
+    # Return 404 (not 403) for non-owners to avoid leaking batch existence.
+    if batch is None or not batch_is_owned_by(
+        batch, requester_user_id=user.user_id, requester_email=user.email
+    ):
+        if batch is not None:
+            # Minimal log context: opaque IDs only. Don't include the requester
+            # email or the owner's email/identity (attacker-controlled probes
+            # could otherwise extract owner info from logs).
+            logger.warning(
+                "Unauthorized batch access attempt",
+                batch_id=str(batch_id),
+                requester_user_id=user.user_id,
+            )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Batch {batch_id} not found",
@@ -157,21 +176,43 @@ async def get_batch(batch_id: UUID) -> BatchDetailResponse:
         404: {"description": "Job not found"},
     },
 )
-async def get_job(job_id: UUID) -> JobDetailResponse:
+async def get_job(
+    job_id: UUID,
+    user: Annotated[CloudflareUser, Depends(get_current_user)],
+) -> JobDetailResponse:
     """Get job status and details.
 
     Args:
         job_id: Job identifier.
+        user: Authenticated user from Cloudflare Access.
 
     Returns:
         JobDetailResponse with job details.
 
     Raises:
-        HTTPException: If job not found.
+        HTTPException: If job not found or caller does not own its batch.
     """
     job = get_job_status(job_id)
 
     if job is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job {job_id} not found",
+        )
+
+    # A job inherits ownership from its parent batch.
+    batch, _ = get_batch_status(job.batch_id)
+    if batch is None or not batch_is_owned_by(
+        batch, requester_user_id=user.user_id, requester_email=user.email
+    ):
+        if batch is not None:
+            # Minimal log context: opaque IDs only. See note in get_batch.
+            logger.warning(
+                "Unauthorized job access attempt",
+                job_id=str(job_id),
+                batch_id=str(job.batch_id),
+                requester_user_id=user.user_id,
+            )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Job {job_id} not found",

@@ -89,6 +89,8 @@ jobs:
       comment-on-pr: true
       extra-dependencies: 'dev'
       timeout-minutes: 30
+      # rag-processor uses hatchling; --no-build would reject the editable install.
+      no-build: false
 
   # Summary when benchmarks are skipped
   skip-summary:

@@ -50,3 +50,5 @@ jobs:
       # See: https://github.com/google/osv-scanner/issues - needs bug report
       # Re-enable after org workflow updates to fixed version.
       run-osv: false
+      # rag-processor uses hatchling; --no-build would reject the editable install.
+      no-build: false
