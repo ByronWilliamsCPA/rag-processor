@@ -12,6 +12,7 @@ import jwt
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, status
 
 from rag_processor.auth.cloudflare import verify_cloudflare_token
+from rag_processor.auth.dependencies import batch_is_owned_by
 from rag_processor.core.config import settings
 from rag_processor.queue.jobs import get_batch_status
 from rag_processor.utils.logging import get_logger
@@ -144,24 +145,20 @@ async def websocket_batch_status(
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
-    requester_email = user.get("email")
-    requester_user_id = user.get("user_id")
-    owns_by_id = (
-        bool(batch.created_by_user_id)
-        and bool(requester_user_id)
-        and (batch.created_by_user_id == requester_user_id)
-    )
-    owns_by_email = (
-        bool(batch.created_by_email)
-        and bool(requester_email)
-        and (batch.created_by_email == requester_email)
-    )
-    if not (owns_by_id or owns_by_email):
+    # Shared ownership helper. user_id-takes-precedence semantics: a matching
+    # email with a mismatched user_id is NOT enough to grant access.
+    requester_user_id = user.get("user_id") or None
+    requester_email = user.get("email") or None
+    if not batch_is_owned_by(
+        batch,
+        requester_user_id=requester_user_id,
+        requester_email=requester_email,
+    ):
+        # Minimal log context: opaque IDs only. Don't leak owner identity.
         logger.warning(
             "Unauthorized WebSocket batch access attempt",
             batch_id=str(batch_id),
-            requester_email=requester_email,
-            owner_email=batch.created_by_email,
+            requester_user_id=requester_user_id,
         )
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return

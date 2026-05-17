@@ -16,7 +16,8 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
-from rag_processor.api.batch import _user_owns_batch, get_batch, get_job
+from rag_processor.api.batch import get_batch, get_job
+from rag_processor.auth.dependencies import batch_is_owned_by
 from rag_processor.auth.models import CloudflareUser
 from rag_processor.models.batch import Batch, BatchStatus
 from rag_processor.models.job import (
@@ -68,30 +69,28 @@ def _job(batch_id) -> Job:
     )
 
 
-class TestUserOwnsBatch:
+def _owns(batch, user) -> bool:
+    """Thin wrapper so tests read like the previous _user_owns_batch(batch, user)."""
+    return batch_is_owned_by(
+        batch, requester_user_id=user.user_id, requester_email=user.email
+    )
+
+
+class TestBatchIsOwnedBy:
     """Direct tests for the ownership helper."""
 
     def test_matches_on_user_id(self):
-        assert _user_owns_batch(_batch(), _user()) is True
+        assert _owns(_batch(), _user()) is True
 
     def test_user_id_mismatch_rejects(self):
-        assert (
-            _user_owns_batch(_batch(created_by_user_id="someone-else"), _user())
-            is False
-        )
+        assert _owns(_batch(created_by_user_id="someone-else"), _user()) is False
 
     def test_falls_back_to_email_when_user_id_missing(self):
-        assert (
-            _user_owns_batch(
-                _batch(created_by_user_id=None),
-                _user(user_id=None),
-            )
-            is True
-        )
+        assert _owns(_batch(created_by_user_id=None), _user(user_id=None)) is True
 
     def test_email_mismatch_rejects(self):
         assert (
-            _user_owns_batch(
+            _owns(
                 _batch(created_by_email="someone@else.com", created_by_user_id=None),
                 _user(user_id=None),
             )
@@ -101,9 +100,24 @@ class TestUserOwnsBatch:
     def test_empty_email_does_not_grant_access(self):
         # Both sides empty must not collide into "owner".
         assert (
-            _user_owns_batch(
+            _owns(
                 _batch(created_by_email="", created_by_user_id=None),
                 _user(email="", user_id=None),
+            )
+            is False
+        )
+
+    def test_user_id_mismatch_does_not_fall_back_to_email(self):
+        # Regression: when both user_ids are present and differ, a
+        # coincidentally-matching email must NOT grant access. (CodeRabbit
+        # PR #26 review.)
+        assert (
+            _owns(
+                _batch(
+                    created_by_user_id="u-owner",
+                    created_by_email="match@example.com",
+                ),
+                _user(user_id="u-intruder", email="match@example.com"),
             )
             is False
         )
