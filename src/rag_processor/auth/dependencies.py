@@ -6,11 +6,14 @@ in protected endpoints.
 
 from __future__ import annotations
 
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from fastapi import HTTPException, Request, status
 
 from rag_processor.auth.models import CloudflareUser
+
+if TYPE_CHECKING:
+    from rag_processor.models.batch import Batch
 
 
 async def get_current_user(request: Request) -> CloudflareUser:
@@ -43,6 +46,40 @@ async def get_current_user(request: Request) -> CloudflareUser:
             headers={"WWW-Authenticate": "Bearer"},
         )
     return user
+
+
+def batch_is_owned_by(
+    batch: Batch,
+    *,
+    requester_user_id: str | None,
+    requester_email: str | None,
+) -> bool:
+    """Check whether the caller owns the given batch.
+
+    Ownership precedence:
+    1. If both the batch and the caller have a Cloudflare user_id, that must
+       match. Email is NOT checked as a fallback in this case — a different
+       user_id with a coincidentally matching email must not grant access.
+    2. Otherwise (legacy batches without user_id, or callers without one),
+       fall back to email match.
+
+    Empty strings on either side never grant access.
+
+    Keyword-only requester args so REST callers (which have a CloudflareUser)
+    and WebSocket callers (which only have a dict from verify_cloudflare_token)
+    can both pass primitives without constructing a model.
+
+    Args:
+        batch: The batch being accessed.
+        requester_user_id: The caller's Cloudflare user ID (sub), or None.
+        requester_email: The caller's email, or None.
+
+    Returns:
+        True if the caller created the batch.
+    """
+    if batch.created_by_user_id and requester_user_id:
+        return batch.created_by_user_id == requester_user_id
+    return bool(batch.created_by_email) and batch.created_by_email == requester_email
 
 
 async def get_optional_user(request: Request) -> CloudflareUser | None:

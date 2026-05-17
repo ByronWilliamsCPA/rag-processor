@@ -306,6 +306,53 @@ class TestWebSocketEndpoint:
         # Never accepted the connection.
         mock_cm.connect.assert_not_called()
 
+    @pytest.mark.asyncio
+    async def test_websocket_rejects_matching_email_with_different_user_id(
+        self, mock_ws_logger: MagicMock
+    ) -> None:
+        """Regression: matching email + different user_id must NOT grant access.
+
+        The previous WebSocket ownership check OR'd id-match and email-match,
+        so a token whose email happened to match the batch owner's email
+        would bypass the user_id check. user_id must take precedence when
+        both sides have it. (CodeRabbit PR #26 review.)
+        """
+        from fastapi import WebSocket, status
+
+        batch_id = uuid4()
+        mock_websocket = AsyncMock(spec=WebSocket)
+
+        # Same email as the batch owner, different user_id.
+        mock_verify = AsyncMock(
+            return_value={"email": "owner@example.com", "user_id": "u-intruder"}
+        )
+
+        mock_batch = MagicMock()
+        mock_batch.created_by_user_id = "u-owner"
+        mock_batch.created_by_email = "owner@example.com"
+        mock_batch_status = MagicMock(return_value=(mock_batch, []))
+
+        mock_cm = MagicMock()
+        mock_cm.connect = AsyncMock()
+        mock_cm.send_personal = AsyncMock()
+        mock_cm.disconnect = MagicMock()
+
+        with (
+            patch("rag_processor.websocket.router.verify_ws_token", mock_verify),
+            patch("rag_processor.websocket.router.get_batch_status", mock_batch_status),
+            patch("rag_processor.websocket.router.connection_manager", mock_cm),
+        ):
+            from rag_processor.websocket.router import websocket_batch_status
+
+            await websocket_batch_status(
+                mock_websocket, batch_id, cf_access_token="valid-token"
+            )
+
+        mock_websocket.close.assert_called_once_with(
+            code=status.WS_1008_POLICY_VIOLATION
+        )
+        mock_cm.connect.assert_not_called()
+
     @pytest.mark.skip(
         reason="Module-level Redis import happens before patches can be applied"
     )

@@ -425,15 +425,45 @@ requires a maintenance process to bump the SHA when the org template changes.
 
 ## Summary of fixes applied in this PR
 
-| # | File | Severity | Change |
-|---|------|----------|--------|
-| 1 | `src/rag_processor/api/batch.py` | CRITICAL | Add auth dependency + ownership check on `GET /batch/{batch_id}` and `GET /batch/job/{job_id}`. Return 404 on non-owner. |
-| 2 | `src/rag_processor/websocket/router.py` | CRITICAL | Add ownership check before accepting WS upgrade for `/ws/batch/{batch_id}`. |
-| 3 | `src/rag_processor/core/config.py` | HIGH | New `cors_allowed_origins` setting (env-overridable via `RAG_PROCESSOR_CORS_ALLOWED_ORIGINS`). |
-| 4 | `src/rag_processor/main.py` | HIGH | Read CORS origins from settings; fail startup on `"*"`; replace `allow_methods=["*"]` / `allow_headers=["*"]` with explicit lists. |
-| 5 | `src/rag_processor/auth/cloudflare.py` | HIGH | Log `CRITICAL` on every request when `cloudflare_enabled=False`. |
-| 6 | `.github/workflows/sonarcloud.yml` | HIGH | Pin `sonarsource/sonarqube-quality-gate-action@master` → SHA `cf038b0e…` (v1.2.0). Add `harden-runner` to both jobs. |
-| 7 | `.github/workflows/dependency-review.yml` | MEDIUM | Pin `actions/dependency-review-action@v4` → SHA `2031cfc0…` (v4.9.0). Add `harden-runner`. |
+(Each entry: file — severity — change. Bulleted to keep lines under the
+project's 120-char markdown limit.)
+
+1. **[CRITICAL]** `src/rag_processor/api/batch.py`
+   Add auth dependency + ownership check on `GET /batch/{batch_id}` and
+   `GET /batch/job/{job_id}`. Non-owners receive 404 (not 403) so batch
+   existence isn't leaked. Ownership logic centralised in
+   `auth/dependencies.py::batch_is_owned_by` with user_id-takes-precedence
+   semantics (matching email cannot override a mismatched user_id).
+   Warning logs include only opaque IDs — no PII (per CodeRabbit review).
+
+2. **[CRITICAL]** `src/rag_processor/websocket/router.py`
+   Add ownership check before accepting WS upgrade for `/ws/batch/{batch_id}`.
+   Uses the same `batch_is_owned_by` helper so the WS authz path cannot
+   diverge from the REST authz path. Warning logs redacted to opaque IDs.
+
+3. **[HIGH]** `src/rag_processor/core/config.py`, `.env.example`
+   New `cors_allowed_origins` setting, **empty by default** so production
+   fails closed. Overridable via `RAG_PROCESSOR_CORS_ALLOWED_ORIGINS` as a
+   JSON array; dev value documented in `.env.example`.
+
+4. **[HIGH]** `src/rag_processor/main.py`
+   Read CORS origins from settings; **raise at startup** on `"*"`; replace
+   `allow_methods=["*"]` / `allow_headers=["*"]` with explicit method and
+   header lists (the latter including `Cf-Access-Jwt-Assertion`).
+
+5. **[HIGH]** `src/rag_processor/auth/cloudflare.py`
+   Emit a `CRITICAL` log on every request when `cloudflare_enabled=False` so
+   a production deploy accidentally running in bypass mode is visible in
+   logs / alerting immediately.
+
+6. **[HIGH]** `.github/workflows/sonarcloud.yml`
+   Pin `sonarsource/sonarqube-quality-gate-action@master` → SHA
+   `cf038b0e…` (v1.2.0). Add `harden-runner` (egress-policy: audit) to
+   both jobs.
+
+7. **[MEDIUM]** `.github/workflows/dependency-review.yml`
+   Pin `actions/dependency-review-action@v4` → SHA `2031cfc0…` (v4.9.0).
+   Add `harden-runner`.
 
 ## Follow-ups (not in this PR)
 

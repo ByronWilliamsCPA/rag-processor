@@ -11,10 +11,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from rag_processor.auth.dependencies import get_current_user
+from rag_processor.auth.dependencies import batch_is_owned_by, get_current_user
 from rag_processor.auth.models import CloudflareUser
 from rag_processor.models.batch import (
-    Batch,
     BatchStatus,
 )
 from rag_processor.models.job import (
@@ -28,25 +27,6 @@ from rag_processor.utils.logging import get_logger
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/batch", tags=["batch"])
-
-
-def _user_owns_batch(batch: Batch, user: CloudflareUser) -> bool:
-    """Check whether the authenticated user owns this batch.
-
-    Owners are matched by Cloudflare user ID (preferred) or email (fallback for
-    batches created before user_id was populated). Mismatched/empty IDs do not
-    grant access.
-
-    Args:
-        batch: The batch being accessed.
-        user: The authenticated caller.
-
-    Returns:
-        True if the caller created the batch.
-    """
-    if batch.created_by_user_id and user.user_id:
-        return batch.created_by_user_id == user.user_id
-    return bool(batch.created_by_email) and batch.created_by_email == user.email
 
 
 class JobDetailResponse(BaseModel):
@@ -148,14 +128,17 @@ async def get_batch(
     batch, jobs = get_batch_status(batch_id)
 
     # Return 404 (not 403) for non-owners to avoid leaking batch existence.
-    if batch is None or not _user_owns_batch(batch, user):
+    if batch is None or not batch_is_owned_by(
+        batch, requester_user_id=user.user_id, requester_email=user.email
+    ):
         if batch is not None:
+            # Minimal log context: opaque IDs only. Don't include the requester
+            # email or the owner's email/identity (attacker-controlled probes
+            # could otherwise extract owner info from logs).
             logger.warning(
                 "Unauthorized batch access attempt",
                 batch_id=str(batch_id),
-                requester_email=user.email,
                 requester_user_id=user.user_id,
-                owner_email=batch.created_by_email,
             )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -241,15 +224,16 @@ async def get_job(
 
     # A job inherits ownership from its parent batch.
     batch, _ = get_batch_status(job.batch_id)
-    if batch is None or not _user_owns_batch(batch, user):
+    if batch is None or not batch_is_owned_by(
+        batch, requester_user_id=user.user_id, requester_email=user.email
+    ):
         if batch is not None:
+            # Minimal log context: opaque IDs only. See note in get_batch.
             logger.warning(
                 "Unauthorized job access attempt",
                 job_id=str(job_id),
                 batch_id=str(job.batch_id),
-                requester_email=user.email,
                 requester_user_id=user.user_id,
-                owner_email=batch.created_by_email,
             )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
