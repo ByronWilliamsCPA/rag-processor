@@ -55,17 +55,20 @@ class Settings(BaseSettings):
     )
 
     # CORS
+    # Empty by default so production deployments must opt in explicitly via
+    # RAG_PROCESSOR_CORS_ALLOWED_ORIGINS. The previous version of this setting
+    # shipped dev http://localhost origins as defaults, which SonarCloud S5332
+    # flagged for the obvious reason that they're plaintext http; more
+    # importantly, baked-in defaults make it too easy to ship a production
+    # build that accidentally trusts dev origins.
+    # Local dev: see .env.example / docs for the recommended dev value.
     cors_allowed_origins: list[str] = Field(
-        default=[
-            "http://localhost:3000",
-            "http://localhost:5173",
-            "http://127.0.0.1:3000",
-            "http://frontend:3000",
-        ],
+        default_factory=list,
         description=(
             "Allowed CORS origins. Must be an explicit list of origins (no "
-            "wildcard) because allow_credentials=True. Override in production via "
-            "RAG_PROCESSOR_CORS_ALLOWED_ORIGINS as a JSON array."
+            "wildcard) because allow_credentials=True. Set via "
+            "RAG_PROCESSOR_CORS_ALLOWED_ORIGINS as a JSON array; empty by "
+            "default."
         ),
     )
 

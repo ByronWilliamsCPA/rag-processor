@@ -188,11 +188,15 @@ avoided in the committed code. But:
    sloppy and depends on browser behaviour to be safe).
 
 **Fix — applied** (`src/rag_processor/main.py`,
-`src/rag_processor/core/config.py`):
+`src/rag_processor/core/config.py`, `.env.example`):
 
-- Added `Settings.cors_allowed_origins`, defaulting to the same dev origins.
-  Production sets `RAG_PROCESSOR_CORS_ALLOWED_ORIGINS` as a JSON array
-  (`["https://app.example.com"]`).
+- Added `Settings.cors_allowed_origins`, **empty by default** so the backend
+  fails closed when deployed without explicit configuration. Both dev and prod
+  set `RAG_PROCESSOR_CORS_ALLOWED_ORIGINS` as a JSON array
+  (`["https://app.example.com"]` in prod, the localhost set in dev — see
+  `.env.example`). Empty default also resolves SonarCloud python:S5332,
+  which (correctly) flagged the previous hardcoded `http://localhost:*`
+  defaults as insecure plaintext URLs in production source.
 - `main.py` now reads from settings and **raises at startup** if `"*"` appears
   in the list, so an insecure-by-misconfiguration deploy fails fast instead of
   silently allowing any origin.
