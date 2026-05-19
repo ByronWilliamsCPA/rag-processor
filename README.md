@@ -39,7 +39,7 @@ React-based frontend for RAG pipeline with FastAPI backend integration
 
 This project provides:
 - Core functionality for react-based frontend for rag pipeline with fastapi backend integration
-- Production-ready code with thorough testing
+- Production-ready code with 80%+ test coverage
 - Well-documented API and architecture
 - Security-first development practices
 

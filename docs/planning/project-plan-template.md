@@ -206,7 +206,7 @@ git checkout -b feat/phase-1-core
 **Objectives**:
 - Implement core functionality
 - Create API/CLI interface
-- Build a full test suite
+- Build a test suite covering unit, integration, and edge cases
 
 **Key Deliverables**:
 - [ ] Core module implementation

@@ -16,8 +16,6 @@ Detailed rules and standards that apply to this project live in the global rules
 
 ---
 
----
-
 ## Template Feedback Requirement (CRITICAL)
 
 This project was generated from the [cookiecutter-python-template](https://github.com/ByronWilliamsCPA/cookiecutter-python-template) using cruft.

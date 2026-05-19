@@ -13,10 +13,15 @@ config_version = "0"
 #   qlty plugins enable basedpyright
 #   qlty plugins enable bandit
 # The CLI writes per-plugin TOML files under .qlty/plugins/<name>.toml.
-# The [plugins] block below records the intended enabled set so that
-# automated sweeps, onboarding scripts, and CI can verify the state.
-[plugins]
-enabled = ["ruff", "basedpyright", "bandit"]
+#
+# Intended enabled plugin set (recorded here for automated sweeps,
+# onboarding scripts, and CI to verify against `.qlty/plugins/*.toml`):
+#   - ruff
+#   - basedpyright
+#   - bandit
+# A `[plugins]` table is intentionally NOT defined: it is not a documented
+# qlty.toml schema key, and depending on qlty version it would either be
+# silently ignored or rejected.
 
 # File patterns to completely exclude from all analysis
 exclude_patterns = [
@@ -121,7 +126,7 @@ file_complexity.threshold = 750
 # Security tools are run via pre-commit hooks instead of qlty plugins:
 # - detect-secrets: Secrets detection
 # - bandit: Python security linter (via pyproject.toml [tool.bandit])
-# - safety: Dependency vulnerability scanning
+# - pip-audit: Dependency vulnerability scanning
 #
 # This approach is more reliable as qlty plugin availability varies.
 # See .pre-commit-config.yaml for the full security tool configuration.
