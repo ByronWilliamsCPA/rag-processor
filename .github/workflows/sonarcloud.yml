@@ -32,18 +32,32 @@ permissions:
   contents: read
   pull-requests: write  # Required for PR decoration
 
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
 jobs:
   # Check if SONAR_TOKEN is configured before running analysis
   check-secrets:
     name: Check Configuration
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       has-token: ${{ steps.check.outputs.has-token }}
     steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e  # v2.10.4
+        with:
+          egress-policy: audit
+          # TODO(CI-031): switch to egress-policy: block after baselining 2026-08-01
+
       - name: Check for SONAR_TOKEN
         id: check
+        # CI-U03: secret presence check uses env var, not inline expression in run:
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          if [ -n "${{ secrets.SONAR_TOKEN }}" ]; then
+          if [ -n "$SONAR_TOKEN" ]; then
             echo "has-token=true" >> $GITHUB_OUTPUT
             echo "::notice::SONAR_TOKEN is configured. SonarCloud analysis will run."
           else
@@ -63,6 +77,12 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e  # v2.10.4
+        with:
+          egress-policy: audit
+          # TODO(CI-031): switch to egress-policy: block after baselining 2026-08-01
+
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
@@ -91,7 +111,6 @@ jobs:
             --cov-report=term \
             --cov-branch \
             -v
-        continue-on-error: true  # Don't fail on test failures; let SonarCloud report them
 
       - name: Verify coverage report
         run: |
@@ -116,11 +135,10 @@ jobs:
             -Dsonar.python.version=3.12
 
       - name: Check Quality Gate
-        uses: sonarsource/sonarqube-quality-gate-action@master
+        uses: sonarsource/sonarqube-quality-gate-action@8e9b0ca0a7273d6f16986388d98393efdfcf56fd  # master
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        continue-on-error: true  # Don't fail workflow, just report status
 
       - name: Quality Gate Summary
         if: always()

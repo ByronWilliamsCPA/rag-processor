@@ -6,7 +6,7 @@ A batch represents a group of files uploaded together by a user.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
@@ -30,7 +30,7 @@ def _parse_iso_datetime(value: str) -> datetime:
     return datetime.fromisoformat(value)
 
 
-class BatchStatus(str, Enum):
+class BatchStatus(StrEnum):
     """Status of a batch of uploaded files.
 
     Attributes:

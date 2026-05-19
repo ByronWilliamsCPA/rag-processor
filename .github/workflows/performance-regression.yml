@@ -49,9 +49,16 @@ jobs:
   check-benchmarks:
     name: Check Benchmark Setup
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       has-benchmarks: ${{ steps.check.outputs.has-benchmarks }}
     steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e  # v2.10.4
+        with:
+          egress-policy: audit
+          # TODO(CI-031): switch to egress-policy: block after baselining 2026-08-01
+
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
@@ -76,7 +83,7 @@ jobs:
     name: Performance Regression
     needs: check-benchmarks
     if: needs.check-benchmarks.outputs.has-benchmarks == 'true'
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-performance-regression.yml@main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-performance-regression.yml@1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
     with:
       benchmark-script: 'scripts/benchmark.py'
       python-version: '3.12'
@@ -94,9 +101,16 @@ jobs:
   skip-summary:
     name: Performance Summary
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: check-benchmarks
     if: needs.check-benchmarks.outputs.has-benchmarks == 'false'
     steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e  # v2.10.4
+        with:
+          egress-policy: audit
+          # TODO(CI-031): switch to egress-policy: block after baselining 2026-08-01
+
       - name: Report skipped
         run: |
           echo "## Performance Regression Testing" >> $GITHUB_STEP_SUMMARY

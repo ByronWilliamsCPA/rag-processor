@@ -34,6 +34,7 @@ jobs:
   build:
     name: Build Package
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     outputs:
       hashes: ${{ steps.hashes.outputs.hashes }}
@@ -98,7 +99,7 @@ jobs:
   slsa:
     name: SLSA Level 3
     needs: [build]
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-slsa.yml@main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-slsa.yml@1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
     with:
       base64-subjects: ${{ needs.build.outputs.hashes }}
       upload-assets: true

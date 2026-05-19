@@ -1,0 +1,133 @@
+# Reusable Workflow Inventory (CI-024)
+# Documents every org-level reusable workflow called from this repository,
+# the SHA it is pinned to, the date it was last verified, and the GitHub
+# Actions check context names it produces.
+#
+# Update this file whenever a reusable SHA is bumped.
+# last_verified dates use ISO-8601 (YYYY-MM-DD).
+#
+# Org reusable repo: https://github.com/ByronWilliamsCPA/.github
+
+- workflow: python-ci.yml
+  caller_files:
+    - .github/workflows/ci.yml
+    - .github/workflows/pr-validation.yml
+  version: 1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
+  last_verified: "2026-05-19"
+  produces:
+    - CI Pipeline / build
+    - CI Pipeline / test
+    - CI Pipeline / lint
+    - CI Pipeline / type-check
+
+- workflow: python-codecov.yml
+  caller_files:
+    - .github/workflows/codecov.yml
+  version: 1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
+  last_verified: "2026-05-19"
+  produces:
+    - Upload Coverage / upload
+
+- workflow: python-qlty-coverage.yml
+  caller_files:
+    - .github/workflows/coverage.yml
+    - .github/workflows/qlty.yml
+  version: 1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
+  last_verified: "2026-05-19"
+  produces:
+    - Upload Coverage to Qlty / upload
+
+- workflow: python-container-security.yml
+  caller_files:
+    - .github/workflows/container-security.yml
+  version: 1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
+  last_verified: "2026-05-19"
+  produces:
+    - Container Security Scan / trivy
+    - Container Security Scan / hadolint
+
+- workflow: python-docs.yml
+  caller_files:
+    - .github/workflows/docs.yml
+  version: 1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
+  last_verified: "2026-05-19"
+  produces:
+    - Build & Deploy Docs / build
+    - Build & Deploy Docs / deploy
+
+- workflow: python-mutation.yml
+  caller_files:
+    - .github/workflows/mutation-testing.yml
+  version: 1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
+  last_verified: "2026-05-19"
+  produces:
+    - Mutation Testing / mutmut
+
+- workflow: python-performance-regression.yml
+  caller_files:
+    - .github/workflows/performance-regression.yml
+  version: 1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
+  last_verified: "2026-05-19"
+  produces:
+    - Performance Regression / benchmark
+
+- workflow: python-publish-pypi.yml
+  caller_files:
+    - .github/workflows/publish-pypi.yml
+  version: 1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
+  last_verified: "2026-05-19"
+  produces:
+    - Publish Package / publish
+
+- workflow: python-compatibility.yml
+  caller_files:
+    - .github/workflows/python-compatibility.yml
+  version: 1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
+  last_verified: "2026-05-19"
+  produces:
+    - Python Compatibility Matrix / test-3.10-ubuntu-latest
+    - Python Compatibility Matrix / test-3.11-ubuntu-latest
+    - Python Compatibility Matrix / test-3.12-ubuntu-latest
+    - Python Compatibility Matrix / test-3.13-ubuntu-latest
+
+- workflow: python-release.yml
+  caller_files:
+    - .github/workflows/release.yml
+  version: 1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
+  last_verified: "2026-05-19"
+  produces:
+    - Release Pipeline / release
+
+- workflow: python-sbom.yml
+  caller_files:
+    - .github/workflows/sbom.yml
+  version: 1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
+  last_verified: "2026-05-19"
+  produces:
+    - SBOM & Security / sbom
+    - SBOM & Security / trivy
+
+- workflow: python-scorecard.yml
+  caller_files:
+    - .github/workflows/scorecard.yml
+  version: 1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
+  last_verified: "2026-05-19"
+  produces:
+    - Scorecard Analysis / analyze
+
+- workflow: python-security-analysis.yml
+  caller_files:
+    - .github/workflows/security-analysis.yml
+  version: 1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
+  last_verified: "2026-05-19"
+  produces:
+    - Security Scan / bandit
+    - Security Scan / dependency-review
+
+- workflow: python-slsa.yml
+  caller_files:
+    - .github/workflows/slsa-provenance.yml
+  version: 1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
+  last_verified: "2026-05-19"
+  produces:
+    - SLSA Level 3 / provenance

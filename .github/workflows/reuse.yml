@@ -20,11 +20,22 @@ on:
 
 permissions: read-all
 
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
 jobs:
   reuse:
     name: Check REUSE Compliance
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e  # v2.10.4
+        with:
+          egress-policy: audit
+          # TODO(CI-031): switch to egress-policy: block after baselining 2026-08-01
+
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
@@ -47,7 +58,14 @@ jobs:
   validate-licenses:
     name: Validate License Files
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e  # v2.10.4
+        with:
+          egress-policy: audit
+          # TODO(CI-031): switch to egress-policy: block after baselining 2026-08-01
+
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 

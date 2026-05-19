@@ -22,7 +22,7 @@ React-based frontend for RAG pipeline with FastAPI backend integration
 
 ### Quality Assurance
 
-- **pytest** with comprehensive coverage
+- **pytest** with enforced coverage thresholds
 - **Pre-commit hooks** for automated checks
 - **GitHub Actions** CI/CD pipeline
 

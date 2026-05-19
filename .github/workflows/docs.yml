@@ -25,13 +25,20 @@ permissions:
   pages: write
   id-token: write
 
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
 # Uses org-level reusable workflow
 jobs:
   docs:
     name: Build & Deploy Docs
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-docs.yml@main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-docs.yml@1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
     with:
       python-version: '3.12'
+      # rag-processor uses hatchling as build backend, so editable installs
+      # require the build step. The reusable defaults no-build: true; override.
+      no-build: false
       deploy-to-pages: >-
         ${{
           github.event_name == 'push' &&

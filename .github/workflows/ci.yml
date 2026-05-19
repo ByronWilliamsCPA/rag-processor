@@ -13,6 +13,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     branches: [main, master, develop]
+  merge_group:
   workflow_dispatch:
 
 # Cancel in-progress runs for same PR/branch
@@ -29,7 +30,7 @@ permissions:
 jobs:
   ci:
     name: CI Pipeline
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-ci.yml@main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-ci.yml@1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
     with:
       python-version: '3.12'
       coverage-threshold: 80

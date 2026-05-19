@@ -6,20 +6,20 @@
 # - pre-push: Full quality checks before pushing (Qlty, full scans)
 # - commit-msg: Conventional commit message validation
 #
-# Installation: curl https://qlty.sh | bash
-# Documentation: https://docs.qlty.sh
+# Installation: pre-commit install && pre-commit install --hook-type commit-msg
+# Documentation: https://pre-commit.com
 
 ci:
   autoupdate_schedule: monthly
   autofix_prs: true
-  skip: [validate-front-matter, qlty-check, qlty-full, trufflehog, darglint, bandit, bandit-full]  # Skip local-only hooks
+  skip: [validate-front-matter, qlty-check, qlty-full, trufflehog, darglint, bandit, bandit-full, no-em-dash]  # Skip local-only hooks
 
 repos:
   # ============================================================================
   # Fast File Checks (Lightweight, run on every commit)
   # ============================================================================
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: "3e8a8703264a2f4a69428a0aa4dcb512790b2c8c"  # was: v4.5.0  # pragma: allowlist secret
     hooks:
       - id: trailing-whitespace
         stages: [pre-commit]
@@ -52,33 +52,67 @@ repos:
         stages: [pre-commit]
 
   # ============================================================================
-  # Secret Detection - TruffleHog
+  # Code Formatting and Linting - Ruff (PC-002)
   # ============================================================================
-  # Advanced secret detection beyond detect-private-key
-  # Detects API keys, tokens, credentials, and other secrets
-  # Uses local system-installed trufflehog to avoid Go build issues
-  # Install: brew install trufflehog (macOS) or see https://github.com/trufflesecurity/trufflehog#installation
+  # Ruff replaces flake8, isort, pyupgrade, and more in a single fast tool.
+  # Both hooks must be present: ruff-format (formatter) and ruff (linter).
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: "5e2fb545eba1ea9dc051f6f962d52fe8f76a9794"  # v0.15.13  # pragma: allowlist secret
+    hooks:
+      - id: ruff-format
+        stages: [pre-commit]
+      - id: ruff
+        stages: [pre-commit]
+        args: ['--fix']
+
+  # ============================================================================
+  # Type Checking - BasedPyright (PC-003)
+  # ============================================================================
+  # Uses local uv environment so it picks up pyproject.toml strict config.
   - repo: local
     hooks:
-      - id: trufflehog
-        name: TruffleHog Secret Scanner
-        description: Detect secrets in your data before committing
-        entry: >
-          bash -c 'command -v trufflehog >/dev/null 2>&1 &&
-          trufflehog git file://. --since-commit HEAD --results=verified,unknown --fail ||
-          echo "TruffleHog not installed - skipping (install: brew install trufflehog)"'
+      - id: basedpyright
+        name: BasedPyright (PC-003)
+        entry: uv run basedpyright src/
         language: system
+        types: [python]
         pass_filenames: false
         stages: [pre-commit]
 
   # ============================================================================
-  # Security Scanning - Bandit
+  # Secret Detection - TruffleHog (PC-005 / PC-U01)
+  # ============================================================================
+  # Fail-closed: if trufflehog is absent the hook exits non-zero.
+  # Install: brew install trufflehog  OR  apt-get install trufflehog
+  # Or download from: https://github.com/trufflesecurity/trufflehog/releases
+  - repo: https://github.com/trufflesecurity/trufflehog
+    rev: "37b77001d0174ebec2fcca2bd83ff83a6d45a3ab"  # v3.95.3  # pragma: allowlist secret
+    hooks:
+      - id: trufflehog
+        entry: bash -c 'git diff --cached -z --name-only --diff-filter=d 2>/dev/null | tr "\0" "\n" | grep -v "^CHANGELOG\.md$" | grep -v "^\.submodules/" | grep -v "^uv\.lock$" | grep -v "^\.secrets\.baseline$" | grep -v "^$" | tr "\n" "\0" | xargs -0 -r trufflehog filesystem --fail --no-update --only-verified'
+        pass_filenames: false
+        stages: [pre-commit]
+
+  # ============================================================================
+  # Secret Detection - detect-secrets baseline regression (PC-005 / PC-013)
+  # ============================================================================
+  # Prevents new secrets from being added beyond the audited .secrets.baseline.
+  # If .secrets.baseline is absent, run: uv run detect-secrets scan > .secrets.baseline
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: "68e8b45440415753fff70a312ece8da92ba85b4a"  # v1.5.0  # pragma: allowlist secret
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        stages: [pre-commit]
+
+  # ============================================================================
+  # Security Scanning - Bandit (PC-004)
   # ============================================================================
   # Dedicated Bandit hook for Python security analysis
   # Runs on changed files during pre-commit, full scan on pre-push
   # Configuration in pyproject.toml [tool.bandit]
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.10
+    rev: "92ae8b82fb422a639f0ed8d99e96cea769594e08"  # was: 1.7.10  # pragma: allowlist secret
     hooks:
       - id: bandit
         name: Bandit Security Scan (changed files)
@@ -102,17 +136,29 @@ repos:
   # ============================================================================
   # Enforces conventional commit message format for semantic versioning
   - repo: https://github.com/compilerla/conventional-pre-commit
-    rev: v3.4.0
+    rev: "3db014c16a9d31997ab8c07a4d61fcce936c8f0d"  # was: v3.4.0  # pragma: allowlist secret
     hooks:
       - id: conventional-pre-commit
         stages: [commit-msg]
         args: [feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert]
 
   # ============================================================================
+  # Commitizen commit-msg validation (PC-008)
+  # ============================================================================
+  # Validates commit messages locally against the project's conventional-commits
+  # standard. Complements compilerla/conventional-pre-commit (which covers PR
+  # title enforcement via CI). Requires: pip install commitizen
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: "0fedbbe40de438359fdf74bb0ef645ed23063999"  # v4.16.2  # pragma: allowlist secret
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
+  # ============================================================================
   # pyproject.toml Validation
   # ============================================================================
   - repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.20.2
+    rev: "4b2e70d08cb2ccd26d1fba73588de41c7a5d50b7"  # was: v0.20.2  # pragma: allowlist secret
     hooks:
       - id: validate-pyproject
         stages: [pre-commit]
@@ -121,9 +167,55 @@ repos:
   # GitHub Workflow Validation
   # ============================================================================
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.29.4
+    rev: "943377262562a12b57292fc98fabd7dbf81451fe"  # was: 0.29.4  # pragma: allowlist secret
     hooks:
       - id: check-github-workflows
+        stages: [pre-commit]
+
+  # ============================================================================
+  # YAML Linting (PC-009)
+  # ============================================================================
+  # Scoped to workflow files, pre-commit config, mkdocs config, and all YAML.
+  # Configuration: .yamllint at repo root.
+  - repo: https://github.com/adrienverge/yamllint
+    rev: "cba56bcde1fdd01c1deb3f945e69764c291a6530"  # v1.38.0  # pragma: allowlist secret
+    hooks:
+      - id: yamllint
+        stages: [pre-commit]
+        args: ['-c', '.yamllint']
+        files: '(\.github/workflows/.*|\.pre-commit-config\.yaml|mkdocs\.yml|.*\.ya?ml)$'
+        # Skip vendored, generated, and known-divergent compose files; remediate in follow-up.
+        exclude: '^(frontend/node_modules/|docker-compose\.prod\.yml$)'
+
+  # ============================================================================
+  # Markdown Linting (PC-010)
+  # ============================================================================
+  # markdownlint-cli2 variant; configuration in .markdownlint.json.
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: "996abf60411a8d954288ac9856aae7602b80cbda"  # v0.22.1  # pragma: allowlist secret
+    hooks:
+      - id: markdownlint-cli2
+        stages: [pre-commit]
+        args: ['--config', '.markdownlint.json']
+        types: [markdown]
+        # Pre-existing files with formatting drift; remediate in a follow-up PR.
+        exclude: '^(\.claude/|\.standards/|docs/ADRs/adr-template\.md|docs/planning/adr/adr-001-react-fastapi-architecture\.md|docs/planning/sprint-1-implementation-plan\.md|README\.md|CONFIG_TEMPLATES_SUMMARY\.md)'
+
+  # ============================================================================
+  # Em-Dash Detection (PC-011)
+  # ============================================================================
+  # Hard rule: em-dashes are prohibited in all text output.
+  # See global CLAUDE.md writing rules.
+  # Pre-existing em-dashes in mkdocs.yml and tools/validate_front_matter.py
+  # are excluded until those files are remediated.
+  - repo: local
+    hooks:
+      - id: no-em-dash
+        name: No em-dashes (PC-011)
+        entry: "—"
+        language: pygrep
+        types: [text]
+        exclude: '^(\.pre-commit-config\.yaml|mkdocs\.yml|tools/validate_front_matter\.py)$'
         stages: [pre-commit]
 
   # ============================================================================
@@ -182,15 +274,25 @@ repos:
 
 
   # ============================================================================
-  # Python Docstring Coverage
+  # Python Docstring Coverage (PC-007 / PC-007b)
   # ============================================================================
-  # Interrogate ensures all Python code has proper docstrings
-  # Target: 85% coverage
+  # Interrogate ensures all Python code has proper docstrings.
+  # Two scoped entries: one for scripts/ (85%), one for src/ (80%).
   - repo: https://github.com/econchick/interrogate
-    rev: 1.7.0
+    rev: "a6268877efd41a21197445cc04cbf28f9c6facba"  # was: 1.7.0  # pragma: allowlist secret
     hooks:
       - id: interrogate
-        args: ['-v', '-c', 'pyproject.toml', 'src/']
+        alias: interrogate-scripts
+        name: Interrogate docstring coverage (scripts/)
+        args: ['-v', '-c', 'pyproject.toml', '--fail-under=85', 'scripts/']
+        files: ^scripts/
+        language_version: python3.12
+        pass_filenames: false
+        stages: [pre-commit]
+      - id: interrogate
+        alias: interrogate-src
+        name: Interrogate docstring coverage (src/)
+        args: ['-v', '-c', 'pyproject.toml', '--fail-under=80', 'src/']
         language_version: python3.12
         pass_filenames: false
         stages: [pre-commit]

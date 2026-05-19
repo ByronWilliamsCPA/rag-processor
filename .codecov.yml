@@ -1,0 +1,37 @@
+# Codecov configuration for RAG Processor
+# Documentation: https://docs.codecov.com/docs/codecovyml-reference
+#
+# CI-009: this file satisfies the codecov config file existence check.
+# CI-010: coverage.status thresholds are set below.
+# CI-011: flag definitions for unit and integration test separation.
+
+coverage:
+  status:
+    project:
+      default:
+        # CI-010: project-level gate, 80% overall coverage required.
+        target: 80%
+        threshold: 1%
+    patch:
+      default:
+        # CI-010: patch-level gate; new/changed lines must be 80% covered.
+        target: 80%
+        threshold: 1%
+
+flags:
+  # CI-011: unit test flag covering source code under src/
+  unit:
+    paths:
+      - src/
+    carryforward: true
+
+  # CI-011: integration test flag covering tests/integration/
+  integration:
+    paths:
+      - tests/integration/
+    carryforward: true
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: false

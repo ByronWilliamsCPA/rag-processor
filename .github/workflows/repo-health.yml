@@ -1,0 +1,84 @@
+# Repository Health Check (CI-013)
+# Scheduled monthly probe that verifies required OpenSSF files are present
+# and branch protection has not drifted from the expected configuration.
+#
+# This workflow is informational: failures produce a step summary and a
+# workflow annotation but do not block PRs or releases.
+name: Repo Health
+
+on:
+  schedule:
+    # First day of each month at 08:00 UTC
+    - cron: '0 8 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  repo-health:
+    name: Repository Health Probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e  # v2.10.4
+        with:
+          egress-policy: audit
+          # TODO(CI-031): switch to egress-policy: block after baselining 2026-08-01
+
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+
+      - name: Check required OpenSSF files
+        id: file-check
+        run: |
+          MISSING=()
+          for f in LICENSE SECURITY.md CONTRIBUTING.md CHANGELOG.md README.md; do
+            if [ ! -f "$f" ]; then
+              MISSING+=("$f")
+            fi
+          done
+
+          echo "## Repository Health Check" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${#MISSING[@]}" -eq 0 ]; then
+            echo "### Required files: PASS" >> "$GITHUB_STEP_SUMMARY"
+            echo "All required OpenSSF files are present." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### Required files: FAIL" >> "$GITHUB_STEP_SUMMARY"
+            echo "Missing files:" >> "$GITHUB_STEP_SUMMARY"
+            for f in "${MISSING[@]}"; do
+              echo "- $f" >> "$GITHUB_STEP_SUMMARY"
+              echo "::warning::Missing required file: $f"
+            done
+            echo "missing_files=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check branch protection via API
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          BRANCH="main"
+          STATUS=$(gh api "repos/$REPO/branches/$BRANCH/protection" \
+            --jq '.required_status_checks.strict // false' 2>/dev/null || echo "unavailable")
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$STATUS" = "unavailable" ]; then
+            echo "### Branch protection: UNAVAILABLE" >> "$GITHUB_STEP_SUMMARY"
+            echo "Could not read branch protection for $BRANCH (may require admin token)." >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::Branch protection status for $BRANCH could not be verified"
+          elif [ "$STATUS" = "true" ]; then
+            echo "### Branch protection: PASS" >> "$GITHUB_STEP_SUMMARY"
+            echo "Branch $BRANCH requires strict status checks." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### Branch protection: DRIFT DETECTED" >> "$GITHUB_STEP_SUMMARY"
+            echo "Branch $BRANCH strict status checks is not enabled (got: $STATUS)." >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning::Branch protection drift on $BRANCH: strict status checks not enabled"
+          fi

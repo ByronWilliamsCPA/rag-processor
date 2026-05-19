@@ -1,4 +1,4 @@
-# {{ cookiecutter.project_name }} - Continuous Fuzzing
+# RAG Processor - Continuous Fuzzing
 # ClusterFuzzLite workflow for automated security testing
 #
 # This workflow uses Google's ClusterFuzzLite to continuously fuzz test
@@ -28,6 +28,10 @@ on:
 permissions:
   contents: read
   security-events: write  # For SARIF upload
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
 
 jobs:
   fuzzing:

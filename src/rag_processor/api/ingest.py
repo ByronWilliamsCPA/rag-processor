@@ -371,7 +371,9 @@ async def ingest_health() -> dict[str, str]:
     upload_dir = Path(settings.upload_dir)
 
     try:
-        upload_dir.mkdir(parents=True, exist_ok=True)
+        # TODO(async-io): healthcheck does blocking filesystem ops on the event loop.
+        # Move to asyncio.to_thread or anyio.Path before adding heavy concurrent traffic.
+        upload_dir.mkdir(parents=True, exist_ok=True)  # noqa: ASYNC240
         test_file = upload_dir / ".health_check"
         test_file.touch()
         test_file.unlink()
