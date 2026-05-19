@@ -1,0 +1,75 @@
+# Postman API Tests (CI-013)
+# Runs Newman (Postman CLI runner) against the Postman collection when
+# docs/api/postman-collection.json is present in the repository.
+# Produces a SKIP notice when the collection file is absent so the job
+# never blocks the pipeline during early development.
+name: Postman API Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+    paths:
+      - 'docs/api/postman-collection.json'
+      - 'src/**'
+      - '.github/workflows/postman-api-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  postman-api-tests:
+    name: Postman API Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e  # v2.10.4
+        with:
+          egress-policy: audit
+          # TODO(CI-031): switch to egress-policy: block after baselining 2026-08-01
+
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+
+      - name: Check for Postman collection
+        id: check
+        run: |
+          if [ -f "docs/api/postman-collection.json" ]; then
+            echo "collection-present=true" >> "$GITHUB_OUTPUT"
+            echo "Postman collection found. Tests will run."
+          else
+            echo "collection-present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::docs/api/postman-collection.json not found. Skipping Postman tests."
+            echo "## Postman API Tests" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "SKIP: \`docs/api/postman-collection.json\` is absent." >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "To enable Postman API tests, add a collection file at that path." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Install Newman
+        if: steps.check.outputs.collection-present == 'true'
+        run: npm install -g newman
+
+      - name: Run Postman collection
+        if: steps.check.outputs.collection-present == 'true'
+        run: |
+          newman run docs/api/postman-collection.json \
+            --reporters cli,json \
+            --reporter-json-export newman-results.json
+
+      - name: Upload Newman results
+        if: steps.check.outputs.collection-present == 'true' && always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: newman-results
+          path: newman-results.json
+          retention-days: 14

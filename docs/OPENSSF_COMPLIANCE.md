@@ -17,14 +17,14 @@ This project follows [OpenSSF (Open Source Security Foundation)](https://openssf
 **Estimated Scorecard Score**: 9.0/10 (Excellent)
 **Best Practices Compliance**: 95%+ (Passing)
 
-This template implements comprehensive security controls including:
+This template implements the following security controls:
 
 - ✅ Signed releases with Sigstore/Cosign
 - ✅ SLSA Level 3 provenance attestations
 - ✅ Continuous fuzzing with ClusterFuzzLite
 - ✅ Branch protection with scoped permissions
 - ✅ Automated dependency updates
-- ✅ Comprehensive security scanning
+- ✅ Multi-tool security scanning
 
 ---
 

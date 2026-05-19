@@ -4,6 +4,20 @@
 
 config_version = "0"
 
+# ============================================================================
+# Plugin Enablement
+# ============================================================================
+# NOTE: Qlty requires plugins to be enabled via the CLI before declarative
+# config here takes effect. Run the following once per environment:
+#   qlty plugins enable ruff
+#   qlty plugins enable basedpyright
+#   qlty plugins enable bandit
+# The CLI writes per-plugin TOML files under .qlty/plugins/<name>.toml.
+# The [plugins] block below records the intended enabled set so that
+# automated sweeps, onboarding scripts, and CI can verify the state.
+[plugins]
+enabled = ["ruff", "basedpyright", "bandit"]
+
 # File patterns to completely exclude from all analysis
 exclude_patterns = [
     "*.log",

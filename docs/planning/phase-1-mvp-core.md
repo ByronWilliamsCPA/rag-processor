@@ -786,7 +786,7 @@ Implement minimum viable product with core user workflows: authenticated file up
 
 3. Create Phase 1 PR (1 hour)
    - Push branch
-   - Create PR with comprehensive description
+   - Create PR with a thorough description
    - Include demo screenshots/video
    - Reference user stories
 

@@ -28,17 +28,26 @@ on:
     - cron: "0 8 * * 1"
   workflow_dispatch:
 
+# CI-033: top-level permissions block scopes the GITHUB_TOKEN to least privilege.
+# Job-level permissions in the org reusable may elevate from this baseline.
+permissions:
+  contents: read
+
 # Note: The org workflow uses 'permissions: read-all' which requires non-standard
 # permissions (artifact-metadata, attestations, models) that cannot be explicitly
 # granted in YAML. Remove permissions block to use default GITHUB_TOKEN permissions.
 # TODO: Report to .github team - org workflow should use explicit permissions
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
 
 env:
   INFISICAL_DOMAIN: https://infisical.williamshome.family
 jobs:
   sbom:
     name: SBOM & Security
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-sbom.yml@main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-sbom.yml@1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
     with:
       python-version: '3.12'
       fail-on-vulnerabilities: true

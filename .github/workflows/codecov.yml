@@ -23,7 +23,7 @@ jobs:
     name: Upload Coverage
     # Only run on successful CI completion
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-codecov.yml@main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-codecov.yml@1b2d33c47cc11a96b9757b49f41873c54e75f57c  # main
     with:
       artifact-name: 'coverage-reports'
       coverage-files: '*.xml'
@@ -36,8 +36,15 @@ jobs:
   report-failure:
     name: Report CI Failure
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}
     steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e  # v2.10.4
+        with:
+          egress-policy: audit
+          # TODO(CI-031): switch to egress-policy: block after baselining 2026-08-01
+
       - name: Report status
         run: |
           echo "## Coverage Upload Skipped" >> $GITHUB_STEP_SUMMARY

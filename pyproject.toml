@@ -9,7 +9,7 @@ authors = [
     {name = "Byron Williams", email = "byron@williamscpa.dev"}
 ]
 readme = "README.md"
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.12,<3.14"
 license = {text = "MIT"}
 keywords = []
 classifiers = [
@@ -108,7 +108,7 @@ dev = [
     "pre-commit>=3.3.0",
     # Documentation
     "mkdocs>=1.6.0",
-    "mkdocs-material>=9.5.0",
+    "mkdocs-material>=9.5.0,<10",
     "mkdocstrings[python]>=0.26.0",
     "griffe-pydantic>=1.1.0",
     "mkdocs-gen-files>=0.5.0",
@@ -121,7 +121,6 @@ dev = [
     "interrogate>=1.7.0",
     "jupyter>=1.0.0",
     "ipykernel>=6.25.0",
-    "safety>=3.7.0",
     "nox>=2024.10.16",  # Fixed: was 2025 (typo)
     "nox-uv>=0.6.3",    # Fixed: max available version is 0.6.3, not 1.0.0
     "mutmut>=3.3.1",
@@ -171,7 +170,6 @@ queue = [
 supply-chain = [
     "cyclonedx-bom>=4.6.0",          # SBOM generation (CycloneDX format)
     "pip-audit>=2.7.0",              # Python vulnerability scanning
-    "safety>=3.7.0",                 # Additional vulnerability scanning
     "pip-licenses>=4.0.0",           # License compliance checking
     "keyrings.google-artifactregistry-auth>=1.1.0",  # GCP Artifact Registry auth
 ]
@@ -361,6 +359,8 @@ known-first-party = ["rag_processor"]
     "SIM",    # Simplification suggestions (scripts prioritize clarity)
     "F821",   # Allow dynamic imports
     "G201",   # Logging patterns (scripts may use .error with exc_info)
+    "E402",   # Imports after logging config are intentional in benchmarks
+    "RET504", # Intermediate variables before return improve readability of long binary literals
     # Security rules OK to skip in scripts (specific, not blanket S)
     "S101",   # assert_used - scripts may use asserts for validation
     "S104",   # hardcoded_bind_all_interfaces - dev scripts may bind 0.0.0.0

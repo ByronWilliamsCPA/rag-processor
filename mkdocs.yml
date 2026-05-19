@@ -1,17 +1,20 @@
-
 # MkDocs Configuration for RAG Processor
 # Documentation: https://www.mkdocs.org/user-guide/configuration/
+#
+# CI note: mkdocs build --strict --verbose is invoked by the org reusable
+# workflow python-docs.yml (.github/workflows/python-docs.yml). Any strict-mode
+# failures will surface there.
 
 site_name: RAG Processor
 site_description: React-based frontend for RAG pipeline with FastAPI backend integration
 site_author: Byron Williams
 site_url: https://rag-processor.readthedocs.io
 repo_url: https://github.com/ByronWilliamsCPA/rag-processor
-repo_name: ByronWilliamsCPA/rag_processor
+repo_name: ByronWilliamsCPA/rag-processor
 edit_uri: edit/main/docs/
 
 # Copyright
-copyright: Copyright &copy; 2025 Byron Williams
+copyright: Copyright &copy; 2026 Byron Williams
 
 # Theme Configuration
 theme:
@@ -112,16 +115,15 @@ markdown_extensions:
   - admonition
   - attr_list
   - def_list
-  - footnotes
-  - md_in_html
+  # removed: no usage found in docs/  (footnotes — pattern \[\^ not matched)
+  # removed: no usage found in docs/  (md_in_html — pattern markdown="1" not matched)
   - tables
   - toc:
       permalink: true
       toc_depth: 3
 
   # Python Markdown Extensions
-  - pymdownx.arithmatex:
-      generic: true
+  # removed: no usage found in docs/  (pymdownx.arithmatex — pattern \$\$ not matched)
   - pymdownx.betterem:
       smart_enable: all
   - pymdownx.caret
@@ -142,8 +144,7 @@ markdown_extensions:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
-  - pymdownx.tabbed:
-      alternate_style: true
+  # removed: no usage found in docs/  (pymdownx.tabbed — pattern === " not matched)
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.tilde
@@ -156,7 +157,8 @@ extra:
       link: https://github.com/ByronWilliamsCPA
   analytics:
     provider: google
-    property: !ENV GOOGLE_ANALYTICS_KEY
+    # Use empty string fallback so missing env var does not fail builds
+    property: !ENV [GOOGLE_ANALYTICS_KEY, ""]
 
 # Navigation
 nav:
@@ -182,6 +184,5 @@ nav:
       - License: project/license.md
 
 # Validation
-# strict mode disabled to allow links to repo root files
-# These files are valid but outside docs/ directory
-strict: false
+# --strict is set on the CLI by the python-docs.yml reusable workflow; this
+# file-level key is ignored at runtime and is removed to avoid confusion.

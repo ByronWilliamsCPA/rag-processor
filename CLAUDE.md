@@ -4,6 +4,18 @@
 >
 > This file contains **all** project guidelines: baseline standards and project-specific configurations.
 
+## Cross-References
+
+Detailed rules and standards that apply to this project live in the global rules directory:
+
+- **Python linting and type-checking**: `~/.claude/.claude/rules/python.md`
+- **Testing scope and coverage thresholds**: `~/.claude/.claude/rules/testing.md`
+- **Git workflow, worktrees, branch naming**: `~/.claude/.claude/rules/git-workflow.md`
+- **Writing style, em-dash ban, AI word blacklist**: `~/.claude/.claude/rules/writing.md`
+- **Pre-commit checklist and hook reference**: `~/.claude/.claude/rules/pre-commit.md`
+
+---
+
 ---
 
 ## Template Feedback Requirement (CRITICAL)
@@ -147,7 +159,7 @@ Claude MUST adopt a security-first approach in all development:
 
 When working on this project, always suggest appropriate security measures:
 
-- **Dependencies**: Suggest vulnerability scanning (`safety check`, `pip-audit`)
+- **Dependencies**: Suggest vulnerability scanning (`pip-audit`)
 - **APIs**: Suggest authentication, rate limiting, input validation
 - **Data**: Suggest encryption at rest and in transit, access controls
 - **Containers**: Suggest image vulnerability scanning (Trivy)
@@ -203,6 +215,18 @@ uv run python scripts/check_fips_compatibility.py --fix-hints
 
 ---
 
+## Model Selection
+
+Choose the right model for each task to balance output quality and cost:
+
+| Task type | Model | When |
+| --- | --- | --- |
+| Complex reasoning, planning, architecture | Opus 4.7 | Multi-step decisions, ADRs, deep code review |
+| Standard development work | Sonnet 4.6 (default) | Most coding, editing, PR descriptions |
+| Read-only exploration | Haiku 4.5 | File scanning, structure mapping, quick lookups |
+
+---
+
 ## Code Quality Standards
 
 ### Type Checking with BasedPyright
@@ -232,7 +256,7 @@ Ruff configuration includes PyStrict-aligned rules for ultra-strict code quality
 
 ### File-Type Standards
 
-- **Python**: 88-char line length, comprehensive rule compliance
+- **Python**: 88-char line length, full rule compliance
 - **Markdown**: 120-char line length, consistent formatting
 - **YAML**: 2-space indentation, 120-char line length
 - **Validation**: Pre-commit hooks enforce all standards
@@ -330,7 +354,7 @@ END BASELINE DEVELOPMENT STANDARDS
 
 - Test coverage: Minimum 80%
 - All linters must pass: `uv run ruff check .`, `uv run basedpyright src/`
-- Security scans: `uv run bandit -r src`, `uv run safety check`
+- Security scans: `uv run bandit -r src`, `uv run pip-audit`
 
 ---
 
@@ -626,14 +650,14 @@ settings = Settings()
 **Project-Specific Paths**:
 
 ```bash
-# Worktree directory for this project
-../rag_processor-worktrees/
+# Worktree directory for this project (always inside the repo)
+.worktrees/<branch-slug>
 
 # Quick reference commands
-git worktree add ../rag_processor-worktrees/feature-name -b feature/feature-name
-git worktree add ../rag_processor-worktrees/pr-42 origin/feature/pr-branch
+git worktree add .worktrees/feature-name -b feature/feature-name
+git worktree add .worktrees/pr-42 origin/feature/pr-branch
 git worktree list
-git worktree remove ../rag_processor-worktrees/feature-name
+git worktree remove .worktrees/feature-name
 ```
 
 **Remember**: Each worktree needs `uv sync --all-extras` after creation (worktrees share git but not virtualenvs).

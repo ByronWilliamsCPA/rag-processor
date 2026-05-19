@@ -293,3 +293,13 @@ tmp_cleanup/.tmp-*
 .qlty/out
 .qlty/plugin_cachedir
 .qlty/results
+
+# Git worktrees
+.worktrees/
+
+# Compliance reports (generated artifacts)
+docs/compliance-reports/
+
+# SonarLint IDE cache
+.sonarlint/
+*:Zone.Identifier
