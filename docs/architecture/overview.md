@@ -121,6 +121,6 @@ produced.
 ## Related Documents
 
 - Architecture Decision Records: [docs/ADRs/](../ADRs/)
-- Security policy: [SECURITY.md](../../SECURITY.md)
+- Security policy: [SECURITY.md](https://github.com/ByronWilliamsCPA/rag-processor/blob/main/SECURITY.md)
 - Known vulnerabilities: [docs/known-vulnerabilities.md](../known-vulnerabilities.md)
-- Agent conventions: [AGENTS.md](../../AGENTS.md)
+- Agent conventions: [AGENTS.md](https://github.com/ByronWilliamsCPA/rag-processor/blob/main/AGENTS.md)
