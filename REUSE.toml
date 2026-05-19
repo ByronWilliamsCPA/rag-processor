@@ -123,6 +123,7 @@ path = [
     ".infisical.json",  # Infisical secrets config
     ".markdownlint.json",  # Markdown linting config
     ".mutmut_config",  # Mutation testing config
+    ".secrets.baseline",  # detect-secrets baseline (JSON; no inline SPDX support)
     ".prettierrc",  # Prettier formatting config
     ".shellcheckrc",  # ShellCheck config
     ".yamllint",  # YAML linting config
