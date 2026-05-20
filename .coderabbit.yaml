@@ -25,8 +25,11 @@ reviews:
       - master
       - develop
 
-  # Request changes workflow - makes reviews actionable
-  request_changes_workflow: true
+  # Request changes workflow disabled: CodeRabbit posts comments rather
+  # than CHANGES_REQUESTED reviews, so findings do not block merge.
+  # Aligns with audio-processor, fragrance-rater, cookiecutter-python-template
+  # defaults; reviewers (humans + Copilot) drive the merge gate.
+  request_changes_workflow: false
 
   # High-level summary - executive overview of changes
   high_level_summary: true
