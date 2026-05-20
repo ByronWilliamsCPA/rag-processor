@@ -49,4 +49,5 @@ jobs:
       fail-under-threshold: ${{ github.event_name != 'schedule' }}
       post-pr-comment: true
       timeout-minutes: 60
+      no-build: false
     secrets: inherit

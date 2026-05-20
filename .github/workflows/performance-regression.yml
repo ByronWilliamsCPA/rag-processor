@@ -89,6 +89,7 @@ jobs:
       comment-on-pr: true
       extra-dependencies: 'dev'
       timeout-minutes: 30
+      no-build: false
 
   # Summary when benchmarks are skipped
   skip-summary:

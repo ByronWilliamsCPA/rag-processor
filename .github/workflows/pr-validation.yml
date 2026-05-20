@@ -37,6 +37,7 @@ jobs:
       python-version: '3.12'
       coverage-threshold: 80
       enable-dead-code-check: true
+      no-build: false
   # ==========================================================================
   # Additional Checks (Template-Specific)
   # ==========================================================================

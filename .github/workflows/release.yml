@@ -54,3 +54,4 @@ jobs:
       publish-to-pypi: true
       pypi-package-name: 'rag-processor'
       run-tests: true
+      no-build: false

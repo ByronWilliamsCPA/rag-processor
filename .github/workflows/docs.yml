@@ -41,3 +41,4 @@ jobs:
           github.event_name == 'push' &&
           github.ref == 'refs/heads/main'
         }}
+      no-build: false
