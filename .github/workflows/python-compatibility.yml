@@ -43,13 +43,27 @@ jobs:
     name: Python Compatibility Matrix
     uses: ByronWilliamsCPA/.github/.github/workflows/python-compatibility.yml@main
     with:
-      python-versions: '["3.10", "3.11", "3.12", "3.13"]'
+      # Match pyproject.toml `requires-python = ">=3.12,<3.14"`. Testing 3.10/3.11
+      # would fail on Python-3.11+ features the project actively uses (e.g.
+      # datetime.UTC, StrEnum, exception groups) and contradicts the package's
+      # declared support window. Re-add older versions only after lowering
+      # `requires-python` AND adding the corresponding compatibility shims.
+      python-versions: '["3.12", "3.13"]'
       operating-systems: '["ubuntu-latest"]'
       include-macos: false  # Disabled: python-magic requires libmagic (see note above)
       include-windows: false  # Disabled: python-magic requires libmagic DLL (see note above)
       source-directory: 'src'
-      test-command: 'pytest tests/ -v --tb=short -x --ignore=tests/integration --ignore=tests/load -m "not slow and not integration"'
+      # Drop -m marker filter: the org reusable expands $TEST_COMMAND unquoted
+      # via bash, which word-splits `-m "not slow and not integration"` into
+      # broken tokens (pytest sees `slow` as a positional path arg). The
+      # `--ignore` flags already exclude the only directories where those
+      # markers are used, so the filter is redundant. Re-add only if a future
+      # `tests/unit/` test acquires `@pytest.mark.slow`.
+      test-command: 'pytest tests/ -v --tb=short -x --ignore=tests/integration --ignore=tests/load'
       coverage-report: false
       fail-fast: false
       timeout-minutes: 30
+      # rag-processor uses hatchling as build backend, so editable installs
+      # require the build step. The reusable defaults no-build: true; override.
+      no-build: false
     secrets: inherit
