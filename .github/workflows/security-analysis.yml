@@ -44,7 +44,11 @@ jobs:
       run-codeql: false
       run-dependency-review: true
       run-bandit: true
-      run-safety: true
+      # run-safety removed: the org reusable dropped this input in
+      # ByronWilliamsCPA/.github#140 (chore(security)!: remove redundant
+      # safety scanner) on 2026-05-18, causing startup_failure on every
+      # PR until the caller stopped passing it. pip-audit and bandit
+      # cover the surface previously scanned by safety.
       # OSV Scanner disabled due to bug in v2.2.4 where filtered vulnerabilities are
       # incorrectly reported as "unused ignores" causing exit code 1.
       # See: https://github.com/google/osv-scanner/issues - needs bug report
