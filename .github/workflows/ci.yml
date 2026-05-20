@@ -38,8 +38,6 @@ jobs:
       run-integration-tests: true
       run-security-tests: true
       fail-on-llm-tags: false
-      enable-sonarcloud: false
-      sonarcloud-organization: 'byronwilliamscpa'
       # rag-processor uses hatchling as build backend, so editable installs
       # require the build step. The reusable defaults no-build: true; override.
       no-build: false
