@@ -29,7 +29,7 @@ permissions:
 jobs:
   sonarcloud:
     name: SonarCloud Analysis
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-sonarcloud.yml@6bad2f898be1d387b8424e9deddefa519674cb19 # main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-sonarcloud.yml@1b2d33c47cc11a96b9757b49f41873c54e75f57c # main
     with:
       python-version: '3.12'
       source-directory: 'src/rag_processor'

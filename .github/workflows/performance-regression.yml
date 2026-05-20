@@ -76,7 +76,7 @@ jobs:
     name: Performance Regression
     needs: check-benchmarks
     if: needs.check-benchmarks.outputs.has-benchmarks == 'true'
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-performance-regression.yml@e067cdb7294f6221dbde74ef1f4c3ca735eed570 # main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-performance-regression.yml@1b2d33c47cc11a96b9757b49f41873c54e75f57c # main
     with:
       benchmark-script: 'scripts/benchmark.py'
       python-version: '3.12'
