@@ -67,7 +67,21 @@ repos:
         # traverses fetched remote branches in the local object store, producing
         # false positives from unmerged branches. Staged-file scanning is the
         # correct scope for a pre-commit hook; git history scanning belongs in CI.
-        entry: bash -c 'command -v trufflehog >/dev/null 2>&1 && (git diff --cached -z --diff-filter=d --name-only 2>/dev/null | xargs -0 -r trufflehog filesystem --fail --no-update --results=verified,unknown) || echo "TruffleHog not installed - skipping secret scan"'
+        #
+        # The if/then/else (not "&& ... || ...") is deliberate: the prior parse
+        # was (command -v ... && trufflehog ...) || echo "not installed", which
+        # caused trufflehog's --fail exit code to trigger the "not installed"
+        # branch and silently allow detected secrets through.
+        entry: |
+          bash -c '
+            if command -v trufflehog >/dev/null 2>&1; then
+              git diff --cached -z --diff-filter=d --name-only \
+                | xargs -0 -r trufflehog filesystem --fail --no-update \
+                    --results=verified,unknown
+            else
+              echo "TruffleHog not installed - skipping secret scan"
+            fi
+          '
         language: system
         pass_filenames: false
         stages: [pre-commit]
