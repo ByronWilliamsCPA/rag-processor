@@ -133,6 +133,83 @@ No untrusted Markdown is parsed at runtime.
 
 ---
 
+### PYSEC-2024-277
+
+| Field | Value |
+| --- | --- |
+| **Advisory ID** | PYSEC-2024-277 |
+| **Package** | `joblib` 1.5.2 |
+| **Affected versions** | All released versions (range: introduced from 0, no fix event) |
+| **Severity** | Disputed |
+| **First documented** | 2026-05-20 |
+| **Reassess by** | 2026-07-19 |
+| **Status** | Disputed by vendor; no fix planned |
+
+**Vulnerability summary**: Per the OSV record: "joblib v1.4.2 was discovered to
+contain a deserialization vulnerability via the component
+joblib.numpy_pickle::NumpyArrayWrapper().read_array(). NOTE: this is disputed
+by the supplier because NumpyArrayWrapper is only used during caching of
+trusted content."
+
+**Why it cannot be fixed**: The vendor disputes that this is a vulnerability;
+`NumpyArrayWrapper` is only invoked on caller-controlled cache data, not on
+attacker-supplied input. There is no upstream patch to upgrade to.
+
+**Exposure assessment**: `joblib` is a transitive dependency of `nltk`, which
+is itself transitive via `safety` (a development-time vulnerability scanner).
+Neither `nltk` nor `joblib` is imported anywhere in `src/`. The vulnerable
+deserialization path is never reached by this project.
+
+**Reassessment checklist**:
+
+- [ ] Check whether OSV/NVD has withdrawn or reclassified the advisory
+- [ ] Confirm `joblib` remains a transitive-only dev dependency (`safety` ->
+      `nltk` -> `joblib`) and is still unused in `src/`
+- [ ] Re-run `uv run pip-audit` to confirm the advisory still applies
+- [ ] Update or remove this entry and the `pyproject.toml` ignore entry accordingly
+
+---
+
+### PYSEC-2026-97
+
+| Field | Value |
+| --- | --- |
+| **Advisory ID** | PYSEC-2026-97 |
+| **Package** | `nltk` 3.9.4 |
+| **Affected versions** | All released versions (range: introduced from 0, no fix event) |
+| **Severity** | Medium (arbitrary file read when `filestring()` receives untrusted input) |
+| **First documented** | 2026-05-20 |
+| **Reassess by** | 2026-07-19 |
+| **Status** | No fix available; not exposed in this project |
+
+**Vulnerability summary**: Per the OSV record: "A vulnerability in the
+`filestring()` function of the `nltk.util` module in nltk version 3.9.2 allows
+arbitrary file read due to improper validation of input paths. The function
+directly opens files specified by user input without sanitization, enabling
+attackers to access sensitive system files by providing absolute paths or
+traversal paths."
+
+**Why it cannot be fixed**: `nltk` 3.9.4 is the latest released version and
+the advisory has no fix event recorded. There is no newer version to upgrade
+to that resolves this issue.
+
+**Exposure assessment**: `nltk` is a transitive dependency of `safety` (a
+development-time vulnerability scanner) and is not imported anywhere in
+`src/`. The vulnerable `nltk.util.filestring()` function is not called by
+this project. Exploitation requires application code to pass attacker-
+controlled paths into `filestring()`, which does not occur here.
+
+**Reassessment checklist**:
+
+- [ ] Check PyPI for an `nltk` release that addresses CVE-equivalent issues
+      in `filestring()` (or removes the function)
+- [ ] Confirm `nltk` remains a transitive-only dev dependency via `safety`
+      and is still unused in `src/`
+- [ ] Re-run `uv run pip-audit` to confirm the advisory still applies
+- [ ] Update or remove this entry and the `pyproject.toml` ignore entry accordingly
+
+---
+
 ## Resolved Entries
 
 | Advisory ID | Package | Fixed in | Resolution date |
