@@ -80,7 +80,7 @@ dependencies = [
     # UV handles these automatically based on the Python version being used.
     # See: https://docs.astral.sh/uv/concepts/dependencies/#dependency-specifiers
     "pdfminer-six>=20251230",
-    "pymdown-extensions>=10.21.2",
+    "pymdown-extensions>=10.21.3",
 ]
 
 # Optional dependency groups
