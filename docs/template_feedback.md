@@ -42,7 +42,25 @@ When working on this project, if you discover any issue that originates from the
 
 <!-- Add your feedback below this line -->
 
-_No feedback items yet. Add issues as they are discovered._
+### Org reusable workflow callers do not set `no-build: false`
+
+- **Priority**: High
+- **Category**: CI/CD
+- **Discovered**: 2026-05-20
+
+**Issue**: The generated workflows under `.github/workflows/` call the org reusable workflows in `ByronWilliamsCPA/.github` without setting `no-build: false`. The org workflows default `no-build` to `true`, which passes `--no-build` to `uv sync`. With a `hatchling.build` backend (the template default) and editable install of the project package, that command fails:
+
+```
+error: Distribution `<project>==0.1.0 @ editable+.` can't be installed because it is marked as `--no-build` but has no binary distribution
+```
+
+Every workflow that syncs project deps (CI, PR validation, compatibility matrix, performance regression, docs, sonarcloud, sbom, mutation, release, security-analysis) is broken until each caller adds `no-build: false`.
+
+**Context**: Discovered while pinning org reusable workflow refs from `@main` to a SHA on PR #27 of rag-processor. The bump exposed the failure because the older SHA pre-dated the `--no-build` default.
+
+**Suggested Fix**: In the cookiecutter template, render every reusable-workflow caller with `no-build: false` in its `with:` block whenever the cookie cutter chooses a build backend that requires building the local project (hatchling, setuptools editable, etc.). Alternatively, change the org workflows to default `no-build: false`, or detect a local editable install and skip `--no-build` for the project root.
+
+**Affected Files**: `{{cookiecutter.project_slug}}/.github/workflows/{ci,pr-validation,python-compatibility,performance-regression,docs,sonarcloud,sbom,mutation-testing,release,security-analysis}.yml`
 
 ---
 
