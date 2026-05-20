@@ -50,7 +50,7 @@ When working on this project, if you discover any issue that originates from the
 
 **Issue**: The generated workflows under `.github/workflows/` call the org reusable workflows in `ByronWilliamsCPA/.github` without setting `no-build: false`. The org workflows default `no-build` to `true`, which passes `--no-build` to `uv sync`. With a `hatchling.build` backend (the template default) and editable install of the project package, that command fails:
 
-```
+```text
 error: Distribution `<project>==0.1.0 @ editable+.` can't be installed because it is marked as `--no-build` but has no binary distribution
 ```
 
