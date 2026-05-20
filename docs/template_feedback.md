@@ -92,6 +92,22 @@ The template also ignores `tests/load`, which it doesn't generate.
 
 **Affected Files**: `{{cookiecutter.project_slug}}/.github/workflows/python-compatibility.yml`
 
+### `atheris` dev dep has no wheel for Python 3.10
+
+- **Priority**: Medium
+- **Category**: Tooling
+- **Discovered**: 2026-05-20
+
+**Issue**: The template's dev extras pin `atheris>=2.3.0`. uv resolves this to 3.0.0, which ships wheels only for cp311/cp312/cp313. On Python 3.10 the install attempts to build from sdist, which requires Clang and a matching libFuzzer toolchain - that build fails in stock CI runners. Meanwhile the template's `requires-python = ">=3.10,..."` and `python-compatibility.yml` matrix both claim Python 3.10 support, so the matrix's 3.10 leg fails before tests run.
+
+`atheris` is not imported anywhere in the generated source/tests/scripts of this project, so the dep was effectively dead weight gating compatibility testing.
+
+**Context**: Discovered on PR #27 of rag-processor while bringing the compatibility matrix green.
+
+**Suggested Fix**: Either (a) drop `atheris` from the default dev extras (templates should not bundle deps they never use), (b) mark it `; python_version >= '3.11'` so 3.10 stays installable, or (c) drop Python 3.10 from the default `python-compatibility.yml` matrix and tighten `requires-python` to `>=3.11`.
+
+**Affected Files**: `{{cookiecutter.project_slug}}/pyproject.toml`, optionally `{{cookiecutter.project_slug}}/.github/workflows/python-compatibility.yml`
+
 ---
 
 ## Submitting Feedback

@@ -126,7 +126,7 @@ dev = [
     "nox-uv>=0.6.3",    # Fixed: max available version is 0.6.3, not 1.0.0
     "mutmut>=3.3.1",
     # Fuzzing
-    "atheris>=2.3.0",  # Google's Python fuzzing engine for security testing
+    "atheris>=2.3.0; python_version >= '3.11'",  # Google's Python fuzzing engine for security testing (no 3.10 wheel)
     # Google Cloud Assured OSS (optional - uncomment if using Assured OSS)
     "google-auth>=2.0.0",
     # "google-cloud-assured-oss>=0.1.0",  # Package not yet available in PyPI
