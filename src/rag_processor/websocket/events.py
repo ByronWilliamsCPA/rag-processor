@@ -6,7 +6,9 @@ Defines event structure and functions for publishing events to Redis.
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+
+UTC = timezone.utc
 from enum import Enum
 from typing import Any
 from uuid import UUID, uuid4

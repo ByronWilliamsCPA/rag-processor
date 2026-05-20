@@ -5,7 +5,9 @@ Functions for enqueuing jobs and checking their status.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+
+UTC = timezone.utc
 from uuid import UUID  # noqa: TC003 - Used at runtime in function signatures
 
 from rag_processor.models.batch import Batch, BatchStatus

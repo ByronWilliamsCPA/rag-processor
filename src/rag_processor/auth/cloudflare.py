@@ -7,7 +7,9 @@ Supports bypass mode for local development without Cloudflare.
 from __future__ import annotations
 
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+
+UTC = timezone.utc
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import httpx

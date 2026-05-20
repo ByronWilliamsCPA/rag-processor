@@ -5,7 +5,9 @@ A batch represents a group of files uploaded together by a user.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+
+UTC = timezone.utc
 from enum import Enum
 from uuid import UUID, uuid4
 

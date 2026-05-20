@@ -5,7 +5,9 @@ A job represents a single file being processed through a pipeline.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+
+UTC = timezone.utc
 from enum import Enum
 from uuid import UUID, uuid4
 
