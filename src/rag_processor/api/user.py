@@ -5,7 +5,7 @@ Provides endpoints for accessing current user information.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
 
 from rag_processor.auth.dependencies import get_current_user
@@ -28,7 +28,7 @@ class UserResponse(BaseModel):
 @router.get(
     "/me",
     response_model=UserResponse,
-    status_code=200,
+    status_code=status.HTTP_200_OK,
     summary="Get current user",
     description=(
         "Returns the currently authenticated user's identity information "
