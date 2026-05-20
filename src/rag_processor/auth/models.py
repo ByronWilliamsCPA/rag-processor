@@ -7,9 +7,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-UTC = timezone.utc
-
 from pydantic import BaseModel, Field
+
+UTC = timezone.utc  # noqa: UP017
 
 
 class CloudflareUser(BaseModel):

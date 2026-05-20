@@ -7,8 +7,6 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-
-UTC = timezone.utc
 from enum import Enum
 from typing import Any
 from uuid import UUID, uuid4
@@ -18,6 +16,8 @@ from pydantic import BaseModel, Field
 
 from rag_processor.core.config import settings
 from rag_processor.utils.logging import get_logger
+
+UTC = timezone.utc  # noqa: UP017
 
 logger = get_logger(__name__)
 

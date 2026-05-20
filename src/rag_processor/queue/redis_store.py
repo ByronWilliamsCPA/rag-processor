@@ -6,8 +6,6 @@ Provides Redis-based storage for batch and job metadata.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-
-UTC = timezone.utc
 from typing import cast
 from uuid import UUID  # noqa: TC003 - Used at runtime in function signatures
 
@@ -17,6 +15,8 @@ from rag_processor.core.config import settings
 from rag_processor.models.batch import Batch
 from rag_processor.models.job import Job
 from rag_processor.utils.logging import get_logger
+
+UTC = timezone.utc  # noqa: UP017
 
 logger = get_logger(__name__)
 

@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import time
 from datetime import datetime, timedelta, timezone
-
-UTC = timezone.utc
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
@@ -23,6 +21,8 @@ from rag_processor.auth.cloudflare import (
     CloudflareAuthMiddleware,
     clear_jwks_cache,
 )
+
+UTC = timezone.utc  # noqa: UP017
 
 if TYPE_CHECKING:
     pass

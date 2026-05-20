@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-
-UTC = timezone.utc
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -18,6 +16,8 @@ from rag_processor.websocket.events import (
     create_batch_event,
     create_job_event,
 )
+
+UTC = timezone.utc  # noqa: UP017
 
 
 class TestConnectionManager:
