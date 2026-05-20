@@ -48,19 +48,38 @@ When working on this project, if you discover any issue that originates from the
 - **Category**: CI/CD
 - **Discovered**: 2026-05-20
 
-**Issue**: The generated workflows under `.github/workflows/` call the org reusable workflows in `ByronWilliamsCPA/.github` without setting `no-build: false`. The org workflows default `no-build` to `true`, which passes `--no-build` to `uv sync`. With a `hatchling.build` backend (the template default) and editable install of the project package, that command fails:
+**Issue**: The generated workflows under `.github/workflows/` call the org reusable workflows in
+`ByronWilliamsCPA/.github` without setting `no-build: false`. The org workflows default `no-build` to `true`, which
+passes `--no-build` to `uv sync`. With a `hatchling.build` backend (the template default) and editable install of the
+project package, that command fails:
 
 ```text
 error: Distribution `<project>==0.1.0 @ editable+.` can't be installed because it is marked as `--no-build` but has no binary distribution
 ```
 
-Every workflow that syncs project deps (CI, PR validation, compatibility matrix, performance regression, docs, sonarcloud, sbom, mutation, release, security-analysis) is broken until each caller adds `no-build: false`.
+Every workflow that syncs project deps (CI, PR validation, compatibility matrix, performance regression, docs,
+sonarcloud, sbom, mutation, release, security-analysis) is broken until each caller adds `no-build: false`.
 
-**Context**: Discovered while pinning org reusable workflow refs from `@main` to a SHA on PR #27 of rag-processor. The bump exposed the failure because the older SHA pre-dated the `--no-build` default.
+**Context**: Discovered while pinning org reusable workflow refs from `@main` to a SHA on PR #27 of rag-processor. The
+bump exposed the failure because the older SHA pre-dated the `--no-build` default.
 
-**Suggested Fix**: In the cookiecutter template, render every reusable-workflow caller with `no-build: false` in its `with:` block whenever the cookie cutter chooses a build backend that requires building the local project (hatchling, setuptools editable, etc.). Alternatively, change the org workflows to default `no-build: false`, or detect a local editable install and skip `--no-build` for the project root.
+**Suggested Fix**: In the cookiecutter template, render every reusable-workflow caller with `no-build: false` in its
+`with:` block whenever the cookie cutter chooses a build backend that requires building the local project (hatchling,
+setuptools editable, etc.). Alternatively, change the org workflows to default `no-build: false`, or detect a local
+editable install and skip `--no-build` for the project root.
 
-**Affected Files**: `{{cookiecutter.project_slug}}/.github/workflows/{ci,pr-validation,python-compatibility,performance-regression,docs,sonarcloud,sbom,mutation-testing,release,security-analysis}.yml`
+**Affected Files** (all under `{{cookiecutter.project_slug}}/.github/workflows/`):
+
+- `ci.yml`
+- `pr-validation.yml`
+- `python-compatibility.yml`
+- `performance-regression.yml`
+- `docs.yml`
+- `sonarcloud.yml`
+- `sbom.yml`
+- `mutation-testing.yml`
+- `release.yml`
+- `security-analysis.yml`
 
 ### Stale `sonar-organization` default in sonarcloud.yml
 
@@ -68,11 +87,17 @@ Every workflow that syncs project deps (CI, PR validation, compatibility matrix,
 - **Category**: CI/CD
 - **Discovered**: 2026-05-20
 
-**Issue**: The generated `.github/workflows/sonarcloud.yml` passes `sonar-organization: 'williaby'` to the org reusable workflow. That value is a leftover personal handle, not the GitHub org. The matching `sonar-project.properties` is rendered with the actual org (`byronwilliamscpa`), and the project key with the actual GitHub owner (`ByronWilliamsCPA_*`). The org-key mismatch causes `sonar-scanner` to exit 3 - the project literally does not exist under `williaby`.
+**Issue**: The generated `.github/workflows/sonarcloud.yml` passes `sonar-organization: 'williaby'` to the org reusable
+workflow. That value is a leftover personal handle, not the GitHub org. The matching `sonar-project.properties` is
+rendered with the actual org (`byronwilliamscpa`), and the project key with the actual GitHub owner
+(`ByronWilliamsCPA_*`). The org-key mismatch causes `sonar-scanner` to exit 3 - the project literally does not exist
+under `williaby`.
 
 **Context**: Issue #8 of rag-processor was opened to track SonarCloud failures; root cause was this template default.
 
-**Suggested Fix**: Derive `sonar-organization` from a cookiecutter variable - either lowercase `cookiecutter.github_owner` or a dedicated `cookiecutter.sonar_organization` - so the workflow and the properties file agree out of the box.
+**Suggested Fix**: Derive `sonar-organization` from a cookiecutter variable - either lowercase
+`cookiecutter.github_owner` or a dedicated `cookiecutter.sonar_organization` - so the workflow and the properties file
+agree out of the box.
 
 **Affected Files**: `{{cookiecutter.project_slug}}/.github/workflows/sonarcloud.yml`
 
@@ -82,13 +107,19 @@ Every workflow that syncs project deps (CI, PR validation, compatibility matrix,
 - **Category**: CI/CD
 - **Discovered**: 2026-05-20
 
-**Issue**: The template ships `.github/workflows/python-compatibility.yml` with `test-command: 'pytest ... -m "not slow and not integration"'`. The org reusable workflow expands `$TEST_COMMAND` unquoted, so the embedded `"` are kept as literal bytes and bash word-splits the marker expression into separate args. pytest then receives `-m "not slow and not integration"` as six fragmented arguments and rejects them with exit 4.
+**Issue**: The template ships `.github/workflows/python-compatibility.yml` with `test-command: 'pytest ... -m "not slow
+and not integration"'`. The org reusable workflow expands `$TEST_COMMAND` unquoted, so the embedded `"` are kept as
+literal bytes and bash word-splits the marker expression into separate args. pytest then receives `-m "not slow and not
+integration"` as six fragmented arguments and rejects them with exit 4.
 
 The template also ignores `tests/load`, which it doesn't generate.
 
 **Context**: Discovered while migrating org workflow pins from `@main` to a fixed SHA.
 
-**Suggested Fix**: Either (a) drop the `-m` filter from the default test-command (and let projects add it back if they actually have slow-marked tests), (b) replace the spaced marker expression with a single-word custom marker like `excluded_from_compat`, or (c) have the org workflow wrap `$TEST_COMMAND` in `bash -c` so embedded quotes are honored. Also remove the `--ignore=tests/load` default since that directory isn't generated.
+**Suggested Fix**: Either (a) drop the `-m` filter from the default test-command (and let projects add it back if they
+actually have slow-marked tests), (b) replace the spaced marker expression with a single-word custom marker like
+`excluded_from_compat`, or (c) have the org workflow wrap `$TEST_COMMAND` in `bash -c` so embedded quotes are honored.
+Also remove the `--ignore=tests/load` default since that directory isn't generated.
 
 **Affected Files**: `{{cookiecutter.project_slug}}/.github/workflows/python-compatibility.yml`
 
@@ -98,15 +129,22 @@ The template also ignores `tests/load`, which it doesn't generate.
 - **Category**: Tooling
 - **Discovered**: 2026-05-20
 
-**Issue**: The template's dev extras pin `atheris>=2.3.0`. uv resolves this to 3.0.0, which ships wheels only for cp311/cp312/cp313. On Python 3.10 the install attempts to build from sdist, which requires Clang and a matching libFuzzer toolchain - that build fails in stock CI runners. Meanwhile the template's `requires-python = ">=3.10,..."` and `python-compatibility.yml` matrix both claim Python 3.10 support, so the matrix's 3.10 leg fails before tests run.
+**Issue**: The template's dev extras pin `atheris>=2.3.0`. uv resolves this to 3.0.0, which ships wheels only for
+cp311/cp312/cp313. On Python 3.10 the install attempts to build from sdist, which requires Clang and a matching
+libFuzzer toolchain - that build fails in stock CI runners. Meanwhile the template's `requires-python = ">=3.10,..."`
+and `python-compatibility.yml` matrix both claim Python 3.10 support, so the matrix's 3.10 leg fails before tests run.
 
-`atheris` is not imported anywhere in the generated source/tests/scripts of this project, so the dep was effectively dead weight gating compatibility testing.
+`atheris` is not imported anywhere in the generated source/tests/scripts of this project, so the dep was effectively
+dead weight gating compatibility testing.
 
 **Context**: Discovered on PR #27 of rag-processor while bringing the compatibility matrix green.
 
-**Suggested Fix**: Either (a) drop `atheris` from the default dev extras (templates should not bundle deps they never use), (b) mark it `; python_version >= '3.11'` so 3.10 stays installable, or (c) drop Python 3.10 from the default `python-compatibility.yml` matrix and tighten `requires-python` to `>=3.11`.
+**Suggested Fix**: Either (a) drop `atheris` from the default dev extras (templates should not bundle deps they never
+use), (b) mark it `; python_version >= '3.11'` so 3.10 stays installable, or (c) drop Python 3.10 from the default
+`python-compatibility.yml` matrix and tighten `requires-python` to `>=3.11`.
 
-**Affected Files**: `{{cookiecutter.project_slug}}/pyproject.toml`, optionally `{{cookiecutter.project_slug}}/.github/workflows/python-compatibility.yml`
+**Affected Files**: `{{cookiecutter.project_slug}}/pyproject.toml`, optionally
+`{{cookiecutter.project_slug}}/.github/workflows/python-compatibility.yml`
 
 ---
 
