@@ -50,4 +50,3 @@ jobs:
       post-pr-comment: true
       timeout-minutes: 60
       no-build: false
-    secrets: inherit

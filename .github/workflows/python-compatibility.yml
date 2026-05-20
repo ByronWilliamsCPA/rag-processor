@@ -66,4 +66,3 @@ jobs:
       # rag-processor uses hatchling as build backend, so editable installs
       # require the build step. The reusable defaults no-build: true; override.
       no-build: false
-    secrets: inherit

@@ -52,4 +52,6 @@ jobs:
       generate-sbom: true
       upload-sarif: true
       artifact-retention-days: 90
-    secrets: inherit
+    secrets:
+      DHI_USERNAME: ${{ secrets.DHI_USERNAME }}
+      DHI_PAT: ${{ secrets.DHI_PAT }}
