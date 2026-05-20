@@ -5,11 +5,13 @@ A batch represents a group of files uploaded together by a user.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from enum import Enum
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
+
+UTC = timezone.utc  # noqa: UP017
 
 
 def _parse_iso_datetime(value: str) -> datetime:

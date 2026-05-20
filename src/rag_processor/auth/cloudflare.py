@@ -7,7 +7,7 @@ Supports bypass mode for local development without Cloudflare.
 from __future__ import annotations
 
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import httpx
@@ -20,6 +20,8 @@ from starlette.responses import JSONResponse
 from rag_processor.auth.models import CloudflareUser, TokenClaims
 from rag_processor.core.config import settings
 from rag_processor.utils.logging import get_logger
+
+UTC = timezone.utc  # noqa: UP017
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable

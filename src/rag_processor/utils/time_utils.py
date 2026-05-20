@@ -1,11 +1,19 @@
 """Time utilities for RAG Processor.
 
-Provides standardized datetime helpers using Python 3.12 idioms.
+Provides standardized datetime helpers compatible with Python 3.10+.
 """
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
+
+# Alias `UTC = timezone.utc` because `datetime.UTC` was added in Python 3.11
+# and this project's `requires-python = ">=3.10"` still supports 3.10. The
+# UP017 ruff rule asks for `from datetime import UTC`, which would break the
+# 3.10 leg of the python-compatibility matrix. Drop this alias (and the
+# `# noqa: UP017` annotations across the codebase) when the project minimum
+# moves to Python 3.11.
+UTC = timezone.utc  # noqa: UP017
 
 
 def utc_now() -> datetime:

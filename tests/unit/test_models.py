@@ -1,6 +1,6 @@
 """Tests for Batch and Job models."""
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 from rag_processor.models.batch import Batch, BatchStatus
@@ -11,6 +11,8 @@ from rag_processor.models.job import (
     Pipeline,
     Priority,
 )
+
+UTC = timezone.utc  # noqa: UP017
 
 
 class TestBatchModel:

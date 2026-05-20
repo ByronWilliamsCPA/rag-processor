@@ -44,7 +44,7 @@ permissions:
 jobs:
   release:
     name: Release Pipeline
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-release.yml@main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-release.yml@1b2d33c47cc11a96b9757b49f41873c54e75f57c # main
     with:
       python-version: '3.12'
       coverage-threshold: 80
@@ -54,3 +54,4 @@ jobs:
       publish-to-pypi: true
       pypi-package-name: 'rag-processor'
       run-tests: true
+      no-build: false
