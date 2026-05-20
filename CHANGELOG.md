@@ -47,6 +47,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `.env.example` with Redis, Cloudflare, and pipeline configuration
 - Enhanced Dockerfile with `/data` directory creation for file storage
 - Fixed `MutableHeaders.pop()` bug in security middleware
+- **TruffleHog pre-commit hook** (`.pre-commit-config.yaml`): scoped to staged
+  files via `trufflehog filesystem` instead of `trufflehog git --since-commit HEAD`,
+  which was producing false positives from fetched remote branches in the local
+  object store. Hook entry now uses an explicit `if/then/else` so that
+  TruffleHog's `--fail` exit code propagates correctly; the previous
+  `(command -v ... && trufflehog ...) || echo "not installed"` parse silently
+  swallowed real secret detections. Resolves observation #4 from the skill
+  observation log; part of the fleet-wide TruffleHog rollout.
 
 ### Added (Testing)
 

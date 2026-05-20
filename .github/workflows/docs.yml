@@ -32,6 +32,10 @@ jobs:
     uses: ByronWilliamsCPA/.github/.github/workflows/python-docs.yml@main
     with:
       python-version: '3.12'
+      # rag-processor uses hatchling as build backend, so editable installs
+      # require the build step. The reusable defaults no-build: true; override.
+      # Matches the pattern PR #33 applied to ci.yml and security-analysis.yml.
+      no-build: false
       deploy-to-pages: >-
         ${{
           github.event_name == 'push' &&

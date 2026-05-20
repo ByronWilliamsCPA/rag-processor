@@ -149,7 +149,14 @@ jobs:
         run: uv export --frozen --no-hashes --output-file /tmp/requirements-locked.txt
 
       - name: Run pip-audit against locked requirements
-        run: uv run pip-audit --requirement /tmp/requirements-locked.txt
+        # pip-audit in --requirement mode does not auto-read pyproject.toml
+        # [tool.pip-audit] config, so ignored advisories must be repeated here.
+        # See docs/known-vulnerabilities.md for the rationale on each entry.
+        run: >-
+          uv run pip-audit
+          --requirement /tmp/requirements-locked.txt
+          --ignore-vuln PYSEC-2025-183
+          --ignore-vuln PYSEC-2026-89
 
       - name: Dependency Validation Summary
         if: always()
