@@ -48,7 +48,13 @@ jobs:
       include-macos: false  # Disabled: python-magic requires libmagic (see note above)
       include-windows: false  # Disabled: python-magic requires libmagic DLL (see note above)
       source-directory: 'src'
-      test-command: 'pytest tests/ -v --tb=short -x --ignore=tests/integration --ignore=tests/load -m "not slow and not integration"'
+      # Drop -m marker filter: the org reusable expands $TEST_COMMAND unquoted
+      # via bash, which word-splits `-m "not slow and not integration"` into
+      # broken tokens (pytest sees `slow` as a positional path arg). The
+      # `--ignore` flags already exclude the only directories where those
+      # markers are used, so the filter is redundant. Re-add only if a future
+      # `tests/unit/` test acquires `@pytest.mark.slow`.
+      test-command: 'pytest tests/ -v --tb=short -x --ignore=tests/integration --ignore=tests/load'
       coverage-report: false
       fail-fast: false
       timeout-minutes: 30
