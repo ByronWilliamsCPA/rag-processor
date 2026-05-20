@@ -153,7 +153,13 @@ jobs:
         run: |
           # Mirror the org python-ci.yml expansion: pip-audit doesn't read
           # [tool.pip-audit].ignore-vuln natively, so build the flags here.
-          IGNORE_ARGS=$(python3 -c "import tomllib; d=tomllib.load(open('pyproject.toml','rb')); ids=d.get('tool',{}).get('pip-audit',{}).get('ignore-vuln',[]); print(' '.join('--ignore-vuln '+i for i in ids))" 2>/dev/null || true)
+          # If pyproject.toml is unreadable, log the error to stderr (do not
+          # silently swallow it) and let pip-audit run without ignores so any
+          # regression is loud rather than quietly hidden.
+          if ! IGNORE_ARGS=$(python3 -c "import tomllib; d=tomllib.load(open('pyproject.toml','rb')); ids=d.get('tool',{}).get('pip-audit',{}).get('ignore-vuln',[]); print(' '.join('--ignore-vuln '+i for i in ids))"); then
+            echo "::warning::Failed to read [tool.pip-audit].ignore-vuln from pyproject.toml; running pip-audit without ignores." >&2
+            IGNORE_ARGS=""
+          fi
           # shellcheck disable=SC2086
           uv run pip-audit --requirement /tmp/requirements-locked.txt $IGNORE_ARGS
 
