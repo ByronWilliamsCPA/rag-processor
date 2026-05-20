@@ -72,15 +72,24 @@ repos:
         # was (command -v ... && trufflehog ...) || echo "not installed", which
         # caused trufflehog's --fail exit code to trigger the "not installed"
         # branch and silently allow detected secrets through.
+        #
+        # Portability: xargs -r (no-run-if-empty) is a GNU extension and is
+        # absent from BSD xargs (macOS). Pre-check emptiness with `git diff
+        # --quiet` instead, then call xargs without -r. The `--` end-of-options
+        # marker prevents filenames starting with a dash from being parsed as
+        # trufflehog flags.
         entry: |
           bash -c '
-            if command -v trufflehog >/dev/null 2>&1; then
-              git diff --cached -z --diff-filter=d --name-only \
-                | xargs -0 -r trufflehog filesystem --fail --no-update \
-                    --results=verified,unknown
-            else
+            if ! command -v trufflehog >/dev/null 2>&1; then
               echo "TruffleHog not installed - skipping secret scan"
+              exit 0
             fi
+            if git diff --cached --diff-filter=d --quiet; then
+              exit 0
+            fi
+            git diff --cached -z --diff-filter=d --name-only \
+              | xargs -0 trufflehog filesystem --fail --no-update \
+                  --results=verified,unknown --
           '
         language: system
         pass_filenames: false
