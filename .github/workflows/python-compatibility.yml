@@ -43,7 +43,12 @@ jobs:
     name: Python Compatibility Matrix
     uses: ByronWilliamsCPA/.github/.github/workflows/python-compatibility.yml@main
     with:
-      python-versions: '["3.10", "3.11", "3.12", "3.13"]'
+      # Match pyproject.toml `requires-python = ">=3.12,<3.14"`. Testing 3.10/3.11
+      # would fail on Python-3.11+ features the project actively uses (e.g.
+      # datetime.UTC, StrEnum, exception groups) and contradicts the package's
+      # declared support window. Re-add older versions only after lowering
+      # `requires-python` AND adding the corresponding compatibility shims.
+      python-versions: '["3.12", "3.13"]'
       operating-systems: '["ubuntu-latest"]'
       include-macos: false  # Disabled: python-magic requires libmagic (see note above)
       include-windows: false  # Disabled: python-magic requires libmagic DLL (see note above)
