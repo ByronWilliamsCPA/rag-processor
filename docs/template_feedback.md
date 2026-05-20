@@ -62,6 +62,36 @@ Every workflow that syncs project deps (CI, PR validation, compatibility matrix,
 
 **Affected Files**: `{{cookiecutter.project_slug}}/.github/workflows/{ci,pr-validation,python-compatibility,performance-regression,docs,sonarcloud,sbom,mutation-testing,release,security-analysis}.yml`
 
+### Stale `sonar-organization` default in sonarcloud.yml
+
+- **Priority**: Medium
+- **Category**: CI/CD
+- **Discovered**: 2026-05-20
+
+**Issue**: The generated `.github/workflows/sonarcloud.yml` passes `sonar-organization: 'williaby'` to the org reusable workflow. That value is a leftover personal handle, not the GitHub org. The matching `sonar-project.properties` is rendered with the actual org (`byronwilliamscpa`), and the project key with the actual GitHub owner (`ByronWilliamsCPA_*`). The org-key mismatch causes `sonar-scanner` to exit 3 - the project literally does not exist under `williaby`.
+
+**Context**: Issue #8 of rag-processor was opened to track SonarCloud failures; root cause was this template default.
+
+**Suggested Fix**: Derive `sonar-organization` from a cookiecutter variable - either lowercase `cookiecutter.github_owner` or a dedicated `cookiecutter.sonar_organization` - so the workflow and the properties file agree out of the box.
+
+**Affected Files**: `{{cookiecutter.project_slug}}/.github/workflows/sonarcloud.yml`
+
+### `test-command` with embedded quotes word-splits in org workflow
+
+- **Priority**: Medium
+- **Category**: CI/CD
+- **Discovered**: 2026-05-20
+
+**Issue**: The template ships `.github/workflows/python-compatibility.yml` with `test-command: 'pytest ... -m "not slow and not integration"'`. The org reusable workflow expands `$TEST_COMMAND` unquoted, so the embedded `"` are kept as literal bytes and bash word-splits the marker expression into separate args. pytest then receives `-m "not slow and not integration"` as six fragmented arguments and rejects them with exit 4.
+
+The template also ignores `tests/load`, which it doesn't generate.
+
+**Context**: Discovered while migrating org workflow pins from `@main` to a fixed SHA.
+
+**Suggested Fix**: Either (a) drop the `-m` filter from the default test-command (and let projects add it back if they actually have slow-marked tests), (b) replace the spaced marker expression with a single-word custom marker like `excluded_from_compat`, or (c) have the org workflow wrap `$TEST_COMMAND` in `bash -c` so embedded quotes are honored. Also remove the `--ignore=tests/load` default since that directory isn't generated.
+
+**Affected Files**: `{{cookiecutter.project_slug}}/.github/workflows/python-compatibility.yml`
+
 ---
 
 ## Submitting Feedback
