@@ -33,7 +33,7 @@ jobs:
     with:
       python-version: '3.12'
       source-directory: 'src/rag_processor'
-      sonar-organization: 'williaby'
+      sonar-organization: 'byronwilliamscpa'
       sonar-project-key: 'ByronWilliamsCPA_rag-processor'
       skip-if-no-token: true
       fail-on-quality-gate: false
