@@ -89,8 +89,13 @@ class BatchDetailResponse(BaseModel):
 @router.get(
     "/{batch_id}",
     response_model=BatchDetailResponse,
+    status_code=status.HTTP_200_OK,
     summary="Get batch status",
-    description="Get the status and details of a batch and its jobs.",
+    description=(
+        "Get the status and details of a batch including all of its jobs, "
+        "file metadata, and timestamps. Requires Cloudflare Access "
+        "authentication."
+    ),
     responses={
         404: {"description": "Batch not found"},
     },
@@ -98,14 +103,20 @@ class BatchDetailResponse(BaseModel):
 async def get_batch(batch_id: UUID) -> BatchDetailResponse:
     """Get batch status and job list.
 
+    Returns the current status of a batch and a detail record for every
+    job that belongs to it, including classification, pipeline, retry
+    count, and timestamps.
+
+    Authentication: Requires a valid Cloudflare Access JWT.
+
     Args:
-        batch_id: Batch identifier.
+        batch_id: Batch identifier (UUID).
 
     Returns:
-        BatchDetailResponse with batch and job details.
+        BatchDetailResponse with batch metadata and the list of jobs.
 
     Raises:
-        HTTPException: If batch not found.
+        HTTPException: 404 if no batch with the given ID exists.
     """
     batch, jobs = get_batch_status(batch_id)
 
@@ -151,8 +162,13 @@ async def get_batch(batch_id: UUID) -> BatchDetailResponse:
 @router.get(
     "/job/{job_id}",
     response_model=JobDetailResponse,
+    status_code=status.HTTP_200_OK,
     summary="Get job status",
-    description="Get the status and details of a specific job.",
+    description=(
+        "Get the status and details of a specific job, including pipeline "
+        "routing, error message, retry count, and timestamps. Requires "
+        "Cloudflare Access authentication."
+    ),
     responses={
         404: {"description": "Job not found"},
     },
@@ -160,14 +176,20 @@ async def get_batch(batch_id: UUID) -> BatchDetailResponse:
 async def get_job(job_id: UUID) -> JobDetailResponse:
     """Get job status and details.
 
+    Returns the current state of a single processing job, including the
+    target pipeline, file metadata, retry information, and lifecycle
+    timestamps.
+
+    Authentication: Requires a valid Cloudflare Access JWT.
+
     Args:
-        job_id: Job identifier.
+        job_id: Job identifier (UUID).
 
     Returns:
-        JobDetailResponse with job details.
+        JobDetailResponse with job metadata and processing state.
 
     Raises:
-        HTTPException: If job not found.
+        HTTPException: 404 if no job with the given ID exists.
     """
     job = get_job_status(job_id)
 

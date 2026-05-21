@@ -53,6 +53,9 @@ jobs:
       include-macos: false  # Disabled: python-magic requires libmagic (see note above)
       include-windows: false  # Disabled: python-magic requires libmagic DLL (see note above)
       source-directory: 'src'
+      # pyproject.toml's addopts includes --cov=src/rag_processor, so we need
+      # the dev extras (pytest-cov) installed for pytest to start.
+      extra-dependencies: 'dev'
       # Drop -m marker filter: the org reusable expands $TEST_COMMAND unquoted
       # via bash, which word-splits `-m "not slow and not integration"` into
       # broken tokens (pytest sees `slow` as a positional path arg). The
