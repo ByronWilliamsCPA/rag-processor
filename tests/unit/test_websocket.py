@@ -483,7 +483,10 @@ class TestWebSocketRouter:
             result = await verify_ws_token(None)
 
         assert result is not None
-        assert result["email"] == "anonymous@local"
+        # Bypass identity must match CloudflareAuthMiddleware._get_bypass_user
+        # so ownership checks work across HTTP and WebSocket. See PR #26 review.
+        assert result["email"] == "dev@localhost"
+        assert result["user_id"] == "dev-user-001"
 
     @pytest.mark.asyncio
     async def test_verify_ws_token_no_token_with_auth(self) -> None:

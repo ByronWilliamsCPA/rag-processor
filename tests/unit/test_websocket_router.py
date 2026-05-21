@@ -23,7 +23,12 @@ class TestVerifyWsToken:
 
     @pytest.mark.asyncio
     async def test_verify_ws_token_auth_disabled(self) -> None:
-        """Test token verification when auth is disabled."""
+        """Bypass identity must match CloudflareAuthMiddleware._get_bypass_user.
+
+        Regression for PR #26 review: a mismatch (anonymous@local vs
+        dev@localhost) broke ownership checks for batches created over HTTP
+        in dev mode.
+        """
         mock_settings = MagicMock()
         mock_settings.cloudflare_enabled = False
 
@@ -33,8 +38,37 @@ class TestVerifyWsToken:
             result = await verify_ws_token(None)
 
         assert result is not None
-        assert result["email"] == "anonymous@local"
-        assert result["user_id"] == "local"
+        assert result["email"] == "dev@localhost"
+        assert result["user_id"] == "dev-user-001"
+
+    @pytest.mark.asyncio
+    async def test_verify_ws_token_swallows_network_errors(self) -> None:
+        """Non-JWT errors from verify_cloudflare_token must close cleanly.
+
+        Regression for PR #26 review: httpx.ConnectError / TimeoutException /
+        HTTPStatusError and json.JSONDecodeError aren't jwt.* subclasses and
+        previously propagated, closing the socket with 1011 (internal error)
+        instead of 1008 (policy violation). Mirror the HTTP middleware's
+        broad except.
+        """
+        import httpx
+
+        mock_settings = MagicMock()
+        mock_settings.cloudflare_enabled = True
+
+        mock_verify = AsyncMock(side_effect=httpx.ConnectError("JWKS unreachable"))
+
+        with (
+            patch("rag_processor.websocket.router.settings", mock_settings),
+            patch(
+                "rag_processor.websocket.router.verify_cloudflare_token", mock_verify
+            ),
+        ):
+            from rag_processor.websocket.router import verify_ws_token
+
+            result = await verify_ws_token("opaque-token")
+
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_verify_ws_token_no_token_with_auth_enabled(self) -> None:
@@ -265,6 +299,94 @@ class TestWebSocketEndpoint:
             code=status.WS_1008_POLICY_VIOLATION
         )
 
+    @pytest.mark.asyncio
+    async def test_websocket_rejects_non_owner(self, mock_ws_logger: MagicMock) -> None:
+        """Caller authenticated as user A cannot subscribe to user B's batch."""
+        from fastapi import WebSocket, status
+
+        batch_id = uuid4()
+        mock_websocket = AsyncMock(spec=WebSocket)
+
+        mock_verify = AsyncMock(
+            return_value={"email": "intruder@example.com", "user_id": "u-intruder"}
+        )
+
+        # Batch belongs to a different user.
+        mock_batch = MagicMock()
+        mock_batch.created_by_user_id = "u-owner"
+        mock_batch.created_by_email = "owner@example.com"
+        mock_batch_status = MagicMock(return_value=(mock_batch, []))
+
+        mock_cm = MagicMock()
+        mock_cm.connect = AsyncMock()
+        mock_cm.send_personal = AsyncMock()
+        mock_cm.disconnect = MagicMock()
+
+        with (
+            patch("rag_processor.websocket.router.verify_ws_token", mock_verify),
+            patch("rag_processor.websocket.router.get_batch_status", mock_batch_status),
+            patch("rag_processor.websocket.router.connection_manager", mock_cm),
+        ):
+            from rag_processor.websocket.router import websocket_batch_status
+
+            await websocket_batch_status(
+                mock_websocket, batch_id, cf_access_token="valid-token"
+            )
+
+        # Closes with the same code as "not found" so existence is not leaked.
+        mock_websocket.close.assert_called_once_with(
+            code=status.WS_1008_POLICY_VIOLATION
+        )
+        # Never accepted the connection.
+        mock_cm.connect.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_websocket_rejects_matching_email_with_different_user_id(
+        self, mock_ws_logger: MagicMock
+    ) -> None:
+        """Regression: matching email + different user_id must NOT grant access.
+
+        The previous WebSocket ownership check OR'd id-match and email-match,
+        so a token whose email happened to match the batch owner's email
+        would bypass the user_id check. user_id must take precedence when
+        both sides have it. (CodeRabbit PR #26 review.)
+        """
+        from fastapi import WebSocket, status
+
+        batch_id = uuid4()
+        mock_websocket = AsyncMock(spec=WebSocket)
+
+        # Same email as the batch owner, different user_id.
+        mock_verify = AsyncMock(
+            return_value={"email": "owner@example.com", "user_id": "u-intruder"}
+        )
+
+        mock_batch = MagicMock()
+        mock_batch.created_by_user_id = "u-owner"
+        mock_batch.created_by_email = "owner@example.com"
+        mock_batch_status = MagicMock(return_value=(mock_batch, []))
+
+        mock_cm = MagicMock()
+        mock_cm.connect = AsyncMock()
+        mock_cm.send_personal = AsyncMock()
+        mock_cm.disconnect = MagicMock()
+
+        with (
+            patch("rag_processor.websocket.router.verify_ws_token", mock_verify),
+            patch("rag_processor.websocket.router.get_batch_status", mock_batch_status),
+            patch("rag_processor.websocket.router.connection_manager", mock_cm),
+        ):
+            from rag_processor.websocket.router import websocket_batch_status
+
+            await websocket_batch_status(
+                mock_websocket, batch_id, cf_access_token="valid-token"
+            )
+
+        mock_websocket.close.assert_called_once_with(
+            code=status.WS_1008_POLICY_VIOLATION
+        )
+        mock_cm.connect.assert_not_called()
+
     @pytest.mark.skip(
         reason="Module-level Redis import happens before patches can be applied"
     )
@@ -300,7 +422,11 @@ class TestWebSocketEndpoint:
             return_value={"email": "user@example.com", "user_id": "user-123"}
         )
 
+        # Batch must be owned by the authenticated user; otherwise the WS
+        # endpoint closes the connection without replaying events.
         mock_batch = MagicMock()
+        mock_batch.created_by_user_id = "user-123"
+        mock_batch.created_by_email = "user@example.com"
         mock_batch_status = MagicMock(return_value=(mock_batch, []))
 
         mock_cm = MagicMock()

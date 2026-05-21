@@ -113,8 +113,16 @@ class CloudflareAuthMiddleware(BaseHTTPMiddleware):
         if self._is_public_path(request.url.path):
             return await call_next(request)
 
-        # Bypass mode for local development
+        # Bypass mode for local development. This grants every request a fixed
+        # mock identity with the "developers" group, so it must never be enabled
+        # in production. Log a critical warning on every request to make
+        # misconfiguration obvious in production logs.
         if not settings.cloudflare_enabled:
+            logger.critical(
+                "Cloudflare auth is DISABLED - all requests are authenticated as "
+                "the bypass user. This must only be used for local development.",
+                path=request.url.path,
+            )
             request.state.user = self._get_bypass_user()
             return await call_next(request)
 

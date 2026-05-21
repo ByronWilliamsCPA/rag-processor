@@ -20,6 +20,16 @@ os.environ.setdefault("RAG_PROCESSOR_RATE_LIMITING_ENABLED", "false")
 # Auth middleware tests explicitly enable it when needed
 os.environ.setdefault("RAG_PROCESSOR_CLOUDFLARE_ENABLED", "false")
 
+# CORS origins are now empty-by-default in production (see config.py /
+# SECURITY-FINDINGS.md §2.2). Tests need explicit dev origins so the CORS
+# integration test can verify the middleware actually emits
+# Access-Control-Allow-Origin. Must be set before the app is imported.
+os.environ.setdefault(
+    "RAG_PROCESSOR_CORS_ALLOWED_ORIGINS",
+    '["http://localhost:3000","http://localhost:5173",'
+    '"http://127.0.0.1:3000","http://frontend:3000"]',
+)
+
 # ============================================================================
 # Test Fixture Paths
 # ============================================================================
