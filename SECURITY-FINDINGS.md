@@ -456,10 +456,15 @@ project's 120-char markdown limit.)
    a production deploy accidentally running in bypass mode is visible in
    logs / alerting immediately.
 
-6. **[HIGH]** `.github/workflows/sonarcloud.yml`
-   Pin `sonarsource/sonarqube-quality-gate-action@master` → SHA
-   `cf038b0e…` (v1.2.0). Add `harden-runner` (egress-policy: audit) to
-   both jobs.
+6. **[HIGH]** `.github/workflows/sonarcloud.yml` (mooted by main)
+   Pinned `sonarsource/sonarqube-quality-gate-action@master` → SHA
+   `cf038b0e…` (v1.2.0) and added `harden-runner` (egress-policy:
+   audit) to both jobs in this PR's first commit. **After this PR was
+   opened, main merged #27 (`4055d57`) which replaced this file with a
+   call to an org-level reusable workflow.** The merge will resolve in
+   favor of main, so the SHA-pin lands via the org workflow rather
+   than via this PR's diff. Audit trail: the SHA-pin requirement was
+   met; the file change itself will be overwritten.
 
 7. **[MEDIUM]** `.github/workflows/dependency-review.yml`
    Pin `actions/dependency-review-action@v4` → SHA `2031cfc0…` (v4.9.0).
@@ -478,3 +483,11 @@ project's 120-char markdown limit.)
   buffering the whole body.
 - §2.6: Drop Python version from public `/health/live` responses.
 - §4.5: SHA-pin org-owned reusable workflow callouts.
+- **Tighten `batch_is_owned_by` email fallback**: `auth/dependencies.py`
+  currently falls back to email match when either side lacks `user_id` so
+  that batches created before Cloudflare Access populated `sub` claims
+  remain readable. Once all batches have `created_by_user_id`, drop the
+  email fallback so an attacker who obtains a token for an email that
+  matches a legacy batch owner cannot read that batch. Tracking task: gate
+  the fallback on a `LEGACY_BATCH_EMAIL_FALLBACK` setting that defaults to
+  False once the data migration completes.

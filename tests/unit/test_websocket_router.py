@@ -23,7 +23,12 @@ class TestVerifyWsToken:
 
     @pytest.mark.asyncio
     async def test_verify_ws_token_auth_disabled(self) -> None:
-        """Test token verification when auth is disabled."""
+        """Bypass identity must match CloudflareAuthMiddleware._get_bypass_user.
+
+        Regression for PR #26 review: a mismatch (anonymous@local vs
+        dev@localhost) broke ownership checks for batches created over HTTP
+        in dev mode.
+        """
         mock_settings = MagicMock()
         mock_settings.cloudflare_enabled = False
 
@@ -33,8 +38,37 @@ class TestVerifyWsToken:
             result = await verify_ws_token(None)
 
         assert result is not None
-        assert result["email"] == "anonymous@local"
-        assert result["user_id"] == "local"
+        assert result["email"] == "dev@localhost"
+        assert result["user_id"] == "dev-user-001"
+
+    @pytest.mark.asyncio
+    async def test_verify_ws_token_swallows_network_errors(self) -> None:
+        """Non-JWT errors from verify_cloudflare_token must close cleanly.
+
+        Regression for PR #26 review: httpx.ConnectError / TimeoutException /
+        HTTPStatusError and json.JSONDecodeError aren't jwt.* subclasses and
+        previously propagated, closing the socket with 1011 (internal error)
+        instead of 1008 (policy violation). Mirror the HTTP middleware's
+        broad except.
+        """
+        import httpx
+
+        mock_settings = MagicMock()
+        mock_settings.cloudflare_enabled = True
+
+        mock_verify = AsyncMock(side_effect=httpx.ConnectError("JWKS unreachable"))
+
+        with (
+            patch("rag_processor.websocket.router.settings", mock_settings),
+            patch(
+                "rag_processor.websocket.router.verify_cloudflare_token", mock_verify
+            ),
+        ):
+            from rag_processor.websocket.router import verify_ws_token
+
+            result = await verify_ws_token("opaque-token")
+
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_verify_ws_token_no_token_with_auth_enabled(self) -> None:
