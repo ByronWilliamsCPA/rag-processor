@@ -363,6 +363,7 @@ known-first-party = ["rag_processor"]
     "S101",   # assert_used - scripts may use asserts for validation
     "S104",   # hardcoded_bind_all_interfaces - dev scripts may bind 0.0.0.0
     "S108",   # hardcoded_tmp_directory - scripts use /tmp intentionally
+    "PLC0415", # Lazy imports allowed in scripts (e.g. import after env-var setup)
     "S311",   # random - non-crypto random in scripts is fine
     "S603",   # subprocess_without_shell_equals_true - scripts validate inputs
     "S607",   # start_process_with_partial_path - scripts use PATH
