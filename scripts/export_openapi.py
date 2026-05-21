@@ -20,32 +20,26 @@ import os
 import sys
 from pathlib import Path
 
-# #CRITICAL: security: Disable Cloudflare auth + rate limiting so the app
-# object can be imported without secrets for offline OpenAPI export. These
-# defaults must NEVER be set in a runtime/production process.
-# #VERIFY: Confirm this script is only invoked from CI / local dev tooling.
-os.environ.setdefault("RAG_PROCESSOR_CLOUDFLARE_ENABLED", "false")
-os.environ.setdefault("RAG_PROCESSOR_RATE_LIMITING_ENABLED", "false")
-
-# Ensure ``src`` is importable when running directly.
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "src"
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
-
-from rag_processor.main import app  # noqa: E402
-
 OUTPUT_PATH = ROOT / "docs" / "api" / "openapi.json"
 
 SECURITY_SCHEME_NAME = "CloudflareAccessJwt"
 
-# Operations that are reachable without a Cloudflare Access token.
-PUBLIC_PATH_PREFIXES = ("/health", "/docs", "/redoc", "/openapi.json")
-PUBLIC_PATHS = {"/"}
+# Exact paths reachable without a Cloudflare Access token.
+PUBLIC_PATHS = {"/", "/docs", "/redoc", "/openapi.json"}
+
+# Path-segment prefixes whose sub-paths are also public (trailing slash
+# enforces segment boundary so /health-debug is not treated as public).
+PUBLIC_PATH_PREFIXES = ("/health/", "/docs/", "/redoc/")
 
 
 def _is_public(path: str) -> bool:
-    """Return True if ``path`` is reachable without authentication."""
+    """Return True if ``path`` is reachable without authentication.
+
+    Uses exact-path matching for leaf endpoints and segment-boundary prefix
+    matching for path families (e.g. ``/health/live``) to avoid false
+    positives such as ``/health-debug`` or ``/openapi.jsonl``.
+    """
     if path in PUBLIC_PATHS:
         return True
     return any(path.startswith(prefix) for prefix in PUBLIC_PATH_PREFIXES)
@@ -93,6 +87,15 @@ def main() -> int:
     Raises:
         OSError: If ``docs/api/openapi.json`` cannot be created or written.
     """
+    # #CRITICAL: security: Disable Cloudflare auth + rate limiting so the app
+    # object can be imported without secrets for offline OpenAPI export. These
+    # defaults must NEVER be set in a runtime/production process.
+    # #VERIFY: Confirm this script is only invoked from CI / local dev tooling.
+    os.environ.setdefault("RAG_PROCESSOR_CLOUDFLARE_ENABLED", "false")
+    os.environ.setdefault("RAG_PROCESSOR_RATE_LIMITING_ENABLED", "false")
+
+    from rag_processor.main import app  # import after env vars are configured
+
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     schema = app.openapi()
     _apply_security(schema)
