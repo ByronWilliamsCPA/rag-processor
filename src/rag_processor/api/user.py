@@ -5,7 +5,7 @@ Provides endpoints for accessing current user information.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
 
 from rag_processor.auth.dependencies import get_current_user
@@ -28,19 +28,30 @@ class UserResponse(BaseModel):
 @router.get(
     "/me",
     response_model=UserResponse,
+    status_code=status.HTTP_200_OK,
     summary="Get current user",
-    description="Returns the currently authenticated user's information.",
+    description=(
+        "Returns the currently authenticated user's identity information "
+        "(email, user ID, and group memberships) extracted from the "
+        "Cloudflare Access JWT. Requires Cloudflare Access authentication."
+    ),
 )
 async def get_me(
     user: CloudflareUser = Depends(get_current_user),
 ) -> UserResponse:
     """Get current authenticated user information.
 
+    Reads the verified Cloudflare Access user attached to the request
+    by the auth middleware and returns the subset of fields safe to
+    expose to the frontend.
+
+    Authentication: Requires a valid Cloudflare Access JWT.
+
     Args:
-        user: The authenticated user from Cloudflare Access.
+        user: The authenticated user from Cloudflare Access (injected).
 
     Returns:
-        User information including email and groups.
+        UserResponse with `email`, optional `user_id`, and `groups`.
     """
     return UserResponse(
         email=user.email,
