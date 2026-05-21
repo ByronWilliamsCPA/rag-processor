@@ -79,20 +79,30 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Add CORS middleware (must be added before other middleware)
-# CORS origins are configured for local development. For production,
-# use environment variables or Cloudflare Access to control origins.
+# Add CORS middleware (must be added before other middleware).
+# Origins come from settings so production deployments can override via
+# RAG_PROCESSOR_CORS_ALLOWED_ORIGINS. Wildcard "*" is forbidden because we send
+# credentials; reject it loudly rather than silently producing an insecure config.
+_cors_origins = list(settings.cors_allowed_origins)
+if "*" in _cors_origins:
+    msg = (
+        "CORS allow_origins=['*'] is not permitted with allow_credentials=True. "
+        "Set RAG_PROCESSOR_CORS_ALLOWED_ORIGINS to an explicit list of origins."
+    )
+    raise RuntimeError(msg)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",  # Vite dev server
-        "http://127.0.0.1:3000",
-        "http://frontend:3000",  # Docker service name
-    ],
+    allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "X-Correlation-ID",
+        "X-Request-ID",
+        "Cf-Access-Jwt-Assertion",
+    ],
     expose_headers=["X-Correlation-ID", "X-Request-ID"],
 )
 

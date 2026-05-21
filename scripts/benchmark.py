@@ -140,7 +140,9 @@ def run_benchmark(
         min_ms=round(min(timings), 3),
         max_ms=round(max(timings), 3),
         std_dev_ms=round(std_dev, 3),
-        throughput_ops=round(iterations / total_time_sec, 2) if total_time_sec > 0 else 0,
+        throughput_ops=round(iterations / total_time_sec, 2)
+        if total_time_sec > 0
+        else 0,
     )
 
 
@@ -389,7 +391,9 @@ def benchmark_routing_lookup(iterations: int, warmup: int) -> BenchmarkResult:
     return run_benchmark("routing_lookup", lookup_func, iterations, warmup)
 
 
-def benchmark_classification_result_creation(iterations: int, warmup: int) -> BenchmarkResult:
+def benchmark_classification_result_creation(
+    iterations: int, warmup: int
+) -> BenchmarkResult:
     """Benchmark ClassificationResult dataclass creation.
 
     Tests object instantiation performance.
@@ -406,7 +410,9 @@ def benchmark_classification_result_creation(iterations: int, warmup: int) -> Be
             },
         )
 
-    return run_benchmark("classification_result_creation", create_func, iterations, warmup)
+    return run_benchmark(
+        "classification_result_creation", create_func, iterations, warmup
+    )
 
 
 # =============================================================================

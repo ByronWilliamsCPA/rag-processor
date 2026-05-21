@@ -162,9 +162,6 @@ class Job(BaseModel):
 
         Sets `status` to PROCESSING and stamps `started_at` and
         `updated_at` with the current UTC time.
-
-        Returns:
-            None. Mutates `status`, `started_at`, `updated_at` in place.
         """
         self.status = JobStatus.PROCESSING
         self.started_at = datetime.now(tz=UTC)
@@ -175,9 +172,6 @@ class Job(BaseModel):
 
         Sets `status` to COMPLETED and stamps `completed_at` and
         `updated_at` with the current UTC time.
-
-        Returns:
-            None. Mutates `status`, `completed_at`, `updated_at` in place.
         """
         self.status = JobStatus.COMPLETED
         self.completed_at = datetime.now(tz=UTC)

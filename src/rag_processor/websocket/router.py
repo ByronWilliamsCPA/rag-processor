@@ -12,6 +12,7 @@ import jwt
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, status
 
 from rag_processor.auth.cloudflare import verify_cloudflare_token
+from rag_processor.auth.dependencies import batch_is_owned_by
 from rag_processor.core.config import settings
 from rag_processor.queue.jobs import get_batch_status
 from rag_processor.utils.logging import get_logger
@@ -33,17 +34,34 @@ async def verify_ws_token(token: str | None) -> dict[str, str] | None:
         User info dict if valid, None otherwise.
     """
     if not settings.cloudflare_enabled:
-        # Auth disabled, return mock user
-        return {"email": "anonymous@local", "user_id": "local"}
+        # Bypass mode. The returned identity MUST match
+        # CloudflareAuthMiddleware._get_bypass_user() so that a batch created
+        # over HTTP in dev mode can be subscribed to over WebSocket. (Previously
+        # this returned "anonymous@local" / "local" which broke ownership
+        # checks after batch_is_owned_by was introduced.) Mirror the middleware's
+        # CRITICAL log so production misconfiguration is loud on every WS upgrade.
+        logger.critical(
+            "Cloudflare auth is DISABLED - WebSocket upgrade authenticated "
+            "as bypass user. This must only be used for local development.",
+        )
+        return {"email": "dev@localhost", "user_id": "dev-user-001"}
 
     if not token:
         return None
 
     try:
-        # Verify token with Cloudflare
+        # Verify token with Cloudflare.
         return await verify_cloudflare_token(token)
     except (jwt.InvalidTokenError, jwt.ExpiredSignatureError) as e:
         logger.warning("WebSocket token verification failed", error=str(e))
+        return None
+    except Exception as e:  # noqa: BLE001
+        # JWKS fetch failures (httpx.ConnectError, TimeoutException,
+        # HTTPStatusError) and json.JSONDecodeError aren't JWT exceptions and
+        # would otherwise propagate, closing the WS with 1011 (internal error)
+        # instead of 1008 (policy violation). Mirror the HTTP middleware which
+        # already handles this with a broad except.
+        logger.warning("WebSocket token verification error", error=str(e))
         return None
 
 
@@ -137,9 +155,28 @@ async def websocket_batch_status(
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
-    # Verify batch exists
+    # Verify batch exists and the caller owns it. Treat "not found" and
+    # "not authorized" identically to avoid leaking batch IDs.
     batch, _ = get_batch_status(batch_id)
     if batch is None:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    # Shared ownership helper. user_id-takes-precedence semantics: a matching
+    # email with a mismatched user_id is NOT enough to grant access.
+    requester_user_id = user.get("user_id") or None
+    requester_email = user.get("email") or None
+    if not batch_is_owned_by(
+        batch,
+        requester_user_id=requester_user_id,
+        requester_email=requester_email,
+    ):
+        # Minimal log context: opaque IDs only. Don't leak owner identity.
+        logger.warning(
+            "Unauthorized WebSocket batch access attempt",
+            batch_id=str(batch_id),
+            requester_user_id=requester_user_id,
+        )
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
@@ -149,7 +186,7 @@ async def websocket_batch_status(
     logger.info(
         "WebSocket connection established",
         batch_id=str(batch_id),
-        user_email=user.get("email"),
+        requester_user_id=requester_user_id,
     )
 
     try:
