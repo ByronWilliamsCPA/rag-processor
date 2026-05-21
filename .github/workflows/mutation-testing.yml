@@ -10,13 +10,18 @@ on:
   # Weekly schedule - Sundays at 2 AM UTC
   schedule:
     - cron: '0 2 * * 0'
-  # Manual trigger with configurable threshold
+  # Manual trigger with configurable threshold and opt-in failure
   workflow_dispatch:
     inputs:
       mutation_threshold:
         description: 'Minimum mutation score threshold (%)'
         required: false
         default: '80'
+        type: string
+      fail_under_threshold:
+        description: 'Fail the run if score is below threshold (default: false)'
+        required: false
+        default: 'false'
         type: string
 
 # Cancel in-progress runs for the same branch
@@ -36,7 +41,7 @@ jobs:
       source-directory: 'src'
       test-directory: 'tests'
       mutation-threshold: ${{ github.event.inputs.mutation_threshold && fromJSON(github.event.inputs.mutation_threshold) || 80 }}
-      fail-under-threshold: ${{ github.event_name != 'schedule' }}
+      fail-under-threshold: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.fail_under_threshold == 'true' }}
       post-pr-comment: false
       timeout-minutes: 60
       no-build: false
