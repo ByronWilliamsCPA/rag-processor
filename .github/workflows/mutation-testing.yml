@@ -18,28 +18,18 @@ on:
         required: false
         default: '80'
         type: string
-  # Run on PRs that modify source code
-  pull_request:
-    branches: [main, master, develop]
-    paths:
-      - 'src/**/*.py'
-      - 'tests/**/*.py'
-      - 'pyproject.toml'
 
-# Cancel in-progress runs for same PR/branch
+# Cancel in-progress runs for the same branch
 concurrency:
-  group: mutation-${{ github.event.pull_request.number || github.ref }}
+  group: mutation-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   mutation:
     name: Mutation Testing
-    # Skip on forks (no PR comment permissions)
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     uses: ByronWilliamsCPA/.github/.github/workflows/python-mutation.yml@1b2d33c47cc11a96b9757b49f41873c54e75f57c # main
     with:
       python-version: '3.12'
@@ -47,6 +37,6 @@ jobs:
       test-directory: 'tests'
       mutation-threshold: ${{ github.event.inputs.mutation_threshold && fromJSON(github.event.inputs.mutation_threshold) || 80 }}
       fail-under-threshold: ${{ github.event_name != 'schedule' }}
-      post-pr-comment: true
+      post-pr-comment: false
       timeout-minutes: 60
       no-build: false
