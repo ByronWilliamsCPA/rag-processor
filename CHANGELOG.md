@@ -33,6 +33,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### CI/CD Improvements
 
+- **OpenAPI Schema Export** (`scripts/export_openapi.py`): offline schema
+  generation via `app.openapi()` without a live server; post-processes the
+  schema to add the Cloudflare Access JWT security scheme and per-operation
+  `security` blocks so generated clients reflect the authentication contract
+- **Postman Collection** (`docs/api/postman-collection.json`): API contract
+  tests covering health probes, user, ingest, and batch endpoints with
+  request/response assertions
+- **Newman CI Workflow** (`.github/workflows/postman-api-tests.yml`): runs
+  the Postman collection against a locally-spawned FastAPI instance with a
+  Redis service on every push and pull request to `main`
+
 - **Fuzzing Infrastructure**: Added ClusterFuzzLite integration with Atheris
   - `fuzz_file_classifier.py` - Tests PDF classification with malformed input
   - `fuzz_file_detector.py` - Tests MIME type detection
