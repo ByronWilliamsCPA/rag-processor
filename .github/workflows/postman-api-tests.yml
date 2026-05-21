@@ -89,7 +89,7 @@ jobs:
       - name: Start FastAPI app in background
         run: |
           mkdir -p "$RAG_PROCESSOR_UPLOAD_DIR" "$RAG_PROCESSOR_RESULT_DIR"
-          nohup uv run uvicorn rag_processor.main:app \
+          nohup .venv/bin/uvicorn rag_processor.main:app \
             --host "$APP_HOST" \
             --port "$APP_PORT" \
             > app.log 2>&1 &
@@ -123,9 +123,15 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: newman-results
-          path: |
-            newman-results.xml
-            app.log
+          path: newman-results.xml
+          if-no-files-found: warn
+
+      - name: Upload app log on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: app-log
+          path: app.log
           if-no-files-found: warn
 
       - name: Stop FastAPI app
