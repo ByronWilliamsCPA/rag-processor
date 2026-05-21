@@ -95,9 +95,6 @@ async def close_redis() -> None:
     the next call to `get_redis()` will create a fresh pool. Safe to
     call when no pool has been initialized. Intended for invocation
     from an application shutdown handler.
-
-    Returns:
-        None.
     """
     global _redis_pool
 
