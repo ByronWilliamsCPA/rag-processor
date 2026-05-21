@@ -21,3 +21,21 @@
 # Review Date: 2025-12-16
 # Documented: docs/ci-workflow-issues-handoff.md (Issue 6)
 GHSA-f83h-ghpp-7wcc
+
+# ncurses Buffer Overflow (CVE-2025-69720)
+# ----------------------------------------------------------
+# Status: No upstream fix available in Debian 13 (trixie) as of 2026-05-21
+# Severity: HIGH - Buffer overflow in ncurses terminal handling
+# Packages: libncursesw6, libncurses6, ncurses-base, ncurses-bin
+#
+# Risk Assessment:
+# - ncurses is a required transitive dependency of the Python 3.12 runtime
+#   (used by readline); it cannot be removed from python:3.12-slim
+# - The vulnerable code path requires interaction with a crafted terminal
+#   sequence; this container runs a headless FastAPI server with no TTY
+# - No external input reaches the ncurses terminal-handling code paths
+# - Attack surface is effectively zero in a server/container context
+#
+# Decision: Accept risk; revisit when Debian 13 releases a patch
+# Review Date: 2026-05-21
+CVE-2025-69720
