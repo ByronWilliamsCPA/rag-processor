@@ -293,3 +293,9 @@ tmp_cleanup/.tmp-*
 .qlty/out
 .qlty/plugin_cachedir
 .qlty/results
+
+# SonarLint IDE cache
+.sonarlint/
+
+# Git worktrees (branch checkouts used locally)
+.worktrees/
