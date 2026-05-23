@@ -37,8 +37,7 @@ permissions:
   contents: write
   issues: write
   pull-requests: write
-  id-token: write
-  attestations: write
+  # id-token and attestations: re-enable when publish-to-pypi is set to true
 
 # Uses org-level reusable workflow
 jobs:
@@ -51,7 +50,7 @@ jobs:
       source-directory: 'src'
       semantic-release: true
       force-release: "${{ github.event.inputs.force_release || '' }}"
-      publish-to-pypi: true
+      publish-to-pypi: false  # re-enable when PyPI project is registered
       pypi-package-name: 'rag-processor'
       run-tests: true
       no-build: false
