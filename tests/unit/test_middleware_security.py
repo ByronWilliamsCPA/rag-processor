@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import time
 from unittest.mock import MagicMock
 
@@ -338,8 +339,14 @@ class TestSecurityConfig:
 
     def test_frozen(self) -> None:
         config = SecurityConfig()
-        with pytest.raises((AttributeError, TypeError)):
+        with pytest.raises(dataclasses.FrozenInstanceError, match="cannot assign"):
             config.rate_limit_rpm = 999  # type: ignore[misc]
+
+    def test_frozen_raises_on_bool_mutation(self) -> None:
+        config = SecurityConfig()
+        with pytest.raises(dataclasses.FrozenInstanceError, match="cannot assign"):
+            config.enable_rate_limiting = False  # type: ignore[misc]
+
 
 
 # ---------------------------------------------------------------------------
