@@ -37,7 +37,8 @@ permissions:
   contents: write
   issues: write
   pull-requests: write
-  # id-token and attestations: re-enable when publish-to-pypi is set to true
+  id-token: write      # required by the reusable's release job for artifact attestation
+  attestations: write  # required by the reusable's release job for artifact attestation
 
 # Uses org-level reusable workflow
 jobs:
