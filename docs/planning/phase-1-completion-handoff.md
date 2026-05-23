@@ -155,7 +155,7 @@ After this change, `npx vitest run` without a path argument will collect only
 in CI. The `e2e/auth.spec.ts` tests exist locally but are not wired into any
 GitHub Actions workflow.
 
-**Playwright config**: `playwright.config.ts` at the repo root defines the
+**Playwright config**: `frontend/playwright.config.ts` defines the
 test directory as `e2e/` and a webServer pointing to
 `http://localhost:3000`. The server must be running before Playwright connects.
 

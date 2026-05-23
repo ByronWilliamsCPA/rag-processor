@@ -15,7 +15,7 @@ tags:
 
 **Goal:** Close the three remaining Phase 1 gaps (Vitest/e2e conflict, Playwright missing from CI, three modules below 80% coverage) so every acceptance criterion passes in a single CI run on `main`.
 
-**Architecture:** All changes are test-infrastructure only — no application logic touches. The plan follows the Order of Operations from the handoff doc: config fix first, then the two independent test additions (Tasks 2-4 can run in parallel), then CI wiring, then the minor skipped-test documentation.
+**Architecture:** All changes are test-infrastructure only; no application logic touches. The plan follows the Order of Operations from the handoff doc: config fix first, then the two independent test additions (Tasks 2-4 can run in parallel), then CI wiring, then the minor skipped-test documentation.
 
 **Tech Stack:** pytest + fakeredis (backend), Vitest 2.x + Playwright 1.49 (frontend), GitHub Actions reusable workflows.
 
@@ -27,12 +27,12 @@ tags:
 
 | Task | File | Action |
 |------|------|--------|
-| 1 | `frontend/vitest.config.ts` | Modify — add `include` + `e2e/` coverage exclusion |
+| 1 | `frontend/vitest.config.ts` | Modify: add `include` + `e2e/` coverage exclusion |
 | 2 | `tests/unit/test_time_utils.py` | Create |
 | 3 | `tests/unit/test_middleware_security.py` | Create |
 | 4 | `tests/unit/test_auth_cloudflare.py` | Create |
-| 5 | `.github/workflows/ci.yml` | Modify — add `playwright-e2e` job |
-| 6 | `tests/unit/test_websocket_router.py` | Modify — document the skip |
+| 5 | `.github/workflows/ci.yml` | Modify: add `playwright-e2e` job |
+| 6 | `tests/unit/test_websocket_router.py` | Modify: document the skip |
 
 ---
 
@@ -66,7 +66,7 @@ This is a one-edit fix. Vitest has no `include` pattern so it collects every `*.
 
 - [ ] **Step 1: Read the current config**
 
-Read `frontend/vitest.config.ts` to confirm the current state — it has no `include` key and the `coverage.exclude` list does not contain `e2e/`.
+Read `frontend/vitest.config.ts` to confirm the current state; it has no `include` key and the `coverage.exclude` list does not contain `e2e/`.
 
 - [ ] **Step 2: Apply the fix**
 
@@ -558,7 +558,7 @@ class TestAddSecurityMiddleware:
 uv run pytest tests/unit/test_middleware_security.py -v
 ```
 
-Expected: all tests pass. If any fail, read the failure carefully — it likely means the middleware returns a different header name or structure than expected. Adjust the assertion to match the actual header value from the source code, do not change the source.
+Expected: all tests pass. If any fail, read the failure carefully; it likely means the middleware returns a different header name or structure than expected. Adjust the assertion to match the actual header value from the source code, do not change the source.
 
 - [ ] **Step 3: Check per-module coverage**
 
@@ -599,7 +599,7 @@ The existing `test_auth_middleware.py` tests the middleware via HTTP round-trips
 Create `tests/unit/test_auth_cloudflare.py`:
 
 ```python
-"""Tests for auth/cloudflare.py — covering the paths missed by test_auth_middleware.py.
+"""Tests for auth/cloudflare.py: covering the paths missed by test_auth_middleware.py.
 
 Targeted coverage:
   - _JWKSCache (is_valid, update, clear)
@@ -740,7 +740,7 @@ class TestClearJwksCache:
 
 
 # ---------------------------------------------------------------------------
-# verify_cloudflare_token — standalone function (lines 285-344)
+# verify_cloudflare_token: standalone function (lines 285-344)
 # ---------------------------------------------------------------------------
 
 
@@ -831,7 +831,7 @@ If you see `No module named pytest_asyncio`, run:
 uv add --dev pytest-asyncio
 ```
 
-Then check `pyproject.toml` for `asyncio_mode = "auto"` under `[tool.pytest.ini_options]` — if it's missing, add it:
+Then check `pyproject.toml` for `asyncio_mode = "auto"` under `[tool.pytest.ini_options]`; if it's missing, add it:
 
 ```toml
 [tool.pytest.ini_options]
@@ -890,7 +890,7 @@ Read `.github/workflows/ci.yml` to confirm the final job is `ci-gate` with `need
 
 The new job must:
 1. Be listed in `ci-gate`'s `needs:` array alongside `ci`
-2. Install pnpm (required by playwright.config.ts `webServer` command)
+2. Install Node dependencies (`npm ci`)
 3. Install Playwright browsers with system deps
 4. Run `npx playwright test` with Cloudflare bypass env var
 5. Upload the HTML report as an artifact
@@ -1117,9 +1117,9 @@ gh pr create \
 
 ## Changes
 - fix(frontend): exclude e2e/ from Vitest collection
-- test: new test_time_utils.py — 0% to 100%
-- test: new test_middleware_security.py — 36% to >=80%
-- test: new test_auth_cloudflare.py — 60% to >=80%
+- test: new test_time_utils.py: 0% to 100%
+- test: new test_middleware_security.py: 36% to >=80%
+- test: new test_auth_cloudflare.py: 60% to >=80%
 - ci: add playwright-e2e job to ci.yml + update ci-gate needs
 - test: document skipped websocket test with issue reference
 
