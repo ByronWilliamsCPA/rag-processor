@@ -851,6 +851,7 @@ class TestQueueClientExtended:
             )
             assert job is not None
         except Exception:
+            # fakeredis may not support all RQ priority queue operations
             pass
 
     def test_clear_all_queues(self) -> None:

@@ -53,6 +53,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed SBOM permission requirements for artifact metadata
   - Fixed Security Analysis permissions for CodeQL
 
+#### Phase 1: Test Coverage and CI Completeness
+
+- **Playwright E2E CI job**: Added `playwright-e2e` job to `.github/workflows/ci.yml`
+  - Runs `frontend/e2e/auth.spec.ts` authentication flow tests on every PR and push to `main`
+  - Uploads Playwright HTML report as a CI artifact (7-day retention)
+  - `ci-gate` now requires both `ci` and `playwright-e2e` to pass before merge
+- **Unit test coverage**: Three new unit test modules to close Phase 1 coverage gaps
+  - `tests/unit/test_time_utils.py`: full coverage for `rag_processor.utils.time_utils`
+  - `tests/unit/test_middleware_security.py`: security headers, rate limiting, SSRF prevention
+  - `tests/unit/test_auth_cloudflare.py`: Cloudflare JWT verification and JWKS cache behavior
+- **Vitest/Playwright conflict resolved**: `frontend/vitest.config.ts` now has an explicit
+  `include` pattern restricting Vitest to `src/` so it no longer collects Playwright E2E specs
+
 ### Changed
 
 - Updated `.env.example` with Redis, Cloudflare, and pipeline configuration
