@@ -23,6 +23,13 @@ test.describe('Authentication Flow', () => {
   test('should show user email when authenticated (bypass mode)', async ({
     page,
   }) => {
+    await page.route('**/api/v1/user/me', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ email: 'dev@localhost', user_id: 'dev-bypass' }),
+      })
+    );
     await page.goto('/');
 
     // Wait for auth to complete
