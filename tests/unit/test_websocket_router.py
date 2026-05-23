@@ -388,11 +388,8 @@ class TestWebSocketEndpoint:
         mock_cm.connect.assert_not_called()
 
     @pytest.mark.skip(
-        reason=(
-            "Module-level Redis import happens before patches can be applied. "
-            "Fix requires importlib.reload(rag_processor.websocket.router) after "
-            "patching redis.Redis, or refactoring the module to defer the import."
-        )
+        reason="Module-level Redis import fires before fakeredis patches; "
+        "tracked in https://github.com/ByronWilliamsCPA/rag-processor/issues/44"
     )
     @pytest.mark.asyncio
     async def test_websocket_accepts_valid_connection(
