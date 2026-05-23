@@ -11,30 +11,15 @@ from fastapi.testclient import TestClient
 
 from rag_processor.middleware.security import (
     RateLimitMiddleware,
-    SSRFPreventionMiddleware,
     SecurityConfig,
     SecurityHeadersMiddleware,
+    SSRFPreventionMiddleware,
     add_security_middleware,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-
-def _make_app_with(*middleware_classes, **kwargs) -> FastAPI:
-    """Build a minimal FastAPI app with the given middleware."""
-    app = FastAPI()
-
-    @app.get("/test")
-    async def test_endpoint():
-        return {"ok": True}
-
-    for cls in reversed(middleware_classes):
-        app.add_middleware(cls, **kwargs)
-
-    return app
 
 
 def _bare_app() -> FastAPI:
@@ -100,12 +85,21 @@ class TestSecurityHeadersMiddleware:
         assert "max-age=31536000" in response.headers["strict-transport-security"]
 
     def test_server_header_removed(self) -> None:
-        """Server header should not leak server identity."""
+        """Server header is stripped even when a downstream component sets it."""
+        from starlette.middleware.base import BaseHTTPMiddleware
+
+        class _InjectServerHeader(BaseHTTPMiddleware):
+            async def dispatch(self, request, call_next):
+                response = await call_next(request)
+                response.headers["Server"] = "uvicorn/0.0.0"
+                return response
+
         app = _bare_app()
-        app.add_middleware(SecurityHeadersMiddleware)
+        # add_middleware uses insert(0); last added = outermost = sees response last
+        app.add_middleware(_InjectServerHeader)       # inner: injects Server first
+        app.add_middleware(SecurityHeadersMiddleware)  # outer: strips Server last
         client = TestClient(app)
         response = client.get("/test")
-        # After middleware runs, "Server" must not be present
         assert "server" not in response.headers
 
 
@@ -252,7 +246,9 @@ class TestSSRFPreventionMiddleware:
     def test_has_blocked_scheme_gopher(self, mw: SSRFPreventionMiddleware) -> None:
         assert mw._has_blocked_scheme("gopher://example.com") is True
 
-    def test_has_blocked_scheme_https_allowed(self, mw: SSRFPreventionMiddleware) -> None:
+    def test_has_blocked_scheme_https_allowed(
+        self, mw: SSRFPreventionMiddleware
+    ) -> None:
         assert mw._has_blocked_scheme("https://example.com") is False
 
     # _is_blocked_host
@@ -393,7 +389,9 @@ class TestAddSecurityMiddleware:
 
     def test_with_ssrf_prevention_disabled(self) -> None:
         app = _bare_app()
-        config = SecurityConfig(enable_ssrf_prevention=False, enable_rate_limiting=False)
+        config = SecurityConfig(
+            enable_ssrf_prevention=False, enable_rate_limiting=False
+        )
         add_security_middleware(app, config)
         client = TestClient(app)
         response = client.get("/test?url=http://localhost/internal")
