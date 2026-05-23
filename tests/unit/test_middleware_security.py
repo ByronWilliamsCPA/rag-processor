@@ -334,7 +334,7 @@ class TestSecurityConfig:
         )
         assert config.enable_https_redirect is True
         assert config.rate_limit_rpm == 120
-        assert "https://example.com" in config.allowed_origins
+        assert config.allowed_origins == ["https://example.com"]
 
     def test_frozen(self) -> None:
         config = SecurityConfig()
