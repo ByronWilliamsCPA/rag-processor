@@ -191,6 +191,7 @@ exclude = [
     ".mypy_cache",
     ".ruff_cache",
     ".venv",
+    ".worktrees",
     "__pycache__",
     "dist",
     "build",
@@ -499,6 +500,7 @@ exclude = [
     "**/__pycache__",
     "**/node_modules",
     ".venv",
+    ".worktrees",
     "build",
     "dist",
 ]
@@ -850,4 +852,9 @@ ignore-vuln = [
     # CVE-2025-45768 concerns symmetric-key length chosen by the calling app
     # and is disputed by the supplier. No upstream fix.
     "PYSEC-2025-183",    # pyjwt - disputed weak-encryption finding; N/A for RS256
+    # Starlette 0.50.0 fix requires upgrade to 1.0.1 (major version bump).
+    # FastAPI 0.123.9 does not yet pin a starlette >= 1.0.1 requirement; upgrading
+    # starlette independently risks silent incompatibility. Reassess when FastAPI
+    # releases a version that explicitly supports starlette >= 1.0.1.
+    "PYSEC-2026-161",    # starlette 0.50.0 - fix requires 1.0.1; blocked on FastAPI compat
 ]

@@ -210,6 +210,44 @@ controlled paths into `filestring()`, which does not occur here.
 
 ---
 
+### PYSEC-2026-161
+
+| Field | Value |
+| --- | --- |
+| **Advisory ID** | PYSEC-2026-161 |
+| **Package** | `starlette` 0.50.0 |
+| **Affected versions** | < 1.0.1 |
+| **Severity** | Medium |
+| **First documented** | 2026-05-23 |
+| **Reassess by** | 2026-07-22 |
+| **Status** | Fix available (1.0.1) but blocked on FastAPI compatibility |
+
+**Vulnerability summary**: The OSV advisory PYSEC-2026-161 affects starlette
+versions below 1.0.1. The upstream fix landed in starlette 1.0.1. This project
+runs starlette 0.50.0, which is flagged as vulnerable.
+
+**Why it cannot be fixed**: Upgrading starlette from 0.50.0 to 1.0.1 is a
+major-version bump. FastAPI (0.123.9) has tight internal coupling to starlette
+(routing, middleware, request/response classes). The current FastAPI release
+does not declare a starlette >= 1.0.1 requirement; upgrading starlette
+independently risks silent runtime incompatibility in routing or middleware.
+We must wait until FastAPI publishes a version that explicitly supports
+starlette >= 1.0.1, then upgrade both packages together.
+
+**Exposure assessment**: Risk is scoped to whatever attack surface PYSEC-2026-161
+describes; full details available at [osv.dev/vulnerability/PYSEC-2026-161](https://osv.dev/vulnerability/PYSEC-2026-161).
+No application-level mitigations are available until the FastAPI-compatible
+starlette upgrade path exists.
+
+**Reassessment checklist**:
+
+- [ ] Check whether FastAPI has released a version that requires starlette >= 1.0.1
+- [ ] If yes, upgrade both `fastapi` and `starlette` together and run the full test suite
+- [ ] Re-run `uv run pip-audit` to confirm the advisory clears after upgrade
+- [ ] Update or remove this entry and the `pyproject.toml` ignore entry accordingly
+
+---
+
 ## Resolved Entries
 
 | Advisory ID | Package | Fixed in | Resolution date |
