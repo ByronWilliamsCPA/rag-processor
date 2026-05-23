@@ -348,7 +348,6 @@ class TestSecurityConfig:
             config.enable_rate_limiting = False  # type: ignore[misc]
 
 
-
 # ---------------------------------------------------------------------------
 # add_security_middleware
 # ---------------------------------------------------------------------------
