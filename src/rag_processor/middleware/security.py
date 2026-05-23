@@ -437,6 +437,7 @@ class SSRFPreventionMiddleware(BaseHTTPMiddleware):
                 ip = ipaddress.ip_address(ip_int)
                 return self._is_private_ip(str(ip))
         except (ValueError, OverflowError):
+            # host is not a decimal integer IP literal; fall through to return False
             pass
 
         return False

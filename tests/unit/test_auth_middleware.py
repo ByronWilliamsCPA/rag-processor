@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import time
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 from unittest.mock import patch
