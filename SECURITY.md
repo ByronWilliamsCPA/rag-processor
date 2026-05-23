@@ -18,7 +18,7 @@ Report vulnerabilities by emailing **byron@williamscpa.dev** with:
 - Any suggested mitigation
 
 You will receive a response within 72 hours. If the vulnerability is
-confirmed, a fix will be prioritised and you will be credited in the
+confirmed, a fix will be prioritized and you will be credited in the
 release notes unless you prefer otherwise.
 
 ## Security Scanning

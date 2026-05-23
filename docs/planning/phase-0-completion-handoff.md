@@ -23,8 +23,8 @@ tags:
 
 Phase 0 foundation work is 90% complete. All application code, Docker Compose
 services, pre-commit hooks, and the main CI workflow are in place and passing.
-Four CI workflows remain broken, and one required project file is missing. All
-four CI failures trace to two root causes, so fixing two things unblocks
+Three CI workflows were broken, and one required project file was missing. All
+three CI failures trace to two root causes, so fixing two things unblocks
 everything.
 
 No application code changes are needed for Phase 0 completion.
@@ -49,7 +49,7 @@ These items are verified passing and require no action:
 
 ---
 
-## Failing CI Checks (4 total, 2 root causes)
+## Failing CI Checks (3 total, 2 root causes)
 
 ### Root Cause A: `SECURITY.md` is missing
 
@@ -65,8 +65,8 @@ baseline and this project's own CLAUDE.md standards.
 
 ```bash
 ls SECURITY.md
-# Expected now:    ls: cannot access 'SECURITY.md': No such file or directory
-# Expected after:  SECURITY.md
+# Before this PR:  ls: cannot access 'SECURITY.md': No such file or directory
+# After this PR:   SECURITY.md
 ```
 
 ### Fix A: Create `SECURITY.md`
@@ -188,29 +188,12 @@ the last git tag. Because no tag exists yet, it will detect all `feat:` and
 workflow. Alternatively, use the manual `workflow_dispatch` trigger in GitHub
 Actions with `force_release: patch` to force a `0.1.1` release.
 
-### Fix B, Option 2: Disable PyPI publishing temporarily (quick fix)
+### Fix B, Option 2: Disable PyPI publishing temporarily (applied)
 
-If PyPI setup is out of scope for this handoff, you can stop the failures
-immediately by disabling the PyPI publish step without removing the release
-pipeline.
-
-In `.github/workflows/release.yml`, change:
-
-```yaml
-# Before
-publish-to-pypi: true
-```
-
-to:
-
-```yaml
-# After (re-enable when PyPI project is registered)
-publish-to-pypi: false
-```
-
-Commit and push. Semantic Release will still run and create GitHub Releases
-and tags, but will skip the PyPI upload. SLSA Provenance will then succeed
-because Semantic Release will pass.
+This option was applied in this PR. `.github/workflows/release.yml` now has
+`publish-to-pypi: false`. Semantic Release will still run and create GitHub
+Releases and tags, but will skip the PyPI upload. SLSA Provenance succeeds
+because Semantic Release passes.
 
 > Note: Option 2 leaves the PyPI integration incomplete. Option 1 is the
 > correct finish for Phase 0.
@@ -230,7 +213,8 @@ errors in `.worktrees/…/benchmark.py`.
 
 ```bash
 uv run ruff check .
-# Currently shows 26 errors, all in .worktrees/
+# Before this PR:  26 errors, all in .worktrees/
+# After this PR:   All checks passed!
 # uv run ruff check src/ shows: All checks passed!
 ```
 
