@@ -230,7 +230,7 @@ module on security-critical paths.
 
 ### 3a: `middleware/security.py` (36%)
 
-**File**: [src/rag_processor/middleware/security.py](../../src/rag_processor/middleware/security.py)
+**File**: `src/rag_processor/middleware/security.py`
 
 The uncovered lines (85, 110, 151-157, 170-197, 215-263, 322-330, 342-356,
 368-374, 386-392, 403-404, 415-418, 431-442, 453-460, 477-479, 533, 537, 541,
@@ -271,7 +271,7 @@ def test_security_header_setters(method, value):
 
 ### 3b: `auth/cloudflare.py` (60%)
 
-**File**: [src/rag_processor/auth/cloudflare.py](../../src/rag_processor/auth/cloudflare.py)
+**File**: `src/rag_processor/auth/cloudflare.py`
 
 The uncovered lines (55, 63-64, 145-147, 204-205, 229-244, 258-260, 301-341)
 are primarily:
@@ -310,7 +310,7 @@ def test_jwks_key_parsing():
 
 ### 3c: `utils/time_utils.py` (0%)
 
-**File**: [src/rag_processor/utils/time_utils.py](../../src/rag_processor/utils/time_utils.py)
+**File**: `src/rag_processor/utils/time_utils.py`
 
 This file was added to provide Python 3.10 compatible UTC helpers
 (`UTC`, `utc_now()`, `from_timestamp()`, `parse_iso_datetime()`). It has
@@ -364,7 +364,7 @@ def test_parse_iso_datetime_invalid_raises():
 
 ## Minor Issue: One Skipped Test
 
-**File**: [tests/unit/test_websocket_router.py](../../tests/unit/test_websocket_router.py), line 390
+**File**: `tests/unit/test_websocket_router.py`, line 390
 
 ```text
 SKIPPED [1]: Module-level Redis import happens before patches can be applied
