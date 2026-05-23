@@ -583,6 +583,7 @@ markers = [
     "py311plus: marks tests requiring Python 3.11+",
     "py313plus: marks tests requiring Python 3.13+ (PEP 594 removals)",
     "py314plus: marks tests requiring Python 3.14+ (free-threaded, PEP 649)",
+    "anyio: marks async tests to run with anyio backend",
 ]
 
 # Coverage Configuration

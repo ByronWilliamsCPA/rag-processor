@@ -16,13 +16,13 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 from rag_processor.auth.cloudflare import (
-    _JWKSCache,
     _jwks_cache,
+    _JWKSCache,
     clear_jwks_cache,
     verify_cloudflare_token,
 )
 
-UTC = timezone.utc  # noqa: UP017
+UTC = timezone.utc  # noqa: UP017  # Python 3.10 compat: datetime.UTC added in 3.11
 
 TEST_TEAM_DOMAIN = "test-team.cloudflareaccess.com"
 TEST_AUDIENCE = "test-audience-tag"
@@ -132,8 +132,6 @@ class TestJWKSCache:
         cache = _JWKSCache()
         cache.update({"keys": []})
         old_ts = cache.timestamp
-        # Ensure time advances enough
-        time.sleep(0.01)
         cache.update({"keys": [PUBLIC_JWK]})
         assert cache.timestamp >= old_ts
 
@@ -201,14 +199,18 @@ class TestVerifyCloudflareToken:
         token = _make_token()
         mock_response = MagicMock()
         mock_response.json.return_value = {"keys": [PUBLIC_JWK]}
-        mock_response.raise_for_status = MagicMock()
+        mock_response.raise_for_status = (
+            MagicMock()
+        )  # sync: httpx.Response.raise_for_status is not async
 
         mock_client = AsyncMock()
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("rag_processor.auth.cloudflare.httpx.AsyncClient", return_value=mock_client):
+        with patch(
+            "rag_processor.auth.cloudflare.httpx.AsyncClient", return_value=mock_client
+        ):
             result = await verify_cloudflare_token(token)
 
         assert result["email"] == "cf@example.com"

@@ -6,12 +6,17 @@ from datetime import datetime, timezone
 
 import pytest
 
-from rag_processor.utils.time_utils import UTC, from_timestamp, parse_iso_datetime, utc_now
+from rag_processor.utils.time_utils import (
+    UTC,
+    from_timestamp,
+    parse_iso_datetime,
+    utc_now,
+)
 
 
 class TestUTCConstant:
     def test_utc_is_timezone_utc(self) -> None:
-        assert UTC is timezone.utc
+        assert UTC is timezone.utc  # noqa: UP017  # Python 3.10 compat: datetime.UTC added in 3.11
 
 
 class TestUtcNow:
@@ -80,7 +85,7 @@ class TestParseIsoDatetime:
         assert with_z == with_offset
 
     def test_invalid_string_raises(self) -> None:
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=r"Invalid isoformat"):
             parse_iso_datetime("not-a-datetime")
 
     def test_timezone_aware(self) -> None:
