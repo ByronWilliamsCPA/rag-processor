@@ -46,6 +46,8 @@ jobs:
   playwright-e2e:
     name: Playwright E2E Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: frontend
