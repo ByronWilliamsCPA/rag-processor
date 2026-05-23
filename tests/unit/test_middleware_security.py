@@ -96,7 +96,7 @@ class TestSecurityHeadersMiddleware:
 
         app = _bare_app()
         # add_middleware uses insert(0); last added = outermost = sees response last
-        app.add_middleware(_InjectServerHeader)       # inner: injects Server first
+        app.add_middleware(_InjectServerHeader)  # inner: injects Server first
         app.add_middleware(SecurityHeadersMiddleware)  # outer: strips Server last
         client = TestClient(app)
         response = client.get("/test")
