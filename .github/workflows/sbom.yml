@@ -28,10 +28,9 @@ on:
     - cron: "0 8 * * 1"
   workflow_dispatch:
 
-# Note: The org workflow uses 'permissions: read-all' which requires non-standard
-# permissions (artifact-metadata, attestations, models) that cannot be explicitly
-# granted in YAML. Remove permissions block to use default GITHUB_TOKEN permissions.
-# TODO: Report to .github team - org workflow should use explicit permissions
+permissions:
+  contents: read
+  security-events: write  # required by reusable's scan-runtime job for SARIF upload
 
 env:
   INFISICAL_DOMAIN: https://infisical.williamshome.family
