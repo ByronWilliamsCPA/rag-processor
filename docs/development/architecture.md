@@ -13,7 +13,7 @@ This document describes the architecture and design decisions for RAG Processor.
 
 ## Project Structure
 
-```
+```text
 rag_processor/
 ├── src/
 │   └── rag_processor/

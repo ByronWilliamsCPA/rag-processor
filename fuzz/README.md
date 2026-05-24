@@ -179,5 +179,5 @@ pip install atheris
 If fuzzing discovers a security vulnerability:
 
 1. **DO NOT** commit crash samples to the repository
-2. Report to byron@williamscpa.dev
+2. Report to <byron@williamscpa.dev>
 3. See [Security Policy](https://github.com/ByronWilliamsCPA/.github/blob/main/SECURITY.md)

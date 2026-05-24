@@ -1,6 +1,7 @@
 # RAG Processor
 
 ## Quality & Security
+
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/ByronWilliamsCPA/rag_processor/badge)](https://securityscorecards.dev/viewer/?uri=github.com/ByronWilliamsCPA/rag_processor)
 [![codecov](https://codecov.io/gh/ByronWilliamsCPA/rag_processor/graph/badge.svg)](https://codecov.io/gh/ByronWilliamsCPA/rag_processor)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ByronWilliamsCPA_rag_processor&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ByronWilliamsCPA_rag_processor)
@@ -9,6 +10,7 @@
 [![REUSE Compliance](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/reuse.yml/badge.svg)](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/reuse.yml)
 
 ## CI/CD Status
+
 [![CI Pipeline](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/ci.yml?query=branch%3Amain)
 [![Security Analysis](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/security-analysis.yml/badge.svg?branch=main)](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/security-analysis.yml?query=branch%3Amain)
 [![Documentation](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/docs.yml/badge.svg?branch=main)](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/docs.yml?query=branch%3Amain)
@@ -38,6 +40,7 @@
 React-based frontend for RAG pipeline with FastAPI backend integration
 
 This project provides:
+
 - Core functionality for react-based frontend for rag pipeline with fastapi backend integration
 - Production-ready code with comprehensive testing
 - Well-documented API and architecture
@@ -129,9 +132,9 @@ docker-compose ps
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| Gateway (FastAPI) | http://localhost:8000 | API server with health endpoints |
-| Frontend (React) | http://localhost:3000 | React UI with hot reload |
-| API Docs | http://localhost:8000/docs | Swagger UI |
+| Gateway (FastAPI) | <http://localhost:8000> | API server with health endpoints |
+| Frontend (React) | <http://localhost:3000> | React UI with hot reload |
+| API Docs | <http://localhost:8000/docs> | Swagger UI |
 | PostgreSQL | localhost:5432 | Database |
 | Redis | localhost:6379 | Job queue and cache |
 
@@ -216,7 +219,7 @@ pnpm install
 pnpm run dev
 ```
 
-Frontend runs at http://localhost:3000 with hot reload.
+Frontend runs at <http://localhost:3000> with hot reload.
 
 ### Available Scripts
 
@@ -490,7 +493,8 @@ These rules catch bugs that standard linting misses and enforce production-quali
 This project includes standardized Claude Code configuration via git subtree:
 
 **Directory Structure**:
-```
+
+```text
 .claude/
 ├── claude.md          # Project-specific Claude guidelines
 └── standard/          # Standard Claude configuration (git subtree)
@@ -501,6 +505,7 @@ This project includes standardized Claude Code configuration via git subtree:
 ```
 
 **Updating Standards**:
+
 ```bash
 # Pull latest standards from upstream
 ./scripts/update-claude-standards.sh
@@ -511,6 +516,7 @@ git subtree pull --prefix .claude/standard \
 ```
 
 **What's Included**:
+
 - Universal development best practices
 - Response-Aware Development (RAD) system for assumption tagging
 - Agent assignment patterns and workflow
@@ -612,7 +618,7 @@ qlty check --plugin osv_scanner
 
 ## Project Structure
 
-```
+```text
 rag_processor/
 ├── src/rag_processor/     # Main package
 │   ├── __init__.py
@@ -682,7 +688,7 @@ uv run pytest --cov=rag_processor --cov-fail-under=80
 
 ### Reporting Security Issues
 
-Please report security vulnerabilities to byron@williamscpa.dev rather than using the public issue tracker.
+Please report security vulnerabilities to <byron@williamscpa.dev> rather than using the public issue tracker.
 
 See the [ByronWilliamsCPA Security Policy](https://github.com/ByronWilliamsCPA/.github/blob/main/SECURITY.md) for complete disclosure policy and response timelines.
 
@@ -812,7 +818,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 - **Issues**: [GitHub Issues](https://github.com/ByronWilliamsCPA/rag-processor/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/ByronWilliamsCPA/rag-processor/discussions)
-- **Email**: byron@williamscpa.dev
+- **Email**: <byron@williamscpa.dev>
 
 ## Acknowledgments
 

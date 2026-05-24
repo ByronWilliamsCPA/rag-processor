@@ -73,7 +73,7 @@ uv run basedpyright src/
 
 ### 5. Generate Project Planning Documents
 
-Use Claude Code to generate comprehensive planning documents for your project:
+Use Claude Code to generate complete planning documents for your project:
 
 ```bash
 # Open Claude Code and describe your project, then run:
@@ -90,9 +90,9 @@ This template includes an integrated AI-assisted project planning workflow that 
 
 ### Overview
 
-The planning workflow generates 4 core documents, then synthesizes them into a comprehensive project plan:
+The planning workflow generates 4 core documents, then synthesizes them into a complete project plan:
 
-```
+```text
 Project Description
         │
         ▼
@@ -144,7 +144,7 @@ Technical constraints: must work offline, SQLite for storage.
 
 **Or provide a more detailed description:**
 
-```
+```text
 Generate planning documents for this project:
 
 I'm building a REST API for inventory management. Target users are
@@ -163,6 +163,7 @@ existing PostgreSQL database and support OAuth2 authentication.
 | Architecture Decision Records | `docs/planning/adr/adr-001-*.md` | Key technical decisions with rationale |
 
 **The project-planning skill will:**
+
 1. Analyze your project description
 2. Generate each document using templates
 3. Validate each document with AI consensus review
@@ -179,6 +180,7 @@ After the 4 documents are generated, synthesize them into an actionable plan:
 ```
 
 **The project-plan-synthesizer agent will:**
+
 1. Read and validate all 4 source documents
 2. Extract key information from each document
 3. Lookup best practices via Context7 for your tech stack
@@ -188,6 +190,7 @@ After the 4 documents are generated, synthesize them into an actionable plan:
 7. Create initial TodoWrite checklist for Phase 0
 
 **Output:** `docs/planning/PROJECT-PLAN.md` containing:
+
 - Git branch strategy for each phase
 - Consolidated risk register
 - Cross-referenced architecture decisions
@@ -229,6 +232,7 @@ cat docs/planning/PROJECT-PLAN.md
 ```
 
 **This will:**
+
 - Create the feature branch from main
 - Set up git worktree if parallel development is needed
 - Show semantic release impact for this branch type
@@ -255,21 +259,21 @@ When you complete a phase:
 
 **Load context for a task:**
 
-```
+```text
 Load context from project-vision.md sections 2-3 and adr/adr-001-*.md,
 then implement [feature] per tech-spec.md section [X].
 ```
 
 **Validate code against specs:**
 
-```
+```text
 Review this code against tech-spec.md section 6 (security).
 Flag any violations.
 ```
 
 **Check phase progress:**
 
-```
+```text
 Review PROJECT-PLAN.md Phase 1 deliverables and update status.
 ```
 
@@ -464,7 +468,7 @@ You can configure branch protection either via script (recommended) or manually 
 
 #### Option 1: Automated Setup (Recommended)
 
-Use the included script to configure comprehensive branch protection:
+Use the included script to configure full branch protection:
 
 ```bash
 # Set up branch protection with default settings
@@ -475,6 +479,7 @@ uv run python scripts/setup_github_protection.py --enforce-admins --require-code
 ```
 
 The script configures:
+
 - Required pull request reviews before merging
 - Required status checks to pass
 - Enforce rules for administrators
@@ -494,12 +499,14 @@ The script configures:
 ### Required Status Checks
 
 Add these as required checks:
+
 - `CI / Test` (from CI workflow)
 - `CI / Lint` (from CI workflow)
 - `codecov/patch`
 - `SonarCloud Code Analysis`
 
 ### Security Policy
+
 Your `SECURITY.md` file is already configured. Update these sections:
 
 1. **Supported Versions**: Update as you release new versions
@@ -527,13 +534,16 @@ reuse addheader --license MIT --copyright "Byron Williams" <file>
 1. **Update version** in `pyproject.toml`
 2. **Update CHANGELOG.md** with release notes
 3. **Create a tag**:
+
    ```bash
    git tag -a v1.0.0 -m "Release v1.0.0"
    git push origin v1.0.0
    ```
+
 4. **Create GitHub Release** from the tag
 
 ### Dependency Updates
+
 Renovate is configured to automatically create PRs for dependency updates. Review and merge these regularly.
 
 ### Code Quality Standards
@@ -547,7 +557,7 @@ This project enforces:
 
 ### Project Structure
 
-```
+```text
 rag_processor/
 ├── src/rag_processor/    # Main package
 │   ├── core/                               # Core functionality

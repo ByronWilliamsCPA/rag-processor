@@ -32,15 +32,18 @@ test_patterns = [
 ]
 
 # ============================================================================
+# Plugin Configuration
+# ============================================================================
+
+[plugins]
+enabled = ["ruff", "basedpyright", "bandit"]
+
+# ============================================================================
 # Python Linting and Formatting - Ruff
 # ============================================================================
 # Ruff is an extremely fast Python linter and code formatter written in Rust.
 # It replaces Flake8, Black, isort, pyupgrade, and more.
 # Configuration: pyproject.toml [tool.ruff] section
-#
-# Note: Qlty auto-detects Ruff from pyproject.toml.
-# To enable Ruff plugin:
-#   qlty plugins enable ruff
 #
 # Ruff configuration is in pyproject.toml [tool.ruff] section.
 # See: https://docs.qlty.sh/analysis/coverage-linters#ruff

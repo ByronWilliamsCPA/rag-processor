@@ -33,7 +33,7 @@ Recent research demonstrates that **traditional vector RAG achieves only 19% acc
 
 When documents are chunked for embedding:
 
-```
+```text
 Original Document                    After Chunking
 ─────────────────                    ──────────────
 Chapter 3: Financial Results         [Chunk 47]: "Revenue grew 15%..."
@@ -43,6 +43,7 @@ Chapter 3: Financial Results         [Chunk 47]: "Revenue grew 15%..."
 ```
 
 **Lost Information**:
+
 - "Revenue grew 15%" was in Chapter 3, Section 3.1
 - "North America: $2.1B" came from Table 3.2 on page 47
 - The table is related to the preceding paragraph
@@ -65,14 +66,16 @@ Source: [FinanceBench](https://arxiv.org/abs/2311.11944), [PageIndex](https://gi
 ### Architecture Change
 
 **Current Flow**:
-```
+
+```text
 Docling DOM → Normalized JSON → Chunk Stage → Embed Stage → Vector DB
                                     ↓
                               (structure lost)
 ```
 
 **Enhanced Flow**:
-```
+
+```text
 Docling DOM → Normalized JSON ────────────────→ Chunk Stage → Embed Stage
            ↘                                         ↓
              DocumentIndex.json ──────────────→ (tree node IDs preserved)
@@ -297,6 +300,7 @@ In addition to the existing normalized JSON output, generate a **`DocumentIndex.
 ## 4. Example Output
 
 ### Input Document
+
 A 150-page annual report with chapters, sections, and tables.
 
 ### Generated DocumentIndex.json
@@ -446,6 +450,7 @@ A 150-page annual report with chapters, sections, and tables.
 ### 5.1 Extracting Tree Structure from Docling DOM
 
 Docling already identifies:
+
 - **Section headers** (with hierarchy levels via font size/style)
 - **Reading order** (element sequence)
 - **Tables and figures** (with captions)
@@ -502,19 +507,23 @@ Map Docling's detected heading styles to tree levels:
 ### 5.3 Handling Edge Cases
 
 **Documents without clear headings**:
+
 - Use page-based segmentation as fallback
 - Each N pages becomes a node (configurable, default N=5)
 - Set `section_type: "unknown"`
 
 **Very flat documents** (no hierarchy):
+
 - Single root node containing entire document
 - Flag for downstream: `"hierarchy_confidence": "low"`
 
 **Multi-column layouts**:
+
 - Reading order from Docling determines section sequence
 - Columns don't create separate tree branches
 
 **Tables spanning multiple pages**:
+
 - Table belongs to the node where it starts
 - `contains_tables: true` propagates up to parent nodes
 
@@ -524,7 +533,7 @@ Map Docling's detected heading styles to tree levels:
 
 ### 6.1 Output File Naming
 
-```
+```text
 {document_id}/
 ├── normalized.json          # Existing Docling DOM output
 ├── document_index.json      # NEW: Hierarchical index
@@ -534,15 +543,18 @@ Map Docling's detected heading styles to tree levels:
 ### 6.2 Downstream Consumption
 
 **Chunk Stage** will:
+
 1. Read `document_index.json`
 2. For each chunk created, add `tree_node_id` field
 3. Preserve `start_page`/`end_page` from parent node
 
 **Embed Stage** will:
+
 1. Store `tree_node_id` in vector metadata
 2. Store `document_index.json` in document store (for reasoning retrieval)
 
 **Retrieval** will support:
+
 1. **Vector path**: Query → similar chunks → return with tree context
 2. **Tree path**: Query → LLM navigates tree → extract full sections
 
@@ -618,18 +630,21 @@ def validate_document_index(index: DocumentIndex, dom: DoclingDocument) -> list[
 ### 8.1 Processing Overhead
 
 Tree construction from existing Docling DOM should add minimal overhead:
+
 - **Target**: < 100ms per 100-page document
 - **Memory**: O(n) where n = number of sections (typically << number of pages)
 
 ### 8.2 Output Size
 
 `document_index.json` is typically 1-5% of `normalized.json` size:
+
 - 150-page document: ~10-50KB for index
 - Most space is in `docling_element_ids` arrays
 
 ### 8.3 Optional Summary Generation
 
 If RAPTOR-style summaries are enabled:
+
 - Adds LLM calls (1 per non-leaf node)
 - Consider async/batch processing
 - Make configurable: `generate_summaries: bool = False`
@@ -671,6 +686,7 @@ document_index:
 ## 10. Timeline and Dependencies
 
 ### Prerequisites
+
 - [ ] Docling DOM output includes element IDs (verify current implementation)
 - [ ] Heading level detection is reliable (may need tuning)
 - [ ] Page boundary information is accessible
@@ -678,16 +694,19 @@ document_index:
 ### Implementation Phases
 
 **Phase 1 (MVP)**: Basic tree + page boundaries
+
 - Tree from headings only
 - No summaries
 - Basic validation
 
 **Phase 2**: Enhanced detection
+
 - TOC detection and linking
 - Content type flags (tables, figures)
 - Improved heading detection
 
 **Phase 3**: RAPTOR integration
+
 - Optional summary generation
 - Configurable depth for summaries
 
@@ -710,14 +729,17 @@ document_index:
 ## 12. References
 
 ### Research
+
 - [FinanceBench Paper](https://arxiv.org/abs/2311.11944) - Benchmark showing 81% RAG failure rate
 - [PageIndex](https://github.com/VectifyAI/PageIndex) - 98.7% accuracy with tree-based retrieval
 - [RAPTOR](https://arxiv.org/abs/2401.18059) - Recursive abstractive processing
 
 ### Competitive Analysis
+
 - See: `tmp_cleanup/pageindex_competitive_landscape_2025.md`
 
 ### Internal Docs
+
 - Foundry Pipeline Architecture: `docs/architecture/diagrams/level-0/`
 - Docling Integration: (Unify team documentation)
 
