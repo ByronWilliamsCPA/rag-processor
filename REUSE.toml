@@ -122,12 +122,14 @@ path = [
     ".env.example",  # Environment example file
     ".infisical.json",  # Infisical secrets config
     ".markdownlint.json",  # Markdown linting config
+    ".markdownlintignore",  # Markdown lint ignore patterns
     ".mutmut_config",  # Mutation testing config
     ".prettierrc",  # Prettier formatting config
     ".shellcheckrc",  # ShellCheck config
     ".yamllint",  # YAML linting config
     ".hadolint.yaml",  # Hadolint Docker linting config
     ".trivyignore",  # Trivy vulnerability ignore list
+    ".secrets.baseline",  # detect-secrets baseline
     "Dockerfile",  # Main Dockerfile
     "uv.lock",  # UV dependency lockfile
 ]
