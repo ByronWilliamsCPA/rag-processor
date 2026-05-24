@@ -29,7 +29,7 @@ permissions:
 jobs:
   ci:
     name: CI Pipeline
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-ci.yml@6f71aecae2c91214ca0a0a2206a36cf912aa31ac # main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-ci.yml@961eb17d8e9b7fe0d8bfc5dbe9d23c824484fb11 # main
     with:
       python-version: '3.12'
       coverage-threshold: 80
@@ -53,7 +53,7 @@ jobs:
         working-directory: frontend
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5 # v2.19.3
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
         with:
           egress-policy: audit
       - name: Checkout
@@ -88,7 +88,7 @@ jobs:
     if: always()
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5 # v2.19.3
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
         with:
           egress-policy: audit
       - name: Check CI results
