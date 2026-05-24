@@ -68,6 +68,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Claude Code settings `$schema` URL** (`fix/claude-settings-schema-url`):
+  - Corrected `$schema` in `.claude/settings.json` from `claude-code-config.json`
+    (which returns HTTP 404 at schemastore.org) to the valid
+    `claude-code-settings.json`
+  - The wrong slug caused Claude Code's settings parser to silently reject the
+    file, disabling `permissions.allow` / `permissions.deny` enforcement
+- **REUSE compliance**: added `.markdownlintignore` and `.secrets.baseline` to
+  the CC0-1.0 annotation block in `REUSE.toml` so all 288 project files now
+  carry copyright/licensing metadata (was 286/288)
 - **Test infrastructure gaps** (`fix/phase-1-completion`):
   - Added `anyio[trio]` as an explicit dev dependency so `@pytest.mark.anyio`
     tests in `test_auth_cloudflare.py` are not silently skipped if the
