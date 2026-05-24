@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from datetime import datetime, timezone
 
 import pytest
@@ -32,6 +33,12 @@ class TestUtcNow:
         result = utc_now()
         assert result.tzinfo == UTC
 
+    def test_is_close_to_current_time(self) -> None:
+        before = time.time()
+        now = utc_now()
+        after = time.time()
+        assert before <= now.timestamp() <= after
+
 
 class TestFromTimestamp:
     def test_known_epoch_zero(self) -> None:
@@ -42,7 +49,6 @@ class TestFromTimestamp:
         assert result.tzinfo == UTC
 
     def test_known_timestamp(self) -> None:
-        # 2022-01-01 00:00:00 UTC
         result = from_timestamp(1640995200)
         assert result.year == 2022
         assert result.month == 1

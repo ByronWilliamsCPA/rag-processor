@@ -66,6 +66,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Vitest/Playwright conflict resolved**: `frontend/vitest.config.ts` now has an explicit
   `include` pattern restricting Vitest to `src/` so it no longer collects Playwright E2E specs
 
+### Fixed
+
+- **Test infrastructure gaps** (`fix/phase-1-completion`):
+  - Added `anyio[trio]` as an explicit dev dependency so `@pytest.mark.anyio`
+    tests in `test_auth_cloudflare.py` are not silently skipped if the
+    transitive dependency is dropped
+  - Narrowed `SecurityConfig.test_frozen` assertion from
+    `(AttributeError, TypeError)` to `dataclasses.FrozenInstanceError` for a
+    precise contract check; added `test_frozen_raises_on_bool_mutation` case
+  - Updated skipped WebSocket test reason to reference issue #44
+  - Applied `ruff format` to `test_middleware_security.py` (missed before commit)
+  - Resolved rebase conflicts with `main` across `test_time_utils.py`,
+    `test_middleware_security.py`, `test_auth_cloudflare.py`, and `ci.yml`
+
 ### Changed
 
 - Updated `.env.example` with Redis, Cloudflare, and pipeline configuration
