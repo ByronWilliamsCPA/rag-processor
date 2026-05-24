@@ -402,7 +402,6 @@ Your project includes several GitHub Actions workflows:
 | Publish to PyPI | `publish-pypi.yml` | Package publishing to PyPI |
 | Documentation | `docs.yml` | Build and deploy MkDocs |
 | REUSE Compliance | `reuse.yml` | License compliance checking |
-| ClusterFuzzLite | `cifuzzy.yml` | Continuous fuzzing |
 | SonarCloud | `sonarcloud.yml` | Code quality analysis |
 
 ### Required GitHub Secrets

@@ -400,8 +400,9 @@ async def ingest_health() -> dict[str, str]:
         # ASYNC240 ignored: this health-check endpoint is invoked infrequently
         # (by orchestrator probes); the synchronous Path operations are bounded
         # and acceptable. Migrate to anyio.Path if upload_dir.mkdir is moved
-        # into a hot async path.
-        upload_dir.mkdir(parents=True, exist_ok=True)  # noqa: ASYNC240
+        # into a hot async path. (ASYNC240 is a preview-only ruff rule; once
+        # enabled in [tool.ruff] preview mode, re-add the noqa suffix here.)
+        upload_dir.mkdir(parents=True, exist_ok=True)
         test_file = upload_dir / ".health_check"
         test_file.touch()
         test_file.unlink()

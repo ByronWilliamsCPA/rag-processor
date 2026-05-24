@@ -100,7 +100,9 @@ Automated fuzzing with [ClusterFuzzLite](https://google.github.io/clusterfuzzlit
 - Edge case detection
 - Security vulnerability identification
 
-**Workflow**: `.github/workflows/cifuzzy.yml`
+**Workflow**: not currently wired (the prior `cifuzzy.yml` was removed
+2026-05-24 because of an unrendered cookiecutter literal). Replacement workflow
+tracked in the project backlog. Run harnesses manually until then.
 **Fuzz Harnesses**: `fuzz/` directory
 
 **How to run locally**:

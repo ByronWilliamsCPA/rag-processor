@@ -9,7 +9,7 @@ authors = [
     {name = "Byron Williams", email = "byron@williamscpa.dev"}
 ]
 readme = "README.md"
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.11,<3.15"
 license = {text = "MIT"}
 keywords = []
 classifiers = [
@@ -322,6 +322,13 @@ known-first-party = ["rag_processor"]
 [tool.ruff.lint.per-file-ignores]
 # Module init files
 "__init__.py" = ["F401", "D104"]
+
+# Health-check endpoints: synchronous pathlib operations on infrequent probe
+# paths are bounded and intentional. ASYNC240 was promoted from preview to
+# stable between ruff 0.14 (project pinned) and 0.15 (pre-commit hook),
+# causing version-skew false positives. Comment block at the call site
+# documents the rationale and migration trigger.
+"src/rag_processor/api/ingest.py" = ["ASYNC240"]
 
 # Test files (relaxed rules for test code)
 "tests/**/*.py" = [

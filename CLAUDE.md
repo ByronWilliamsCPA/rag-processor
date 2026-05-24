@@ -839,17 +839,17 @@ See `.standards/README.md` for detailed merge instructions.
 
 ## Cross-References
 
-> Detailed Python linting and type-checking rules: see `~/.claude/.claude/rules/python.md`
+> Detailed Python linting and type-checking rules: see `~/.claude/rules/python.md`
 >
-> Detailed testing scope, coverage thresholds, and golden file rules: see `~/.claude/.claude/rules/testing.md`
+> Detailed testing scope, coverage thresholds, and golden file rules: see `~/.claude/rules/testing.md`
 >
-> Detailed writing style and AI pattern blacklist: see `~/.claude/.claude/rules/writing.md`
+> Detailed writing style and AI pattern blacklist: see `~/.claude/rules/writing.md`
 >
-> Detailed branch rules, worktree patterns, and naming conventions: see `~/.claude/.claude/rules/git-workflow.md`
+> Detailed branch rules, worktree patterns, and naming conventions: see `~/.claude/rules/git-workflow.md`
 >
-> Detailed pre-commit checklist and hook reference: see `~/.claude/.claude/rules/pre-commit.md`
+> Detailed pre-commit checklist and hook reference: see `~/.claude/rules/pre-commit.md`
 >
-> Detailed supervisor patterns and agent assignment: see `~/.claude/.claude/rules/supervisor.md`
+> Detailed supervisor patterns and agent assignment: see `~/.claude/rules/supervisor.md`
 
 ---
 

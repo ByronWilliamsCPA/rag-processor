@@ -76,12 +76,19 @@ uv run python fuzz/fuzz_file_detector.py -seed=12345
 
 ## CI/CD Integration
 
-Fuzzing runs automatically in CI via `.github/workflows/cifuzzy.yml`:
+> **Status (2026-05-24)**: The `.github/workflows/cifuzzy.yml` ClusterFuzzLite
+> workflow was removed because it contained an unrendered cookiecutter literal.
+> Fuzz harnesses in this directory are not currently executed by CI. Run them
+> manually before merge for security-sensitive changes.
 
-- **Triggers**: Every push to main/develop and on PRs
-- **Duration**: 600 seconds per fuzzer
-- **Sanitizer**: AddressSanitizer for memory safety
-- **Reporting**: SARIF format uploaded to GitHub Security tab
+```bash
+uv run python fuzz/fuzz_jwt_validation.py -runs=10000
+uv run python fuzz/fuzz_file_classifier.py -runs=10000
+uv run python fuzz/fuzz_file_detector.py -runs=10000
+```
+>
+A replacement workflow is tracked in the project backlog. Until then, the
+`atheris` dev dependency is retained for local execution.
 
 ## Writing New Fuzzers
 

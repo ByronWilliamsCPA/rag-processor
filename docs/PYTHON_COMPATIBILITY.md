@@ -10,22 +10,32 @@ tags:
   - requirements
 ---
 
-This project supports **Python 3.10, 3.11, 3.12, 3.13, and 3.14** with full testing across all versions.
+This project supports **Python 3.11, 3.12, 3.13, and 3.14** with full testing across the actively-supported versions.
+
+> **BREAKING (2026-05-24)**: Python 3.10 support was dropped because the codebase
+> now uses `StrEnum` (introduced in 3.11) in `src/rag_processor/models/` and
+> `websocket/events.py`. The `requires-python` floor in `pyproject.toml` was
+> raised to `>=3.11`. The "Python 3.10 Support (Backports Needed)" section
+> below is retained as historical reference for downstream forks that may want
+> to re-add 3.10 support.
 
 ## Version Support Matrix
 
 | Python Version | Support Status | Nox Testing | CI Testing | Notes |
 |----------------|----------------|-------------|------------|-------|
-| 3.10 | ✅ Supported | ✅ All versions | ✅ Full CI/CD | Minimum version, requires backports |
-| 3.11 | ✅ Supported | ✅ All versions | ✅ Full CI/CD | LTS version (EOL Oct 2027) |
+| 3.10 | ❌ Removed (2026-05-24) | n/a | n/a | Dropped: codebase uses `StrEnum` (3.11+) |
+| 3.11 | ✅ Supported (Minimum) | ✅ All versions | ✅ Full CI/CD | LTS version (EOL Oct 2027) |
 | 3.12 | ✅ Supported | ✅ All versions | ✅ Full CI/CD | Default/recommended version |
 | 3.13 | ✅ Supported | ✅ All versions | ✅ Full CI/CD | Latest stable, PEP 594 removals |
 | 3.14 | ✅ Supported | ✅ All versions | ✅ Full CI/CD | Latest (Oct 2025), free-threaded, JIT |
 | 3.15+ | ⚠️ Not tested | ❌ None | ❌ No CI/CD | May work but not guaranteed |
 
-## Python 3.10 Support (Backports Needed)
+## Python 3.10 Support (Historical / Backports Reference)
 
-Since Python 3.10 is the minimum version, some features from newer versions require backport packages:
+> Retained for forks that re-add 3.10 support. The current project no longer
+> needs these backports because the supported floor is 3.11.
+
+Since Python 3.10 was previously the minimum version, some features from newer versions required backport packages:
 
 ### Required Backports for 3.10
 

@@ -12,7 +12,7 @@
 ci:
   autoupdate_schedule: monthly
   autofix_prs: true
-  skip: [validate-front-matter, qlty-check, qlty-full, trufflehog, darglint, bandit, bandit-full]  # Skip local-only hooks
+  skip: [validate-front-matter, qlty-check, qlty-full, trufflehog, darglint, bandit, bandit-full, basedpyright, no-em-dash]  # Skip local-only hooks (basedpyright requires uv run; no-em-dash requires grep -P/PCRE)
 
 repos:
   # ============================================================================
@@ -75,7 +75,11 @@ repos:
         types: [python]
         pass_filenames: false
         args: [src/]
-        stages: [pre-commit]
+        # Pre-push tier: full-tree type check should not block every commit on
+        # latent debt in files outside the staged changeset. Matches the
+        # "pre-push = full quality checks" convention stated in this file's
+        # header comment. CI still runs basedpyright on every PR.
+        stages: [pre-push]
 
   # ============================================================================
   # Secret Detection - TruffleHog

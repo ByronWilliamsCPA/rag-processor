@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed (BREAKING)
+
+- **Python 3.10 support dropped** (2026-05-24): codebase now uses `StrEnum`
+  (introduced in Python 3.11) in `src/rag_processor/models/batch.py`,
+  `src/rag_processor/models/job.py`, and `src/rag_processor/websocket/events.py`.
+  `requires-python` in `pyproject.toml` raised from `>=3.10,<3.15` to
+  `>=3.11,<3.15`. CI Python Compatibility Matrix updated to test 3.11/3.12/3.13.
+  See `docs/PYTHON_COMPATIBILITY.md` for migration notes.
+
+### Fixed
+
+- **CI unblock (RUF100)**: removed `# noqa: ASYNC240` from
+  `src/rag_processor/api/ingest.py:404`; ASYNC240 is a preview-only ruff rule
+  and the noqa was flagged as unused. Inline comment retained as rationale for
+  future re-introduction once preview mode is enabled.
+- **CLAUDE.md cross-references**: corrected 6 broken paths from
+  `~/.claude/.claude/rules/` (typo) to `~/.claude/rules/`.
+
 ### Added
 
 #### Phase 0: Foundation Infrastructure
