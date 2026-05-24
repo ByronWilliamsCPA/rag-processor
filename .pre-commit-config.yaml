@@ -151,6 +151,18 @@ repos:
         stages: [pre-commit]
 
   # ============================================================================
+  # Renovate Config Validation
+  # ============================================================================
+  # Validates renovate.json against the self-hosted Renovate server version
+  # to prevent invalid configs (e.g. unsupported managers) from being committed.
+  - repo: https://github.com/renovatebot/pre-commit-hooks
+    rev: 2a27c9fda39c7c05bc7488a10920c7700979c263  # frozen: v43.150.0
+    hooks:
+      - id: renovate-config-validator
+        additional_dependencies: ["renovate@42.92.14"]
+        stages: [pre-commit]
+
+  # ============================================================================
   # Qlty Unified Quality Checks (Pre-Push)
   # ============================================================================
   # Moved to pre-push to avoid clogging PR reviews with issues
