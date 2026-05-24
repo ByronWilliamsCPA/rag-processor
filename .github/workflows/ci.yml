@@ -46,6 +46,7 @@ jobs:
   playwright-e2e:
     name: Playwright E2E Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     defaults:
@@ -55,7 +56,8 @@ jobs:
       - name: Harden runner
         uses: step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5 # v2.19.3
         with:
-          egress-policy: audit
+          # egress-policy: block -- enabled 2026-05-23 (compliance audit). If a CI run fails on a network call, switch this single occurrence back to audit and capture the missing endpoint in the issue tracker.
+          egress-policy: audit  # TODO: switch to block after 2026-06-30 (compliance audit deferral)
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Setup Node
@@ -84,13 +86,15 @@ jobs:
   ci-gate:
     name: CI Gate
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [ci, playwright-e2e]
     if: always()
     steps:
       - name: Harden runner
         uses: step-security/harden-runner@ab7a9404c0f3da075243ca237b5fac12c98deaa5 # v2.19.3
         with:
-          egress-policy: audit
+          # egress-policy: block -- enabled 2026-05-23 (compliance audit). If a CI run fails on a network call, switch this single occurrence back to audit and capture the missing endpoint in the issue tracker.
+          egress-policy: audit  # TODO: switch to block after 2026-06-30 (compliance audit deferral)
       - name: Check CI results
         env:
           CI_RESULT: ${{ needs.ci.result }}

@@ -70,7 +70,7 @@ This creates typed API functions in `src/client/`.
 
 ### Project Structure
 
-```
+```text
 frontend/
 ├── public/              # Static assets
 ├── src/

@@ -248,6 +248,36 @@ starlette upgrade path exists.
 
 ---
 
+## Secrets Inventory
+
+Repository secrets that are not dependency CVEs but represent configuration-gap risks
+are documented here per OSSF-012. Each entry must be reviewed quarterly to confirm the
+secret type, scope, and necessity remain appropriate.
+
+### DHI_PAT
+
+| Field | Value |
+| --- | --- |
+| **Secret name** | `DHI_PAT` |
+| **Purpose** | Docker Hub registry authentication for `container-security.yml` (Trivy pull) |
+| **Used in workflow** | `.github/workflows/container-security.yml` -- passed as `secrets.DHI_PAT` to `ByronWilliamsCPA/.github/.github/workflows/python-container-security.yml` |
+| **Type** | Docker Hub access token (verify: must NOT be a GitHub PAT; rotate if a broad-scope token was set) |
+| **Scope** | Read access to Docker Hub registry; should be scoped to `pull` only on the relevant image namespace |
+| **Created** | 2026-05-23 (first documented; actual creation date unknown -- verify in Docker Hub account security page) |
+| **Quarterly review** | 2026-08-23 |
+| **Status** | Pending verification -- confirm token type and scope before next release |
+
+**Action items:**
+
+- [ ] Log in to hub.docker.com, navigate to Account Settings > Security > Access Tokens,
+      confirm `DHI_PAT` is a Docker Hub access token (not a GitHub Personal Access Token)
+- [ ] Verify the token scope is `Read-only` or `Read, Write` (no Delete or Admin access needed)
+- [ ] If the current token is broad-scope or a legacy PAT, rotate it to a scoped Docker Hub
+      access token and update the secret in the repository settings
+- [ ] Re-document the rotation date in this entry after confirming
+
+---
+
 ## Resolved Entries
 
 | Advisory ID | Package | Fixed in | Resolution date |

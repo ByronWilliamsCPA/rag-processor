@@ -195,6 +195,9 @@ temp/
 *.swo
 *~
 
+# Compliance reports (generated artifacts, not source)
+docs/compliance-reports/
+
 # Local configuration
 local.ini
 local.conf

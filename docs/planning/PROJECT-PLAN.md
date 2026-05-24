@@ -18,7 +18,7 @@ source: "Synthesized from project-vision.md, tech-spec.md, roadmap.md, adr/adr-0
 
 ## Executive Summary
 
-RAG Processor WebUI is a React 18 + FastAPI microservices application that provides authenticated file ingestion for RAG (Retrieval-Augmented Generation) pipelines. The system eliminates operational friction by automatically routing uploaded files (PDFs, images, audio, Office documents) to appropriate preprocessing pipelines (OCR, transcription, document processing, fusion), monitoring job progress in real-time via WebSocket, and delivering processed outputs to configurable vector storage backends—reducing ingestion time from 5+ minutes to <30 seconds while improving routing accuracy from 80-85% to >95%.
+RAG Processor WebUI is a React 18 + FastAPI microservices application that provides authenticated file ingestion for RAG (Retrieval-Augmented Generation) pipelines. The system eliminates operational friction by automatically routing uploaded files (PDFs, images, audio, Office documents) to appropriate preprocessing pipelines (OCR, transcription, document processing, fusion), monitoring job progress in real-time via WebSocket, and delivering processed outputs to configurable vector storage backends, reducing ingestion time from 5+ minutes to <30 seconds while improving routing accuracy from 80-85% to >95%.
 
 **Target Users**: Data engineers and ML engineers building RAG applications who need to ingest diverse document types into vector databases.
 
@@ -99,7 +99,7 @@ EOF
 
 ## Phased Development
 
-> **Detailed Phase Plans**: Each phase has a comprehensive plan with 3-4 hour sprints, milestones, and validation checklists.
+> **Detailed Phase Plans**: Each phase has a full plan with 3-4 hour sprints, milestones, and validation checklists.
 
 ### Phase 0: Foundation (Week 1)
 

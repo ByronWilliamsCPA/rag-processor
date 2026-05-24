@@ -57,7 +57,7 @@ Analyze the current branch and prepare a PR description following the project te
 **Title**: `feat: add user authentication with OAuth2`
 
 **Description**:
-```
+```text
 ## Summary
 
 Add OAuth2 authentication flow supporting Google and GitHub providers.

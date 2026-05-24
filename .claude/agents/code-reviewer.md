@@ -60,6 +60,6 @@ Review code changes for quality, maintainability, and adherence to project stand
 
 ## Invocation
 
-```
+```text
 /review or via Task tool with subagent_type='code-reviewer'
 ```

@@ -397,7 +397,11 @@ async def ingest_health() -> dict[str, str]:
     upload_dir = Path(settings.upload_dir)
 
     try:
-        upload_dir.mkdir(parents=True, exist_ok=True)
+        # ASYNC240 ignored: this health-check endpoint is invoked infrequently
+        # (by orchestrator probes); the synchronous Path operations are bounded
+        # and acceptable. Migrate to anyio.Path if upload_dir.mkdir is moved
+        # into a hot async path.
+        upload_dir.mkdir(parents=True, exist_ok=True)  # noqa: ASYNC240
         test_file = upload_dir / ".health_check"
         test_file.touch()
         test_file.unlink()

@@ -1,0 +1,23 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 1%
+    patch:
+      default:
+        target: 80%
+        threshold: 1%
+
+flags:
+  unit:
+    paths:
+      - src/rag_processor/
+  integration:
+    paths:
+      - src/rag_processor/
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: false

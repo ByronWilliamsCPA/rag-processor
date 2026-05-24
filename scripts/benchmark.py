@@ -46,16 +46,19 @@ os.environ["LOG_LEVEL"] = "CRITICAL"
 logging.disable(logging.CRITICAL)
 
 # Configure structlog to be silent (must be before module imports)
-import structlog
+import structlog  # noqa: E402
 
 structlog.configure(
     wrapper_class=structlog.make_filtering_bound_logger(logging.CRITICAL),
 )
 
-# Benchmark targets
-from rag_processor.models.job import FileClassification, Pipeline
-from rag_processor.routing.classifier import ClassificationResult, FileClassifier
-from rag_processor.routing.router import FileRouter, RoutingResult
+# Benchmark targets (must be imported AFTER structlog.configure to inherit the silent config)
+from rag_processor.models.job import FileClassification, Pipeline  # noqa: E402
+from rag_processor.routing.classifier import (  # noqa: E402
+    ClassificationResult,
+    FileClassifier,
+)
+from rag_processor.routing.router import FileRouter, RoutingResult  # noqa: E402
 
 
 @dataclass
@@ -158,7 +161,7 @@ def create_sample_pdf_content() -> bytes:
         Bytes representing a minimal valid PDF.
     """
     # Minimal valid PDF with some text
-    pdf_content = b"""%PDF-1.4
+    return b"""%PDF-1.4
 1 0 obj
 << /Type /Catalog /Pages 2 0 R >>
 endobj
@@ -191,7 +194,6 @@ trailer
 startxref
 435
 %%EOF"""
-    return pdf_content
 
 
 def create_sample_image_content() -> bytes:

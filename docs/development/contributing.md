@@ -77,6 +77,7 @@ Push your branch and create a PR against `main`.
 ## Code Review
 
 All contributions require:
+
 - Passing CI checks
 - Code review approval
 - Documentation updates (if applicable)
