@@ -28,7 +28,7 @@ This feedback will be shared with the template team to improve the cookiecutter 
 **Name**: RAG Processor
 **Description**: React-based frontend for RAG pipeline with FastAPI backend integration
 **Author**: Byron Williams <byron@williamscpa.dev>
-**Repository**: https://github.com/ByronWilliamsCPA/rag-processor
+**Repository**: <https://github.com/ByronWilliamsCPA/rag-processor>
 **Created**: 2025-12-04
 
 ### Technology Stack
@@ -40,6 +40,7 @@ This feedback will be shared with the template team to improve the cookiecutter 
 - **Security**: Bandit, Safety
 - **Documentation**: MkDocs Material
 - **Containerization**: Docker
+
 ---
 
 <!--
@@ -96,6 +97,16 @@ When writing code, ALWAYS tag assumptions that could cause production failures:
 
 ---
 
+## Model Selection
+
+| Task type | Model | When |
+| --- | --- | --- |
+| Architecture, planning, ADRs | Opus 4.7 | Multi-step decisions, deep code review |
+| Standard development | Sonnet 4.6 | Most coding and editing |
+| Read-only exploration | Haiku 4.5 | File scanning, quick lookups |
+
+---
+
 ## Branch Workflow Requirement (CRITICAL)
 
 **NEVER work directly on the `main` branch.** Always create a feature branch before making any code changes.
@@ -147,10 +158,11 @@ Claude MUST adopt a security-first approach in all development:
 
 When working on this project, always suggest appropriate security measures:
 
-- **Dependencies**: Suggest vulnerability scanning (`safety check`, `pip-audit`)
+- **Dependencies**: Suggest vulnerability scanning (`uv run pip-audit`)
 - **APIs**: Suggest authentication, rate limiting, input validation
 - **Data**: Suggest encryption at rest and in transit, access controls
 - **Containers**: Suggest image vulnerability scanning (Trivy)
+
 ### 2. Never Bypass Security Issues
 
 - **ALL security findings** from scanners (Semgrep, SonarQube, Bandit, Checkov) should be addressed, not dismissed
@@ -174,11 +186,13 @@ When working on this project, always suggest appropriate security measures:
 For deployment on FIPS-enabled systems (Ubuntu LTS with fips-updates, government systems, healthcare, finance):
 
 **Prohibited algorithms** (will fail in FIPS mode):
+
 - MD5, MD4, SHA-1 (for security purposes)
 - DES, 3DES, RC2, RC4, Blowfish
 - Non-approved key exchange methods
 
 **Required patterns**:
+
 ```python
 # ✗ WRONG - Will fail on FIPS systems
 import hashlib
@@ -192,11 +206,13 @@ h = hashlib.sha256(data)
 ```
 
 **Check FIPS compatibility**:
+
 ```bash
 uv run python scripts/check_fips_compatibility.py --fix-hints
 ```
 
 **Problematic packages** (need verification or replacement):
+
 - `bcrypt` → Use `passlib` with PBKDF2 or `argon2-cffi`
 - `pycrypto` → Use `pycryptodome` with FIPS mode
 - Verify `cryptography` version >= 3.4.6 with OpenSSL FIPS provider
@@ -330,7 +346,7 @@ END BASELINE DEVELOPMENT STANDARDS
 
 - Test coverage: Minimum 80%
 - All linters must pass: `uv run ruff check .`, `uv run basedpyright src/`
-- Security scans: `uv run bandit -r src`, `uv run safety check`
+- Security scans: `uv run bandit -r src`
 
 ---
 
@@ -452,6 +468,7 @@ docs/                       # MkDocs documentation
 - Logging: Structured logging via `src/rag_processor/utils/logging.py`
 - Error Handling: Custom exceptions in `src/rag_processor/core/exceptions.py`
 - Correlation: Request tracing via `src/rag_processor/middleware/correlation.py`
+
 ### Exception Hierarchy
 
 Use the centralized exception hierarchy for consistent error handling:
@@ -496,6 +513,7 @@ except ValidationError as e:
 | `APIError` | External API errors |
 | `DatabaseError` | Database operation errors |
 | `BusinessLogicError` | Domain rule violations |
+
 ### Correlation ID Patterns (Observability)
 
 Request correlation enables distributed tracing and log correlation:
@@ -680,6 +698,7 @@ uv run pytest tests/unit/test_example.py::test_function_name -v
 - BasedPyright type checking
 - Security scans (no high/critical)
 - Pre-commit hooks
+
 ---
 
 ## Third-Party Integrations
@@ -752,7 +771,7 @@ This project uses a **two-part standards system** for safe template updates.
 
 ### How It Works
 
-```
+```text
 ┌─────────────────┐     cruft update     ┌──────────────────┐
 │   Template      │ ──────────────────► │  .standards/     │
 │   Repository    │                      │  (baselines)     │
@@ -815,6 +834,22 @@ These contain project-specific customizations:
 | `.standards/REUSE.baseline.toml` | `REUSE.toml` | SPDX licensing |
 
 See `.standards/README.md` for detailed merge instructions.
+
+---
+
+## Cross-References
+
+> Detailed Python linting and type-checking rules: see `~/.claude/rules/python.md`
+>
+> Detailed testing scope, coverage thresholds, and golden file rules: see `~/.claude/rules/testing.md`
+>
+> Detailed writing style and AI pattern blacklist: see `~/.claude/rules/writing.md`
+>
+> Detailed branch rules, worktree patterns, and naming conventions: see `~/.claude/rules/git-workflow.md`
+>
+> Detailed pre-commit checklist and hook reference: see `~/.claude/rules/pre-commit.md`
+>
+> Detailed supervisor patterns and agent assignment: see `~/.claude/rules/supervisor.md`
 
 ---
 

@@ -1,0 +1,14 @@
+node_modules/
+**/node_modules/
+.venv/
+**/.venv/
+build/
+**/build/
+dist/
+**/dist/
+.git/
+**/.git/
+htmlcov/
+**/htmlcov/
+.tox/
+**/.tox/

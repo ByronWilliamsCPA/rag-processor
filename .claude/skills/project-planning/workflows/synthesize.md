@@ -96,7 +96,7 @@ For each phase in the roadmap, determine the appropriate branch type:
 | Refactoring | `refactor/` | No release |
 
 **Branch Naming**:
-```
+```text
 {type}/phase-{number}-{short-slug}
 
 Examples:
@@ -111,7 +111,7 @@ docs/phase-4-documentation
 
 Create `docs/planning/PROJECT-PLAN.md` with synthesized content:
 
-```markdown
+````markdown
 ---
 schema_type: planning
 title: "{project_name} - Project Plan"
@@ -153,13 +153,13 @@ source_documents:
 **Start a phase**:
 ```bash
 /git/milestone start {branch-name}
-```
+```text
 
 **Complete a phase**:
 ```bash
 /git/milestone complete
 /git/pr-prepare --include_wtd=true
-```
+```text
 
 ## Phased Development
 
@@ -180,7 +180,7 @@ source_documents:
 **Start Phase**:
 ```bash
 /git/milestone start {branch-name}
-```
+```text
 
 ---
 
@@ -240,7 +240,7 @@ source_documents:
 - [Technical Specification](./tech-spec.md)
 - [Development Roadmap](./roadmap.md)
 - [Architecture Decisions](./adr/)
-```
+````
 
 ### 5. Create Initial TODO List
 
@@ -281,7 +281,7 @@ git checkout -b feat/phase-0-foundation
 
 After synthesis:
 
-```
+```text
 ✅ Created docs/planning/PROJECT-PLAN.md
 
 📊 Plan Summary:
@@ -299,7 +299,7 @@ After synthesis:
 ## Error Handling
 
 ### Missing Documents
-```
+```text
 ❌ Missing required documents:
    - project-vision.md (placeholder)
    - tech-spec.md (placeholder)
@@ -308,7 +308,7 @@ Run first: /plan <your project description>
 ```
 
 ### Conflicting Information
-```
+```text
 ⚠️ Inconsistency detected:
    - Roadmap Phase 1 duration: 3 weeks
    - Tech Spec estimates: 5 weeks
@@ -317,7 +317,7 @@ Please clarify timeline before synthesis.
 ```
 
 ### No ADRs Found
-```
+```text
 ⚠️ No Architecture Decision Records found.
 
 Consider creating ADR for:

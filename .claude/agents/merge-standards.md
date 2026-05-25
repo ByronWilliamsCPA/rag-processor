@@ -94,7 +94,7 @@ This agent helps merge updated baseline standards from `.standards/` into the pr
 
 ## Merge Process
 
-```
+```text
 1. Read both baseline and target files
 2. Identify what changed in baseline (git diff .standards/)
 3. For each change:
@@ -106,7 +106,7 @@ This agent helps merge updated baseline standards from `.standards/` into the pr
 
 ## Example Usage
 
-```
+```text
 User: "Merge the updated baseline standards"
 
 Agent:

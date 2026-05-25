@@ -45,7 +45,7 @@ This creates operational friction, increases error rates from misrouting files, 
 
 ### Core Value
 
-RAG Processor WebUI eliminates operational friction by providing a single, authenticated interface that automatically routes files to the correct preprocessing pipeline, monitors job progress in real-time, and delivers processed outputs to configurable vector storage backends—reducing ingestion time by 90% while improving accuracy.
+RAG Processor WebUI eliminates operational friction by providing a single, authenticated interface that automatically routes files to the correct preprocessing pipeline, monitors job progress in real-time, and delivers processed outputs to configurable vector storage backends, reducing ingestion time by 90% while improving accuracy.
 
 ### Key Capabilities (MVP)
 

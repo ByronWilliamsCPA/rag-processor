@@ -442,7 +442,7 @@ Examples:
     infos = [i for i in all_issues if i.severity == "info"]
 
     if args.json:
-        import json  # noqa: PLC0415
+        import json
 
         output = {
             "summary": {

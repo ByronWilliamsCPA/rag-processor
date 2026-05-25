@@ -28,6 +28,7 @@ uv sync --all-extras
 - Comprehensive test coverage
 - Structured logging with structlog
 - Docker support
+
 ## Documentation
 
 - [User Guide](guides/overview.md) - Getting started and usage
