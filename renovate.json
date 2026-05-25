@@ -26,10 +26,10 @@
     {
       "description": "Group Python dependencies by type",
       "matchManagers": [
-        "poetry"
+        "pep621"
       ],
       "matchDepTypes": [
-        "dependencies"
+        "project.dependencies"
       ],
       "groupName": "Python dependencies",
       "automerge": false,
@@ -40,10 +40,11 @@
     {
       "description": "Group Python dev dependencies",
       "matchManagers": [
-        "poetry"
+        "pep621"
       ],
       "matchDepTypes": [
-        "devDependencies"
+        "dependency-groups",
+        "tool.uv.dev-dependencies"
       ],
       "groupName": "Python dev dependencies",
       "automerge": false,
@@ -163,12 +164,6 @@
   "python": {
     "enabled": true
   },
-  "poetry": {
-    "enabled": true,
-    "fileMatch": [
-      "(^|/)pyproject\\.toml$"
-    ]
-  },
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": [
@@ -203,9 +198,6 @@
   },
   "osvVulnerabilityAlerts": true,
   "transitiveRemediation": true,
-  "postUpdateOptions": [
-    "poetryMassage"
-  ],
   "customManagers": [
     {
       "customType": "regex",
@@ -218,7 +210,7 @@
     }
   ],
   "enabledManagers": [
-    "poetry",
+    "pep621",
     "github-actions"
   ]
 }
