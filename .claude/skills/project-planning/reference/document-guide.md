@@ -24,7 +24,7 @@ AI-assisted development fails when:
 
 ### How They Work Together
 
-```
+```text
 ┌─────────────────────────────┐
 │   Project Vision & Scope    │  ← WHAT & WHY
 │   (Problem, Users, Scope)   │
@@ -216,7 +216,7 @@ As mentioned elsewhere...
 
 ### Starting a New Session
 
-```
+```text
 Load context from:
 - PVS sections 2-3 (core features)
 - ADR-001, ADR-002 (key decisions)
@@ -227,7 +227,7 @@ Then implement [specific feature].
 
 ### Validating AI-Generated Code
 
-```
+```text
 Review this code against:
 - Tech Spec section 5 (security requirements)
 - ADR-003 (authentication decision)
@@ -248,7 +248,7 @@ Flag any violations.
 
 ### Recommended Structure
 
-```
+```text
 docs/
 └── planning/
     ├── README.md           # Quick start guide

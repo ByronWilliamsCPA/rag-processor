@@ -15,7 +15,7 @@ Thank you for your interest in contributing to RAG Processor! This document prov
 
 ## Code of Conduct
 
-This project adheres to the [ByronWilliamsCPA organization Code of Conduct](https://github.com/ByronWilliamsCPA/.github/blob/main/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to byron@williamscpa.dev.
+This project adheres to the [ByronWilliamsCPA organization Code of Conduct](https://github.com/ByronWilliamsCPA/.github/blob/main/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to <byron@williamscpa.dev>.
 
 ## Getting Started
 
@@ -48,7 +48,7 @@ qlty check
 
 ### Project Structure
 
-```
+```text
 rag_processor/
 ├── src/rag_processor/       # Main package
 │   ├── __init__.py
@@ -312,7 +312,7 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/) specifica
 
 ### Commit Message Format
 
-```
+```text
 <type>(<scope>): <subject>
 
 <body>
@@ -372,6 +372,7 @@ See migration guide in docs/migration/v1.0.0.md
 ### Submitting a Pull Request
 
 1. **Push your branch**:
+
    ```bash
    git push origin feature/your-feature-name
    ```
@@ -434,7 +435,7 @@ Use the feature request template and include:
 - **General Questions**: Open a [GitHub Discussion](https://github.com/ByronWilliamsCPA/rag-processor/discussions)
 - **Bug Reports**: Open a [GitHub Issue](https://github.com/ByronWilliamsCPA/rag-processor/issues)
 - **Security Issues**: See [ByronWilliamsCPA Security Policy](https://github.com/ByronWilliamsCPA/.github/blob/main/SECURITY.md)
-- **Email**: byron@williamscpa.dev
+- **Email**: <byron@williamscpa.dev>
 
 ## Recognition
 

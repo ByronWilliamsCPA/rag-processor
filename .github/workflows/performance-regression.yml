@@ -49,9 +49,15 @@ jobs:
   check-benchmarks:
     name: Check Benchmark Setup
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     outputs:
       has-benchmarks: ${{ steps.check.outputs.has-benchmarks }}
     steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -60,10 +66,10 @@ jobs:
         run: |
           if [ -f "scripts/benchmark.py" ]; then
             echo "has-benchmarks=true" >> $GITHUB_OUTPUT
-            echo "✅ Benchmark script found at scripts/benchmark.py"
+            echo "Benchmark script found at scripts/benchmark.py"
           else
             echo "has-benchmarks=false" >> $GITHUB_OUTPUT
-            echo "⚠️ No benchmark script found. Skipping performance regression testing."
+            echo "No benchmark script found. Skipping performance regression testing."
             echo ""
             echo "To enable performance testing:"
             echo "  1. Create scripts/benchmark.py"
@@ -95,14 +101,20 @@ jobs:
   skip-summary:
     name: Performance Summary
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: check-benchmarks
     if: needs.check-benchmarks.outputs.has-benchmarks == 'false'
     steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
       - name: Report skipped
         run: |
           echo "## Performance Regression Testing" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "⏭️ **Skipped**: No benchmark script found" >> $GITHUB_STEP_SUMMARY
+          echo "Skipped: No benchmark script found" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "To enable performance regression testing:" >> $GITHUB_STEP_SUMMARY
           echo "1. Create \`scripts/benchmark.py\`" >> $GITHUB_STEP_SUMMARY

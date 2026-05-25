@@ -17,7 +17,7 @@ This project follows [OpenSSF (Open Source Security Foundation)](https://openssf
 **Estimated Scorecard Score**: 9.0/10 (Excellent)
 **Best Practices Compliance**: 95%+ (Passing)
 
-This template implements comprehensive security controls including:
+This template implements full security controls including:
 
 - ✅ Signed releases with Sigstore/Cosign
 - ✅ SLSA Level 3 provenance attestations
@@ -100,7 +100,9 @@ Automated fuzzing with [ClusterFuzzLite](https://google.github.io/clusterfuzzlit
 - Edge case detection
 - Security vulnerability identification
 
-**Workflow**: `.github/workflows/cifuzzy.yml`
+**Workflow**: not currently wired (the prior `cifuzzy.yml` was removed
+2026-05-24 because of an unrendered cookiecutter literal). Replacement workflow
+tracked in the project backlog. Run harnesses manually until then.
 **Fuzz Harnesses**: `fuzz/` directory
 
 **How to run locally**:
@@ -395,7 +397,7 @@ The template meets 44/46 passing-level criteria:
 
 ## Getting Help
 
-**Security Questions**: byron@williamscpa.dev
+**Security Questions**: <byron@williamscpa.dev>
 **Vulnerability Reports**: See [Security Policy](https://github.com/ByronWilliamsCPA/.github/blob/main/SECURITY.md)
 **General Issues**: [GitHub Issues](https://github.com/ByronWilliamsCPA/rag-processor/issues)
 

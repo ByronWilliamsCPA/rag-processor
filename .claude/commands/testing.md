@@ -4,7 +4,7 @@ Run tests with coverage reporting and optional test generation.
 
 ## Usage
 
-```
+```text
 /testing [action] [scope]
 ```
 
@@ -69,7 +69,7 @@ uv run mutmut run --paths-to-mutate=src/
 
 ## Test Organization
 
-```
+```text
 tests/
 ├── unit/           # Fast, isolated tests
 ├── integration/    # Service integration tests

@@ -139,10 +139,12 @@ What aspects are neither good nor bad?
 **Approach**: How this approach would work
 
 **Advantages**:
+
 - Specific benefit 1
 - Specific benefit 2
 
 **Disadvantages**:
+
 - Specific drawback 1
 - Specific drawback 2
 
@@ -155,10 +157,12 @@ What aspects are neither good nor bad?
 **Approach**: How this approach would work
 
 **Advantages**:
+
 - Specific benefit 1
 - Specific benefit 2
 
 **Disadvantages**:
+
 - Specific drawback 1
 - Specific drawback 2
 
@@ -171,10 +175,12 @@ What aspects are neither good nor bad?
 **Approach**: How this approach would work
 
 **Advantages**:
+
 - Specific benefit 1
 - Specific benefit 2
 
 **Disadvantages**:
+
 - Specific drawback 1
 - Specific drawback 2
 
@@ -248,6 +254,46 @@ How will we validate that this decision achieved its goals?
 - A/B testing approach (if applicable)
 - User acceptance testing
 - Load testing results
+
+## Security Considerations
+
+Document the security implications of this architectural decision:
+
+### Threat Model Impact
+
+- **New attack surface**: Does this decision introduce new entry points or trust boundaries?
+- **Data sensitivity**: Does the decision affect how sensitive data is stored, transmitted, or processed?
+- **Authentication/Authorization**: Does the decision change how identities or permissions are verified?
+
+### Security Requirements
+
+List any security requirements this decision must satisfy:
+
+- **Confidentiality**: Data that must not be exposed to unauthorized parties
+- **Integrity**: Data or operations that must be tamper-proof
+- **Availability**: SLA or uptime requirements that inform the design
+
+### Mitigations
+
+Describe the controls in place to address identified risks:
+
+- Control 1: Description and rationale
+- Control 2: Description and rationale
+
+### Residual Risk
+
+Document any risks accepted as a result of this decision, with owner and review date:
+
+- **Risk**: Brief description
+  - **Accepted by**: Decision owner
+  - **Review date**: YYYY-MM-DD
+
+### External Security References
+
+- OWASP guidance relevant to this decision (if applicable)
+- Any CVEs or security advisories considered during decision-making
+
+---
 
 ## References
 

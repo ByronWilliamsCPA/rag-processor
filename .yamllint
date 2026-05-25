@@ -2,7 +2,21 @@
 # yamllint configuration for RAG Processor
 extends: default
 
+# Ignore generated, vendored, and third-party config files
+ignore: |
+  .venv/
+  node_modules/
+  build/
+  dist/
+  docker-compose.prod.yml
+
 rules:
+  # GitHub Actions uses `on:` as a top-level key. YAML 1.1 parses unquoted
+  # `on` as boolean True; the truthy rule warns about it. Allow it explicitly.
+  truthy:
+    allowed-values: ["true", "false", "on", "off"]
+    check-keys: true
+
   line-length:
     max: 150
     level: warning

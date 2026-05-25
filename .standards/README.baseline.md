@@ -30,7 +30,6 @@
 [![CI Pipeline](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/ci.yml?query=branch%3Amain)
 [![Security Analysis](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/security-analysis.yml/badge.svg?branch=main)](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/security-analysis.yml?query=branch%3Amain)
 [![Documentation](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/docs.yml/badge.svg?branch=main)](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/docs.yml?query=branch%3Amain)
-[![ClusterFuzzLite](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/cifuzzy.yml/badge.svg?branch=main)](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/cifuzzy.yml?query=branch%3Amain)
 [![SBOM & Security Scan](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/sbom.yml/badge.svg?branch=main)](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/sbom.yml?query=branch%3Amain)
 [![PR Validation](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/pr-validation.yml/badge.svg)](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/pr-validation.yml)
 [![Release](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/release.yml/badge.svg)](https://github.com/ByronWilliamsCPA/rag_processor/actions/workflows/release.yml)

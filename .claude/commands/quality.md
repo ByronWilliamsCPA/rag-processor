@@ -4,7 +4,7 @@ Run code quality checks including formatting, linting, and type checking.
 
 ## Usage
 
-```
+```text
 /quality [scope]
 ```
 

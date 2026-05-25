@@ -4,7 +4,7 @@ Run security validation including environment checks, vulnerability scanning, an
 
 ## Usage
 
-```
+```text
 /security [scope]
 ```
 

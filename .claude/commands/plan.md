@@ -39,7 +39,7 @@ For EACH document, follow this generate-review-refine cycle:
 ### 2. Expert Review (Consensus)
 After writing each document, request expert review:
 
-```
+```text
 mcp__zen__consensus with gemini-3-pro-preview:
 
 Review this [Document Type] for RAG Processor.

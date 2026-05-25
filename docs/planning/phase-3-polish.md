@@ -135,7 +135,7 @@ Finalize testing, documentation, and release preparation to ensure production re
 **Exit Criteria**:
 
 - [ ] Frontend coverage ≥80%
-- [ ] Component tests comprehensive
+- [ ] Component tests cover all routes
 - [ ] Integration tests cover key flows
 - [ ] CI enforces threshold
 
@@ -145,7 +145,7 @@ Finalize testing, documentation, and release preparation to ensure production re
 
 #### Sprint 3.4: User Documentation (4 hours)
 
-**Goal**: Write comprehensive user guide
+**Goal**: Write complete user guide
 
 **Tasks**:
 

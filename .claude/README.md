@@ -4,7 +4,7 @@ This directory contains Claude Code configuration and standards for this project
 
 ## Directory Structure
 
-```
+```text
 .claude/
 ├── README.md           # This file
 ├── claude.md           # Project-specific Claude guidelines

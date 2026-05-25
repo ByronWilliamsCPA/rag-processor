@@ -52,8 +52,14 @@ jobs:
   fips-check:
     name: FIPS Compliance Check
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -67,10 +73,12 @@ jobs:
 
       - name: Run FIPS compatibility check
         id: fips-check
+        env:
+          STRICT_MODE: ${{ github.event.inputs.strict_mode }}
         run: |
           # Run the FIPS check script
           STRICT_FLAG=""
-          if [[ "${{ github.event.inputs.strict_mode }}" == "true" ]]; then
+          if [[ "$STRICT_MODE" == "true" ]]; then
             STRICT_FLAG="--strict"
           fi
 
@@ -120,17 +128,17 @@ jobs:
             const warnings = parseInt('${{ steps.fips-check.outputs.warnings }}') || 0;
             const info = parseInt('${{ steps.fips-check.outputs.info }}') || 0;
 
-            let status = '✅ PASSED';
-            let emoji = '✅';
+            let status = 'PASSED';
+            let emoji = 'PASS';
             if (errors > 0) {
-              status = '❌ FAILED';
-              emoji = '❌';
+              status = 'FAILED';
+              emoji = 'FAIL';
             } else if (warnings > 0) {
-              status = '⚠️ NEEDS REVIEW';
-              emoji = '⚠️';
+              status = 'NEEDS REVIEW';
+              emoji = 'WARN';
             }
 
-            const body = `## ${emoji} FIPS Compatibility Check
+            const body = `## FIPS Compatibility Check -- ${status}
 
             | Metric | Count |
             |--------|-------|
@@ -139,23 +147,6 @@ jobs:
             | Info | ${info} |
 
             **Status:** ${status}
-
-            ${errors > 0 ? '⚠️ This PR introduces FIPS-incompatible code or dependencies. Please review the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.' : ''}
-            ${warnings > 0 && errors === 0 ? 'ℹ️ Some packages may need verification for FIPS compliance. See the workflow artifacts for details.' : ''}
-
-            <details>
-            <summary>What is FIPS?</summary>
-
-            FIPS 140-2/140-3 is a US government standard for cryptographic modules.
-            Systems running Ubuntu LTS with \`fips-updates\` or similar configurations
-            restrict cryptographic algorithms to NIST-approved ones.
-
-            **Common issues:**
-            - Using \`hashlib.md5()\` without \`usedforsecurity=False\`
-            - Dependencies using non-approved algorithms (bcrypt, DES, RC4)
-            - Weak cipher configurations
-
-            </details>
             `;
 
             // Find existing comment
@@ -196,10 +187,16 @@ jobs:
   fips-runtime-test:
     name: FIPS Runtime Test
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     if: github.event_name == 'schedule' || github.event.inputs.strict_mode == 'true'
     needs: fips-check
 
     steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -219,7 +216,6 @@ jobs:
           # This tests if the code can import without using non-FIPS algorithms
           # Note: Full FIPS testing requires an actual FIPS-enabled kernel
           uv run python -c "
-          import os
           import sys
 
           # Simulate FIPS mode check
@@ -230,18 +226,18 @@ jobs:
           try:
               # This should work - non-security use
               h = hashlib.md5(b'test', usedforsecurity=False)
-              print('✓ hashlib.md5 with usedforsecurity=False works')
+              print('PASS: hashlib.md5 with usedforsecurity=False works')
           except Exception as e:
-              print(f'✗ hashlib.md5 error: {e}')
+              print(f'FAIL: hashlib.md5 error: {e}')
               sys.exit(1)
 
           # Test that SHA-256 works (FIPS approved)
           try:
               h = hashlib.sha256(b'test')
-              print('✓ hashlib.sha256 works')
+              print('PASS: hashlib.sha256 works')
           except Exception as e:
-              print(f'✗ hashlib.sha256 error: {e}')
+              print(f'FAIL: hashlib.sha256 error: {e}')
               sys.exit(1)
 
-          print('\\nBasic FIPS compatibility: PASSED')
+          print('Basic FIPS compatibility: PASSED')
           "

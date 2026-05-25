@@ -60,6 +60,7 @@ Expected: 334 pass, 1 skip, 82.95% overall coverage.
 ## Task 1: Fix Vitest Collecting Playwright Specs
 
 **Files:**
+
 - Modify: `frontend/vitest.config.ts`
 
 This is a one-edit fix. Vitest has no `include` pattern so it collects every `*.spec.ts` it finds, including the Playwright E2E spec in `e2e/`. Adding `include` restricts collection to `src/` only.
@@ -124,6 +125,7 @@ git commit -m "fix(frontend): exclude e2e dir from vitest collection"
 ## Task 2: Add Tests for `utils/time_utils.py` (0% → ≥80%)
 
 **Files:**
+
 - Create: `tests/unit/test_time_utils.py`
 
 The module has 12 statements across three functions (`utc_now`, `from_timestamp`, `parse_iso_datetime`) and one module constant (`UTC`). A single test file covers them all.
@@ -248,6 +250,7 @@ git commit -m "test: add unit tests for utils/time_utils (0% to 100% coverage)"
 ## Task 3: Add Tests for `middleware/security.py` (36% → ≥80%)
 
 **Files:**
+
 - Create: `tests/unit/test_middleware_security.py`
 
 The module has 153 statements. At 36% coverage, ~65 are covered. Target is 122 (80%). The uncovered areas are: `SecurityHeadersMiddleware` HTTPS/Server-header branches, `RateLimitMiddleware._cleanup_stale_entries()`, rate-limit and burst-limit rejection paths, `SSRFPreventionMiddleware` static methods, and `add_security_middleware()` branches.
@@ -590,6 +593,7 @@ git commit -m "test: add coverage for security middleware (36% to >=80%)"
 ## Task 4: Add Tests for `auth/cloudflare.py` (60% → ≥80%)
 
 **Files:**
+
 - Create: `tests/unit/test_auth_cloudflare.py`
 
 The existing `test_auth_middleware.py` tests the middleware via HTTP round-trips. The uncovered paths are in `_JWKSCache`, the `verify_cloudflare_token()` standalone function (lines 285-344, fully uncovered), `clear_jwks_cache()`, and the HTTP-fetch path inside `_get_jwks()`. The new file targets those paths directly, reusing the RSA key helpers from the existing test file.
@@ -876,6 +880,7 @@ git commit -m "test: add coverage for auth/cloudflare JWKS cache and verify_clou
 ## Task 5: Add Playwright E2E Job to CI
 
 **Files:**
+
 - Modify: `.github/workflows/ci.yml`
 
 The Playwright config (`frontend/playwright.config.ts`) uses `pnpm run dev` as the web server command. Because GitHub Actions runners do not have pnpm pre-installed, we must install it before invoking Playwright. The `CLOUDFLARE_ENABLED=false` env var bypasses Cloudflare auth so the E2E tests run without a real Access token.
@@ -889,6 +894,7 @@ Read `.github/workflows/ci.yml` to confirm the final job is `ci-gate` with `need
 - [ ] **Step 2: Add the Playwright job**
 
 The new job must:
+
 1. Be listed in `ci-gate`'s `needs:` array alongside `ci`
 2. Install Node dependencies (`npm ci`)
 3. Install Playwright browsers with system deps
@@ -1022,17 +1028,19 @@ git commit -m "ci: add playwright e2e job to ci.yml"
 ## Task 6: Document the Skipped WebSocket Test
 
 **Files:**
+
 - Modify: `tests/unit/test_websocket_router.py` (line 390)
 
 The test `test_websocket_accepts_valid_connection` is empty (no body) and skipped because the websocket router imports `get_batch_status` from `queue.jobs` at module level, which attempts a real Redis connection before `fakeredis` patches can be applied. This is a known trade-off in the current architecture. Rather than refactoring the module import (risky, out of scope for this handoff), we add a GitHub issue reference so the skip does not age silently.
 
 - [ ] **Step 1: Open a GitHub issue**
 
-Go to https://github.com/ByronWilliamsCPA/rag-processor/issues/new and create an issue with:
+Go to <https://github.com/ByronWilliamsCPA/rag-processor/issues/new> and create an issue with:
 
 - **Title:** `test: fix skipped test_websocket_accepts_valid_connection (module-level Redis import)`
 - **Body:**
-  ```
+
+  ```markdown
   ## Summary
   `tests/unit/test_websocket_router.py::TestWebSocketEndpoints::test_websocket_accepts_valid_connection`
   is skipped because `queue.jobs` is imported at module level in the websocket router,
@@ -1046,6 +1054,7 @@ Go to https://github.com/ByronWilliamsCPA/rag-processor/issues/new and create an
   ## Acceptance
   The test is unskipped and passes with fakeredis (no real Redis required).
   ```
+
 - Label: `testing`, `technical-debt`
 
 Note the issue number after creating it (e.g., #44).
@@ -1101,7 +1110,7 @@ uv run pytest tests/ --cov=src --cov-report=term-missing 2>&1 \
 
 Expected per-module output:
 
-```
+```text
 src/rag_processor/middleware/security.py    ≥80%
 src/rag_processor/auth/cloudflare.py       ≥80%
 src/rag_processor/utils/time_utils.py      100%

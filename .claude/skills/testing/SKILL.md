@@ -56,7 +56,7 @@ uv run pytest --hypothesis-show-statistics
 
 ## Test Organization
 
-```
+```text
 tests/
 ├── unit/           # Unit tests (fast, isolated)
 ├── integration/    # Integration tests (may use external services)

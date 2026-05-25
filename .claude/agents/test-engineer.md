@@ -40,7 +40,7 @@ Design and implement test strategies, generate test cases, and ensure code quali
 - **Critical Paths**: 100% coverage
 
 ### Test Organization
-```
+```text
 tests/
 ├── unit/           # Fast, isolated tests
 ├── integration/    # Service integration tests
@@ -74,6 +74,6 @@ uv run mutmut run
 
 ## Invocation
 
-```
+```text
 /test or via Task tool with subagent_type='test-engineer'
 ```
