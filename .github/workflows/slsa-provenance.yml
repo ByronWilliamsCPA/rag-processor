@@ -68,6 +68,7 @@ jobs:
         env:
           DISPATCH_RUN_ID: ${{ github.event.inputs.run_id }}
           TRIGGER_RUN_ID: ${{ github.event.workflow_run.id }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [ -n "${DISPATCH_RUN_ID:-}" ]; then
@@ -80,6 +81,22 @@ jobs:
             RUN_ID="$TRIGGER_RUN_ID"
           else
             echo "::error::No upstream run id available; provide run_id input"
+            exit 1
+          fi
+          # Verify the run actually belongs to the Semantic Release workflow.
+          # Without this guard, any user with Actions:write could pass a
+          # run_id from a different workflow that happens to have a
+          # release-dist artifact and mint a fraudulent SLSA attestation.
+          # The workflow_run trigger filter already constrains the
+          # automated path; this closes the workflow_dispatch path.
+          RUN_NAME=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" --jq '.name')
+          RUN_CONCLUSION=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" --jq '.conclusion')
+          if [ "$RUN_NAME" != "Semantic Release" ]; then
+            echo "::error::Run $RUN_ID is from workflow '$RUN_NAME', not 'Semantic Release'; refusing to attest"
+            exit 1
+          fi
+          if [ "$RUN_CONCLUSION" != "success" ]; then
+            echo "::error::Run $RUN_ID conclusion is '$RUN_CONCLUSION', not 'success'; refusing to attest"
             exit 1
           fi
           echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
@@ -112,11 +129,15 @@ jobs:
           set -euo pipefail
           # Prefer the tag created by Semantic Release at the head SHA;
           # fall back to the latest published release.
+          # Inputs flow through jq --arg rather than shell interpolation
+          # so the jq filter cannot be malformed by an unexpected character
+          # in head_branch or head_sha.
           TAG=""
           if [ -n "${HEAD_SHA:-}" ]; then
             TAG=$(gh api "repos/${GITHUB_REPOSITORY}/releases" \
-              --jq ".[] | select(.target_commitish==\"${HEAD_BRANCH:-main}\" or .target_commitish==\"${HEAD_SHA}\") | .tag_name" \
-              2>/dev/null | head -1 || true)
+              | jq -r --arg b "${HEAD_BRANCH:-main}" --arg s "${HEAD_SHA}" \
+                  '.[] | select(.target_commitish==$b or .target_commitish==$s) | .tag_name' \
+                2>/dev/null | head -1 || true)
           fi
           if [ -z "$TAG" ]; then
             TAG=$(gh release list --repo "${GITHUB_REPOSITORY}" --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || true)
