@@ -1,111 +1,181 @@
 # SLSA Provenance Generation for RAG Processor
 # Generates SLSA Level 3 provenance attestations for published packages.
 #
-# This workflow builds the package, generates hashes, and calls the org-level
-# SLSA provenance workflow to create cryptographic attestations.
+# This workflow downloads the dist artifacts produced by the upstream
+# Semantic Release run, computes their SHA256 hashes, and calls the
+# official SLSA Level 3 generator inline. The org-level python-slsa.yml
+# is a TEMPLATE (workflow_dispatch only, not workflow_call), so the
+# generator must be invoked directly here.
+#
+# Why download instead of rebuild?
+#   SLSA provenance must attest to the exact bytes that were published.
+#   Locally rebuilt artifacts can differ from the published bytes due to
+#   non-deterministic builds, defeating the purpose of the attestation.
+#   The Semantic Release workflow uploads `release-dist` (dist/*.whl and
+#   *.tar.gz), so we hash those.
+#
+# Why inline instead of `uses: BWCPA/.github/.github/workflows/python-slsa.yml`?
+#   The org template has `on: workflow_dispatch:` only (no workflow_call),
+#   and even if it did, the official SLSA generator it calls is itself a
+#   reusable workflow. GitHub Actions forbids nested reusable workflow
+#   calls, so the generator must be invoked from this caller directly.
 #
 # Reference: https://slsa.dev/
 name: SLSA Provenance
 
 on:
-  # Trigger after successful release
+  # Trigger after successful release run
   workflow_run:
     workflows: ["Semantic Release"]
     types: [completed]
     branches: [main, master]
-  # Manual trigger for re-generating provenance
+  # Manual trigger uses a specific Semantic Release run id
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Version to generate provenance for (e.g., 0.1.0)'
-        required: true
+      run_id:
+        description: 'Semantic Release run ID whose dist artifact to attest'
+        required: false
         type: string
 
 permissions:
-  contents: write
-  id-token: write
-  actions: read
-  attestations: write
+  contents: read
 
 jobs:
   # ==========================================================================
-  # Build and Generate Hashes
+  # Hash the published dist artifacts (download, do not rebuild)
   # ==========================================================================
-  build:
-    name: Build Package
+  hash:
+    name: Hash Published Artifacts
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # Only attest successful releases (skip cancelled, skipped, or failed upstream runs)
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch'
+          || github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: read
+      actions: read
     outputs:
       hashes: ${{ steps.hashes.outputs.hashes }}
-      version: ${{ steps.version.outputs.version }}
-
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - name: Harden the runner
         uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
         with:
           egress-policy: audit  # TODO: switch to block after 2026-06-30 (SLSA L3 hermetic build isolation)
 
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
-        with:
-          python-version: "3.12"
-
-      - name: Install UV
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-        with:
-          enable-cache: true
-
-      - name: Determine version
-        id: version
+      - name: Resolve source run id
+        id: source_run
         env:
-          INPUT_VERSION: ${{ github.event.inputs.version }}
+          DISPATCH_RUN_ID: ${{ github.event.inputs.run_id }}
+          TRIGGER_RUN_ID: ${{ github.event.workflow_run.id }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ -n "$INPUT_VERSION" ]; then
-            VERSION="$INPUT_VERSION"
+          set -euo pipefail
+          if [ -n "${DISPATCH_RUN_ID:-}" ]; then
+            if ! [[ "$DISPATCH_RUN_ID" =~ ^[0-9]+$ ]]; then
+              echo "::error::run_id must be a positive integer"
+              exit 1
+            fi
+            RUN_ID="$DISPATCH_RUN_ID"
+          elif [ -n "${TRIGGER_RUN_ID:-}" ]; then
+            RUN_ID="$TRIGGER_RUN_ID"
           else
-            VERSION=$(grep -Po '(?<=^version = ")[^"]*' pyproject.toml)
+            echo "::error::No upstream run id available; provide run_id input"
+            exit 1
           fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          # Verify the run actually belongs to the Semantic Release workflow.
+          # Without this guard, any user with Actions:write could pass a
+          # run_id from a different workflow that happens to have a
+          # release-dist artifact and mint a fraudulent SLSA attestation.
+          # The workflow_run trigger filter already constrains the
+          # automated path; this closes the workflow_dispatch path.
+          RUN_NAME=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" --jq '.name')
+          RUN_CONCLUSION=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" --jq '.conclusion')
+          if [ "$RUN_NAME" != "Semantic Release" ]; then
+            echo "::error::Run $RUN_ID is from workflow '$RUN_NAME', not 'Semantic Release'; refusing to attest"
+            exit 1
+          fi
+          if [ "$RUN_CONCLUSION" != "success" ]; then
+            echo "::error::Run $RUN_ID conclusion is '$RUN_CONCLUSION', not 'success'; refusing to attest"
+            exit 1
+          fi
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
 
-      - name: Build package
-        run: uv build
+      - name: Download release-dist artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-dist
+          path: dist
+          run-id: ${{ steps.source_run.outputs.run_id }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+
+      - name: List downloaded artifacts
+        run: |
+          set -euo pipefail
+          ls -lh dist/
+          if [ -z "$(ls -A dist/ 2>/dev/null)" ]; then
+            echo "::error::dist/ is empty after download; upstream release-dist artifact missing"
+            exit 1
+          fi
+
+      - name: Resolve release tag
+        id: tag
+        env:
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Prefer the tag created by Semantic Release at the head SHA;
+          # fall back to the latest published release.
+          # Inputs flow through jq --arg rather than shell interpolation
+          # so the jq filter cannot be malformed by an unexpected character
+          # in head_branch or head_sha.
+          TAG=""
+          if [ -n "${HEAD_SHA:-}" ]; then
+            TAG=$(gh api "repos/${GITHUB_REPOSITORY}/releases" \
+              | jq -r --arg b "${HEAD_BRANCH:-main}" --arg s "${HEAD_SHA}" \
+                  '.[] | select(.target_commitish==$b or .target_commitish==$s) | .tag_name' \
+                2>/dev/null | head -1 || true)
+          fi
+          if [ -z "$TAG" ]; then
+            TAG=$(gh release list --repo "${GITHUB_REPOSITORY}" --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || true)
+          fi
+          if [ -z "$TAG" ]; then
+            echo "::warning::Could not resolve release tag; provenance will not attach to a release"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Generate SHA256 hashes
         id: hashes
         run: |
+          set -euo pipefail
           cd dist
-          HASHES=$(sha256sum * | base64 -w0)
-          echo "hashes=$HASHES" >> $GITHUB_OUTPUT
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: dist-${{ steps.version.outputs.version }}
-          path: dist/
-          retention-days: 90
-
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
-        with:
-          subject-path: 'dist/*'
+          # Hash only release distribution files (wheel, sdist).
+          # Sort for determinism; base64 -w0 for single-line output.
+          HASHES=$(sha256sum -- *.whl *.tar.gz 2>/dev/null | sort | base64 -w0)
+          if [ -z "$HASHES" ]; then
+            echo "::error::No .whl or .tar.gz files in dist/ to hash"
+            exit 1
+          fi
+          echo "hashes=$HASHES" >> "$GITHUB_OUTPUT"
 
   # ==========================================================================
-  # SLSA Level 3 Provenance (Org-Level Reusable Workflow)
+  # SLSA Level 3 Provenance (inline; the official generator is itself a
+  # reusable workflow and GitHub Actions forbids nested reusable calls,
+  # so this MUST live in the caller workflow, not in a wrapper.)
   # ==========================================================================
-  slsa:
-    name: SLSA Level 3
-    needs: [build]
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-slsa.yml@961eb17d8e9b7fe0d8bfc5dbe9d23c824484fb11 # main
-    with:
-      base64-subjects: ${{ needs.build.outputs.hashes }}
-      upload-assets: true
+  provenance:
+    name: Generate SLSA Provenance
+    needs: [hash]
     permissions:
+      actions: read
       id-token: write
       contents: write
-      actions: read
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a  # v2.1.0
+    with:
+      base64-subjects: ${{ needs.hash.outputs.hashes }}
+      upload-assets: true
+      upload-tag-name: ${{ needs.hash.outputs.tag }}
+      provenance-name: multiple.intoto.jsonl
