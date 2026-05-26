@@ -1,154 +1,160 @@
 # SLSA Provenance Generation for RAG Processor
 # Generates SLSA Level 3 provenance attestations for published packages.
 #
-# This workflow downloads pre-built distribution artifacts (never rebuilds
-# from source), hashes them, and calls the org-level SLSA provenance
-# workflow to create cryptographic attestations.
+# This workflow downloads the dist artifacts produced by the upstream
+# Semantic Release run, computes their SHA256 hashes, and calls the
+# official SLSA Level 3 generator inline. The org-level python-slsa.yml
+# is a TEMPLATE (workflow_dispatch only, not workflow_call), so the
+# generator must be invoked directly here.
 #
 # Why download instead of rebuild?
-#   SLSA attestation must describe the exact files that were published. If
-#   the provenance job rebuilt the package locally, the attested hashes
-#   would diverge from the artifacts attached to the GitHub Release (and
-#   any future PyPI upload), defeating the supply-chain guarantee.
+#   SLSA provenance must attest to the exact bytes that were published.
+#   Locally rebuilt artifacts can differ from the published bytes due to
+#   non-deterministic builds, defeating the purpose of the attestation.
+#   The Semantic Release workflow uploads `release-dist` (dist/*.whl and
+#   *.tar.gz), so we hash those.
 #
-# Artifact sources:
-#   - workflow_run trigger: downloads the `release-dist` artifact uploaded
-#     by the upstream "Semantic Release" run that produced this version.
-#   - workflow_dispatch trigger: downloads the dist files attached to the
-#     matching GitHub Release (`v<version>` tag) via the GitHub CLI.
+# Why inline instead of `uses: BWCPA/.github/.github/workflows/python-slsa.yml`?
+#   The org template has `on: workflow_dispatch:` only (no workflow_call),
+#   and even if it did, the official SLSA generator it calls is itself a
+#   reusable workflow. GitHub Actions forbids nested reusable workflow
+#   calls, so the generator must be invoked from this caller directly.
 #
 # Reference: https://slsa.dev/
 name: SLSA Provenance
 
 on:
-  # Trigger after successful release
+  # Trigger after successful release run
   workflow_run:
     workflows: ["Semantic Release"]
     types: [completed]
     branches: [main, master]
-  # Manual trigger for re-generating provenance against an existing release
+  # Manual trigger uses a specific Semantic Release run id
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Released version to generate provenance for (e.g., 0.1.0)'
-        required: true
+      run_id:
+        description: 'Semantic Release run ID whose dist artifact to attest'
+        required: false
         type: string
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   # ==========================================================================
-  # Download Pre-Built Artifacts and Generate Hashes
+  # Hash the published dist artifacts (download, do not rebuild)
   # ==========================================================================
-  collect:
-    name: Collect Release Artifacts
+  hash:
+    name: Hash Published Artifacts
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # Only attest successful releases (skip cancelled, skipped, or failed upstream runs)
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch'
+          || github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: read
       actions: read
     outputs:
       hashes: ${{ steps.hashes.outputs.hashes }}
-      version: ${{ steps.version.outputs.version }}
-
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - name: Harden the runner
         uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
         with:
           egress-policy: audit  # TODO: switch to block after 2026-06-30 (SLSA L3 hermetic build isolation)
 
-      # workflow_run path: the upstream Semantic Release job uploads dist/
-      # as the `release-dist` artifact (5-day retention). Pull it directly
-      # so the hashes attest the published bytes, not a fresh local build.
-      - name: Download release-dist from upstream Semantic Release run
-        if: ${{ github.event_name == 'workflow_run' }}
+      - name: Resolve source run id
+        id: source_run
+        env:
+          DISPATCH_RUN_ID: ${{ github.event.inputs.run_id }}
+          TRIGGER_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          if [ -n "${DISPATCH_RUN_ID:-}" ]; then
+            if ! [[ "$DISPATCH_RUN_ID" =~ ^[0-9]+$ ]]; then
+              echo "::error::run_id must be a positive integer"
+              exit 1
+            fi
+            RUN_ID="$DISPATCH_RUN_ID"
+          elif [ -n "${TRIGGER_RUN_ID:-}" ]; then
+            RUN_ID="$TRIGGER_RUN_ID"
+          else
+            echo "::error::No upstream run id available; provide run_id input"
+            exit 1
+          fi
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Download release-dist artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: release-dist
-          path: dist/
+          path: dist
+          run-id: ${{ steps.source_run.outputs.run_id }}
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
-          run-id: ${{ github.event.workflow_run.id }}
 
-      # workflow_dispatch path: a release was published earlier and the
-      # GHA artifact retention may have lapsed. Download the dist files
-      # that were attached to the GitHub Release for the requested tag.
-      - name: Download dist from GitHub Release
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+      - name: List downloaded artifacts
+        run: |
+          set -euo pipefail
+          ls -lh dist/
+          if [ -z "$(ls -A dist/ 2>/dev/null)" ]; then
+            echo "::error::dist/ is empty after download; upstream release-dist artifact missing"
+            exit 1
+          fi
+
+      - name: Resolve release tag
+        id: tag
         env:
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           GH_TOKEN: ${{ github.token }}
-          INPUT_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          if ! [[ "$INPUT_VERSION" =~ ^[A-Za-z0-9._+-]+$ ]]; then
-            echo "::error::Invalid version input: must match ^[A-Za-z0-9._+-]+$"
-            exit 1
+          # Prefer the tag created by Semantic Release at the head SHA;
+          # fall back to the latest published release.
+          TAG=""
+          if [ -n "${HEAD_SHA:-}" ]; then
+            TAG=$(gh api "repos/${GITHUB_REPOSITORY}/releases" \
+              --jq ".[] | select(.target_commitish==\"${HEAD_BRANCH:-main}\" or .target_commitish==\"${HEAD_SHA}\") | .tag_name" \
+              2>/dev/null | head -1 || true)
           fi
-          TAG="v$INPUT_VERSION"
-          mkdir -p dist
-          # Pull wheels and sdists attached to the release.
-          gh release download "$TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --dir dist \
-            --pattern '*.whl' \
-            --pattern '*.tar.gz'
-
-      - name: Determine version
-        id: version
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          INPUT_VERSION: ${{ inputs.version }}
-        run: |
-          set -euo pipefail
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            VERSION="$INPUT_VERSION"
-          else
-            # Extract version from the wheel filename produced upstream.
-            WHEEL=$(find dist -maxdepth 1 -name '*.whl' -print -quit)
-            if [ -z "$WHEEL" ]; then
-              echo "::error::No wheel found in downloaded dist/ artifact"
-              find dist -maxdepth 1 -type f -printf '%p\n' || true
-              exit 1
-            fi
-            BASENAME=$(basename "$WHEEL")
-            VERSION=$(echo "$BASENAME" | awk -F'-' '{print $2}')
+          if [ -z "$TAG" ]; then
+            TAG=$(gh release list --repo "${GITHUB_REPOSITORY}" --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || true)
           fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
-      - name: Verify dist contents
-        run: |
-          set -euo pipefail
-          echo "Files attested by this provenance run:"
-          find dist -maxdepth 1 -type f -printf '%f  %s bytes\n'
-          # Refuse to attest an empty directory; SLSA generator would
-          # otherwise emit a meaningless provenance.
-          WHEEL=$(find dist -maxdepth 1 -name '*.whl' -print -quit)
-          SDIST=$(find dist -maxdepth 1 -name '*.tar.gz' -print -quit)
-          if [ -z "$WHEEL" ] && [ -z "$SDIST" ]; then
-            echo "::error::No wheel or sdist found in dist/; nothing to attest"
-            exit 1
+          if [ -z "$TAG" ]; then
+            echo "::warning::Could not resolve release tag; provenance will not attach to a release"
           fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Generate SHA256 hashes
         id: hashes
-        working-directory: dist
         run: |
           set -euo pipefail
-          HASHES=$(sha256sum ./* | base64 -w0)
+          cd dist
+          # Hash only release distribution files (wheel, sdist).
+          # Sort for determinism; base64 -w0 for single-line output.
+          HASHES=$(sha256sum -- *.whl *.tar.gz 2>/dev/null | sort | base64 -w0)
+          if [ -z "$HASHES" ]; then
+            echo "::error::No .whl or .tar.gz files in dist/ to hash"
+            exit 1
+          fi
           echo "hashes=$HASHES" >> "$GITHUB_OUTPUT"
 
   # ==========================================================================
-  # SLSA Level 3 Provenance (Org-Level Reusable Workflow)
+  # SLSA Level 3 Provenance (inline; the official generator is itself a
+  # reusable workflow and GitHub Actions forbids nested reusable calls,
+  # so this MUST live in the caller workflow, not in a wrapper.)
   # ==========================================================================
-  slsa:
-    name: SLSA Level 3
-    needs: [collect]
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-slsa.yml@961eb17d8e9b7fe0d8bfc5dbe9d23c824484fb11 # main
-    with:
-      base64-subjects: ${{ needs.collect.outputs.hashes }}
-      upload-assets: true
+  provenance:
+    name: Generate SLSA Provenance
+    needs: [hash]
     permissions:
+      actions: read
       id-token: write
       contents: write
-      actions: read
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a  # v2.1.0
+    with:
+      base64-subjects: ${{ needs.hash.outputs.hashes }}
+      upload-assets: true
+      upload-tag-name: ${{ needs.hash.outputs.tag }}
+      provenance-name: multiple.intoto.jsonl
