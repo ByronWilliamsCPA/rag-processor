@@ -4,7 +4,7 @@
 # =============================================================================
 # Stage 1: Dependencies
 # =============================================================================
-FROM node:22-alpine AS deps
+FROM node:22-alpine@sha256:968df39aedcea65eeb078fb336ed7191baf48f972b4479711397108be0966920 AS deps
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ RUN npm ci --only=production=false
 # =============================================================================
 # Stage 2: Builder
 # =============================================================================
-FROM node:22-alpine AS builder
+FROM node:22-alpine@sha256:968df39aedcea65eeb078fb336ed7191baf48f972b4479711397108be0966920 AS builder
 
 WORKDIR /app
 
@@ -37,7 +37,7 @@ RUN npm run build
 # =============================================================================
 # Stage 3: Production (nginx)
 # =============================================================================
-FROM nginx:alpine AS production
+FROM nginx:alpine@sha256:8b1e78743a03dbb2c95171cc58639fef29abc8816598e27fb910ed2e621e589a AS production
 
 # Metadata labels
 LABEL org.opencontainers.image.title="RAG Processor Frontend"
@@ -74,7 +74,7 @@ CMD ["nginx", "-g", "daemon off;"]
 # =============================================================================
 # Stage 4: Development (optional - for docker-compose dev)
 # =============================================================================
-FROM node:22-alpine AS development
+FROM node:22-alpine@sha256:968df39aedcea65eeb078fb336ed7191baf48f972b4479711397108be0966920 AS development
 
 WORKDIR /app
 
