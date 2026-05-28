@@ -11,7 +11,9 @@
 name: Semantic Release
 
 "on":
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches:
       - main
       - master
@@ -30,7 +32,7 @@ name: Semantic Release
 
 # Prevent concurrent releases
 concurrency:
-  group: "release-${{ github.ref }}"
+  group: "release-${{ github.event.workflow_run.head_branch || github.ref_name }}"
   cancel-in-progress: false
 
 permissions:
@@ -44,6 +46,9 @@ permissions:
 jobs:
   release:
     name: Release Pipeline
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     uses: ByronWilliamsCPA/.github/.github/workflows/python-release.yml@74c633acfdd5f707ab154fd59bd212c6df663dd6 # main
     with:
       python-version: '3.12'
@@ -53,5 +58,6 @@ jobs:
       force-release: "${{ github.event.inputs.force_release || '' }}"
       publish-to-pypi: false  # re-enable when PyPI project is registered
       pypi-package-name: 'rag-processor'
-      run-tests: true
+      run-tests: false
+      skip-tests-reason: 'Tests run in upstream CI pipeline before this workflow fires'
       no-build: false
