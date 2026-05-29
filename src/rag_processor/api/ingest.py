@@ -35,7 +35,7 @@ from rag_processor.websocket.events import (
     EventType,
     create_batch_event,
     create_job_event,
-    publish_event,
+    publish_event_safe,
 )
 
 logger = get_logger(__name__)
@@ -70,34 +70,37 @@ def _submit_batch(batch: Batch, jobs: list[Job]) -> None:
 
     try:
         enqueue_batch_jobs(batch, jobs)
-
-        publish_event(
-            create_batch_event(
-                EventType.BATCH_CREATED,
-                batch.batch_id,
-                batch.status.value,
-                message="Batch created",
-                total_files=batch.total_files,
-            )
-        )
-        for job in jobs:
-            publish_event(
-                create_job_event(
-                    EventType.JOB_QUEUED,
-                    batch.batch_id,
-                    job.job_id,
-                    job.status.value,
-                    filename=job.filename,
-                    pipeline=job.routed_to.value,
-                )
-            )
-    except (RedisError, OSError) as e:
+    except (RedisError, OSError):
         # Graceful degradation: the upload is accepted (files persisted to
         # disk) even if the queue backend is briefly unavailable.
         logger.exception(
             "Failed to persist/enqueue batch; upload accepted but not queued",
             batch_id=str(batch.batch_id),
-            error=str(e),
+        )
+        return
+
+    # Event delivery is best-effort and isolated from enqueue accounting: a
+    # publish failure here must not be reported as a queueing failure, and each
+    # event is attempted independently.
+    publish_event_safe(
+        create_batch_event(
+            EventType.BATCH_CREATED,
+            batch.batch_id,
+            batch.status.value,
+            message="Batch created",
+            total_files=batch.total_files,
+        )
+    )
+    for job in jobs:
+        publish_event_safe(
+            create_job_event(
+                EventType.JOB_QUEUED,
+                batch.batch_id,
+                job.job_id,
+                job.status.value,
+                filename=job.filename,
+                pipeline=job.routed_to.value,
+            )
         )
 
 

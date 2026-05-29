@@ -8,38 +8,20 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID  # noqa: TC003 - Used at runtime in function signatures
 
-from redis.exceptions import RedisError
-
 from rag_processor.models.batch import Batch, BatchStatus
 from rag_processor.models.job import Job, JobStatus
 from rag_processor.queue.client import get_queue_client
 from rag_processor.queue.redis_store import get_redis_store
 from rag_processor.utils.logging import get_logger
 from rag_processor.websocket.events import (
-    BatchEvent,
     EventType,
     create_job_event,
-    publish_event,
+    publish_event_safe,
 )
 
 UTC = timezone.utc  # noqa: UP017
 
 logger = get_logger(__name__)
-
-
-def _safe_publish(event: BatchEvent) -> None:
-    """Publish an event, swallowing backend errors.
-
-    Event delivery is best-effort: a transient pub/sub failure must never fail
-    the job that produced the event.
-
-    Args:
-        event: The event to publish.
-    """
-    try:
-        publish_event(event)
-    except (RedisError, OSError) as e:
-        logger.debug("Event publish failed (non-fatal)", error=str(e))
 
 
 def enqueue_job(job: Job) -> str:
@@ -224,7 +206,7 @@ def process_job_task(job_id: str) -> dict[str, str]:
         status=JobStatus.PROCESSING.value,
         started_at=datetime.now(tz=UTC).isoformat(),
     )
-    _safe_publish(
+    publish_event_safe(
         create_job_event(
             EventType.JOB_PROCESSING,
             job.batch_id,
@@ -250,7 +232,7 @@ def process_job_task(job_id: str) -> dict[str, str]:
         status=JobStatus.COMPLETED.value,
         completed_at=datetime.now(tz=UTC).isoformat(),
     )
-    _safe_publish(
+    publish_event_safe(
         create_job_event(
             EventType.JOB_COMPLETED,
             job.batch_id,

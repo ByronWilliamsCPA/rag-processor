@@ -93,8 +93,10 @@ class EventBridge:
 
         if self._task is not None:
             self._task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._task
+            # Await the task so cancellation fully propagates. gather(...) with
+            # return_exceptions=True absorbs the resulting CancelledError instead
+            # of re-raising it here.
+            await asyncio.gather(self._task, return_exceptions=True)
             self._task = None
 
         await self._cleanup()

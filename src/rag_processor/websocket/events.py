@@ -13,6 +13,7 @@ from uuid import UUID, uuid4
 
 import redis
 from pydantic import BaseModel, Field
+from redis.exceptions import RedisError
 
 from rag_processor.core.config import settings
 from rag_processor.utils.logging import get_logger
@@ -135,6 +136,32 @@ def publish_event(event: BatchEvent, redis_client: redis.Redis | None = None) ->
         batch_id=batch_id,
         job_id=str(event.job_id) if event.job_id else None,
     )
+
+
+def publish_event_safe(
+    event: BatchEvent, redis_client: redis.Redis | None = None
+) -> bool:
+    """Publish an event, swallowing backend errors (best-effort delivery).
+
+    Event delivery is best-effort: a transient pub/sub failure must never fail
+    the caller (an upload that already succeeded, or a job that already ran).
+    Each call is independent, so callers can publish a sequence of events and a
+    failure on one does not prevent the others from being attempted.
+
+    Args:
+        event: Event to publish.
+        redis_client: Optional Redis client (for testing).
+
+    Returns:
+        True if the event was published, False if the backend was unavailable.
+    """
+    try:
+        publish_event(event, redis_client)
+    except (RedisError, OSError) as e:
+        logger.debug("Event publish failed (non-fatal)", error=str(e))
+        return False
+    else:
+        return True
 
 
 def get_event_history(

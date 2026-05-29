@@ -168,6 +168,32 @@ class TestIngestPersistsAndStatus:
         assert response.status_code == status.HTTP_201_CREATED
         assert not patched_backends.enqueue.called
 
+    def test_upload_accepted_when_queue_backend_unavailable(
+        self,
+        client: TestClient,
+        sample_pdf: BytesIO,
+        mock_ingest_settings: MagicMock,
+    ) -> None:
+        """If enqueue raises a RedisError, the upload still succeeds (degrades)."""
+        from redis.exceptions import ConnectionError as RedisConnectionError
+
+        with (
+            patch("rag_processor.api.ingest.detect_mime_type") as mock_detect,
+            patch(
+                "rag_processor.api.ingest.enqueue_batch_jobs",
+                side_effect=RedisConnectionError("redis down"),
+            ),
+        ):
+            mock_detect.return_value = "application/pdf"
+            response = client.post(
+                "/api/v1/ingest",
+                files=[("files", ("test.pdf", sample_pdf, "application/pdf"))],
+            )
+
+        # Files are on disk; the upload is accepted even though queueing failed.
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.json()["total_files"] == 1
+
 
 @pytest.mark.integration
 class TestWorkerPublishesEvents:

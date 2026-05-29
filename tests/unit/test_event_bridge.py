@@ -7,6 +7,7 @@ gracefully even when Redis is unavailable.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from unittest.mock import AsyncMock, patch
 
@@ -97,3 +98,63 @@ class TestEventBridgeLifecycle:
         assert bridge.running is False
         # stop() on a never-started bridge must be safe.
         await bridge.stop()
+
+    @pytest.mark.asyncio
+    async def test_start_listen_relay_stop_end_to_end(self) -> None:
+        """A published event is consumed by the listener and broadcast, then stop() cleans up."""
+        from fakeredis import FakeServer
+        from fakeredis.aioredis import FakeRedis
+
+        server = FakeServer()
+
+        def _fake_redis(*_args: object, **_kwargs: object) -> FakeRedis:
+            return FakeRedis(server=server, decode_responses=True)
+
+        with (
+            patch(
+                "rag_processor.websocket.bridge.aioredis.Redis",
+                side_effect=_fake_redis,
+            ),
+            patch(
+                "rag_processor.websocket.bridge.connection_manager.broadcast",
+                new=AsyncMock(return_value=1),
+            ) as mock_broadcast,
+        ):
+            bridge = EventBridge()
+            await bridge.start()
+            assert bridge.running is True
+
+            publisher = FakeRedis(server=server, decode_responses=True)
+            await publisher.publish(
+                "batch:xyz:events",
+                json.dumps({"batch_id": "xyz", "event_type": "job_completed"}),
+            )
+
+            # Give the listener task time to receive and relay the message.
+            for _ in range(50):
+                if mock_broadcast.await_count:
+                    break
+                await asyncio.sleep(0.02)
+
+            await publisher.aclose()
+            await bridge.stop()
+
+        mock_broadcast.assert_awaited()
+        assert mock_broadcast.await_args.args[0] == "xyz"
+        assert bridge.running is False
+
+
+@pytest.mark.integration
+class TestAppLifespanStartsBridge:
+    """The application lifespan starts and stops the event bridge."""
+
+    def test_lifespan_runs_bridge_start_and_stop(self) -> None:
+        """Entering/exiting the app context triggers bridge startup and shutdown."""
+        from fastapi.testclient import TestClient
+
+        from rag_processor.main import app
+
+        # Using TestClient as a context manager runs the lifespan handler.
+        with TestClient(app) as client:
+            assert client.get("/health/live").status_code == 200
+            assert isinstance(app.state.event_bridge, EventBridge)
