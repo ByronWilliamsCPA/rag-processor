@@ -14,7 +14,9 @@ import aiofiles
 import magic
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
+from redis.exceptions import RedisError
 
+from rag_processor.api.dependencies import get_file_router
 from rag_processor.auth.dependencies import get_current_user
 from rag_processor.auth.models import CloudflareUser
 from rag_processor.core.config import settings
@@ -26,8 +28,15 @@ from rag_processor.models.job import (
     Pipeline,
     Priority,
 )
+from rag_processor.queue.jobs import enqueue_batch_jobs
 from rag_processor.routing import FileRouter
 from rag_processor.utils.logging import get_logger
+from rag_processor.websocket.events import (
+    EventType,
+    create_batch_event,
+    create_job_event,
+    publish_event,
+)
 
 logger = get_logger(__name__)
 
@@ -36,8 +45,60 @@ router = APIRouter(prefix="/ingest", tags=["ingest"])
 # Compile regex for filename sanitization
 SAFE_FILENAME_PATTERN = re.compile(r"[^\w\s\-.]")
 
-# File router for classification and pipeline routing
-file_router = FileRouter()
+
+def _submit_batch(batch: Batch, jobs: list[Job]) -> None:
+    """Persist a batch and its jobs and enqueue them for processing.
+
+    Publishes a ``BATCH_CREATED`` event plus a ``JOB_QUEUED`` event per job so
+    that connected WebSocket clients see the work appear immediately.
+
+    Degrades gracefully: if persistence is disabled (``persist_enabled=False``)
+    the step is skipped, and if the queue backend is unavailable the failure is
+    logged without failing the upload (the files are already on disk). Status
+    endpoints will surface the batch only once persistence succeeds.
+
+    Args:
+        batch: The batch to persist and enqueue.
+        jobs: The validated jobs belonging to the batch.
+    """
+    if not settings.persist_enabled:
+        logger.info(
+            "Persistence disabled; upload accepted without queueing",
+            batch_id=str(batch.batch_id),
+        )
+        return
+
+    try:
+        enqueue_batch_jobs(batch, jobs)
+
+        publish_event(
+            create_batch_event(
+                EventType.BATCH_CREATED,
+                batch.batch_id,
+                batch.status.value,
+                message="Batch created",
+                total_files=batch.total_files,
+            )
+        )
+        for job in jobs:
+            publish_event(
+                create_job_event(
+                    EventType.JOB_QUEUED,
+                    batch.batch_id,
+                    job.job_id,
+                    job.status.value,
+                    filename=job.filename,
+                    pipeline=job.routed_to.value,
+                )
+            )
+    except (RedisError, OSError) as e:
+        # Graceful degradation: the upload is accepted (files persisted to
+        # disk) even if the queue backend is briefly unavailable.
+        logger.exception(
+            "Failed to persist/enqueue batch; upload accepted but not queued",
+            batch_id=str(batch.batch_id),
+            error=str(e),
+        )
 
 
 class JobResponse(BaseModel):
@@ -215,6 +276,7 @@ async def ingest_files(
         Form(description="Target vector store for handoff"),
     ] = None,
     user: CloudflareUser = Depends(get_current_user),
+    file_router: FileRouter = Depends(get_file_router),
 ) -> IngestResponse:
     """Upload files for RAG pipeline processing.
 
@@ -230,6 +292,8 @@ async def ingest_files(
         priority: Processing priority (high, normal, low).
         target_vector_store: Optional target vector store identifier.
         user: Authenticated user from Cloudflare Access.
+        file_router: Injected router that classifies files and selects a
+            processing pipeline.
 
     Returns:
         IngestResponse containing the new batch ID, batch status, total
@@ -327,8 +391,9 @@ async def ingest_files(
     # Update batch with actual valid file count
     batch.total_files = len(jobs)
 
-    # TODO: Store batch and jobs in Redis (Sprint 1.14)
-    # TODO: Enqueue jobs in RQ (Sprint 1.14)
+    # Persist the batch + jobs and enqueue them for background processing.
+    # Degrades gracefully if the queue backend is unavailable.
+    _submit_batch(batch, jobs)
 
     logger.info(
         "Batch created",

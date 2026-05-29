@@ -83,6 +83,17 @@ class Settings(BaseSettings):
         description="Rate limit requests per minute per IP",
     )
 
+    # Job persistence / queueing
+    persist_enabled: bool = Field(
+        default=True,
+        description=(
+            "Persist uploaded batches/jobs to Redis and enqueue them for "
+            "background processing. When the queue backend is unavailable the "
+            "upload still succeeds and the failure is logged (graceful "
+            "degradation). Set to false to accept uploads without queueing."
+        ),
+    )
+
     # Redis
     redis_host: str = Field(
         default="localhost",

@@ -6,7 +6,7 @@ Manages active WebSocket connections per batch for broadcasting events.
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from rag_processor.utils.logging import get_logger
 
@@ -76,7 +76,7 @@ class ConnectionManager:
     async def broadcast(
         self,
         batch_id: UUID | str,
-        message: dict[str, str | int | float | bool | None],
+        message: dict[str, Any],
     ) -> int:
         """Broadcast a message to all connections for a batch.
 
@@ -124,7 +124,7 @@ class ConnectionManager:
     async def send_personal(
         self,
         websocket: WebSocket,
-        message: dict[str, str | int | float | bool | None],
+        message: dict[str, Any],
     ) -> bool:
         """Send a message to a specific WebSocket connection.
 
