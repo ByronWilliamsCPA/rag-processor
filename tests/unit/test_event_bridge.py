@@ -143,6 +143,50 @@ class TestEventBridgeLifecycle:
         assert mock_broadcast.await_args.args[0] == "xyz"
         assert bridge.running is False
 
+    @pytest.mark.asyncio
+    async def test_listen_reconnects_after_transient_error(self) -> None:
+        """A transient listener error triggers re-subscribe and resumed relaying."""
+        from redis.exceptions import ConnectionError as RedisConnectionError
+
+        bridge = EventBridge(initial_backoff=0, max_backoff=0)
+        bridge._running = True
+
+        class _FlakyPubSub:
+            """First listen() drops the connection; the second relays one event."""
+
+            def __init__(self) -> None:
+                self.attempt = 0
+
+            async def listen(self):
+                self.attempt += 1
+                if self.attempt == 1:
+                    raise RedisConnectionError("connection dropped")
+                yield {
+                    "type": "pmessage",
+                    "data": json.dumps(
+                        {"batch_id": "b1", "event_type": "job_completed"}
+                    ),
+                }
+                # Stop the loop after the first successful relay.
+                bridge._running = False
+
+        fake = _FlakyPubSub()
+
+        with (
+            patch.object(bridge, "_subscribe", new=AsyncMock(return_value=fake)),
+            patch.object(bridge, "_cleanup", new=AsyncMock()),
+            patch(
+                "rag_processor.websocket.bridge.connection_manager.broadcast",
+                new=AsyncMock(return_value=1),
+            ) as mock_broadcast,
+        ):
+            await bridge._listen()
+
+        # Despite the first-attempt failure, the event was relayed after retry.
+        mock_broadcast.assert_awaited_once()
+        assert mock_broadcast.await_args.args[0] == "b1"
+        assert fake.attempt == 2
+
 
 @pytest.mark.integration
 class TestAppLifespanStartsBridge:

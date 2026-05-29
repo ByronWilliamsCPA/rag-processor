@@ -47,12 +47,26 @@ class EventBridge:
         await bridge.stop()
     """
 
-    def __init__(self) -> None:
-        """Initialize the bridge in a stopped state."""
+    def __init__(
+        self,
+        *,
+        initial_backoff: float = 1.0,
+        max_backoff: float = 30.0,
+    ) -> None:
+        """Initialize the bridge in a stopped state.
+
+        Args:
+            initial_backoff: Initial delay (seconds) before the first reconnect
+                attempt after a listener error.
+            max_backoff: Upper bound (seconds) on the exponential reconnect
+                backoff.
+        """
         self._redis: aioredis.Redis | None = None
         self._pubsub: PubSub | None = None
         self._task: asyncio.Task[None] | None = None
         self._running = False
+        self._initial_backoff = initial_backoff
+        self._max_backoff = max_backoff
 
     @property
     def running(self) -> bool:
@@ -63,18 +77,12 @@ class EventBridge:
         """Subscribe to event channels and begin relaying messages.
 
         Safe to call when Redis is unavailable: failures are logged and the
-        bridge remains disabled instead of propagating the error.
+        bridge remains disabled instead of propagating the error. Once started,
+        transient Redis outages are handled by the listener, which reconnects
+        with bounded exponential backoff (see :meth:`_listen`).
         """
         try:
-            self._redis = aioredis.Redis(
-                host=settings.redis_host,
-                port=settings.redis_port,
-                password=settings.redis_password or None,
-                db=settings.redis_db,
-                decode_responses=True,
-            )
-            self._pubsub = self._redis.pubsub()
-            await self._pubsub.psubscribe(EVENT_CHANNEL_PATTERN)
+            await self._subscribe()
         except (RedisError, OSError) as e:
             logger.warning(
                 "Event bridge disabled: could not subscribe to Redis events",
@@ -102,6 +110,24 @@ class EventBridge:
         await self._cleanup()
         logger.info("Event bridge stopped")
 
+    async def _subscribe(self) -> PubSub:
+        """(Re)create the Redis client/pub-sub and subscribe to the pattern.
+
+        Returns:
+            The active pub/sub subscription.
+        """
+        if self._redis is None:
+            self._redis = aioredis.Redis(
+                host=settings.redis_host,
+                port=settings.redis_port,
+                password=settings.redis_password or None,
+                db=settings.redis_db,
+                decode_responses=True,
+            )
+        self._pubsub = self._redis.pubsub()
+        await self._pubsub.psubscribe(EVENT_CHANNEL_PATTERN)
+        return self._pubsub
+
     async def _cleanup(self) -> None:
         """Close the pub/sub subscription and Redis connection."""
         if self._pubsub is not None:
@@ -116,20 +142,40 @@ class EventBridge:
             self._redis = None
 
     async def _listen(self) -> None:
-        """Consume pub/sub messages and broadcast them to WebSocket clients."""
-        if self._pubsub is None:
-            return
+        """Consume pub/sub messages and broadcast them to WebSocket clients.
 
-        try:
-            async for message in self._pubsub.listen():
-                if message.get("type") != "pmessage":
-                    continue
-                await self._relay(message.get("data"))
-        except asyncio.CancelledError:
-            raise
-        except (RedisError, OSError) as e:
-            logger.warning("Event bridge listener stopped on error", error=str(e))
-            self._running = False
+        Resilient to transient Redis outages: if the subscription drops, the
+        loop re-subscribes with bounded exponential backoff instead of exiting
+        permanently, so clients resume receiving events once Redis recovers.
+        The loop ends only when :meth:`stop` is called (which cancels the task).
+        """
+        backoff = self._initial_backoff
+        while self._running:
+            try:
+                pubsub = (
+                    self._pubsub
+                    if self._pubsub is not None
+                    else await self._subscribe()
+                )
+                async for message in pubsub.listen():
+                    if message.get("type") == "pmessage":
+                        await self._relay(message.get("data"))
+                    # Healthy activity resets the backoff window.
+                    backoff = self._initial_backoff
+            except asyncio.CancelledError:
+                raise
+            except (RedisError, OSError) as e:
+                if not self._running:
+                    break
+                logger.warning(
+                    "Event bridge listener error; reconnecting",
+                    error=str(e),
+                    retry_in_seconds=backoff,
+                )
+                # Drop the broken connection so the next iteration re-subscribes.
+                await self._cleanup()
+                await asyncio.sleep(backoff)
+                backoff = min(backoff * 2, self._max_backoff)
 
     async def _relay(self, raw: Any) -> None:
         """Parse a raw pub/sub payload and broadcast it to the batch's clients.
