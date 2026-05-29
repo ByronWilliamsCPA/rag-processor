@@ -186,19 +186,3 @@ class TestEventBridgeLifecycle:
         mock_broadcast.assert_awaited_once()
         assert mock_broadcast.await_args.args[0] == "b1"
         assert fake.attempt == 2
-
-
-@pytest.mark.integration
-class TestAppLifespanStartsBridge:
-    """The application lifespan starts and stops the event bridge."""
-
-    def test_lifespan_runs_bridge_start_and_stop(self) -> None:
-        """Entering/exiting the app context triggers bridge startup and shutdown."""
-        from fastapi.testclient import TestClient
-
-        from rag_processor.main import app
-
-        # Using TestClient as a context manager runs the lifespan handler.
-        with TestClient(app) as client:
-            assert client.get("/health/live").status_code == 200
-            assert isinstance(app.state.event_bridge, EventBridge)

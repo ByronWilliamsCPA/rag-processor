@@ -15,6 +15,7 @@ import magic
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
 from redis.exceptions import RedisError
+from starlette.concurrency import run_in_threadpool
 
 from rag_processor.api.dependencies import get_file_router
 from rag_processor.auth.dependencies import get_current_user
@@ -395,8 +396,10 @@ async def ingest_files(
     batch.total_files = len(jobs)
 
     # Persist the batch + jobs and enqueue them for background processing.
-    # Degrades gracefully if the queue backend is unavailable.
-    _submit_batch(batch, jobs)
+    # Degrades gracefully if the queue backend is unavailable. The Redis/RQ
+    # calls inside are synchronous, so run them in a worker thread to keep the
+    # blocking network I/O off the event loop.
+    await run_in_threadpool(_submit_batch, batch, jobs)
 
     logger.info(
         "Batch created",

@@ -177,7 +177,7 @@ class EventBridge:
                 await asyncio.sleep(backoff)
                 backoff = min(backoff * 2, self._max_backoff)
 
-    async def _relay(self, raw: Any) -> None:
+    async def _relay(self, raw: object) -> None:
         """Parse a raw pub/sub payload and broadcast it to the batch's clients.
 
         Args:

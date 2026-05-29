@@ -96,7 +96,11 @@ class ConnectionManager:
         sent_count = 0
         disconnected: list[WebSocket] = []
 
-        for websocket in connections:
+        # Iterate over a snapshot: ``connections`` is the live set, and a client
+        # disconnect during ``await send_json`` mutates it concurrently (the
+        # EventBridge broadcasts alongside the WebSocket receive loops). Iterating
+        # the live set directly would raise "Set changed size during iteration".
+        for websocket in list(connections):
             try:
                 await websocket.send_json(message)
                 sent_count += 1
