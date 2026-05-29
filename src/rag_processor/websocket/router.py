@@ -77,7 +77,8 @@ async def _replay_events(
         batch_id: Batch identifier.
         last_event_id: Last event ID received by client.
     """
-    history = get_event_history(batch_id)
+    # Offload the synchronous Redis read off the event loop.
+    history = await asyncio.to_thread(get_event_history, batch_id)
     found_last = False
 
     for event in history:
@@ -157,7 +158,7 @@ async def websocket_batch_status(
 
     # Verify batch exists and the caller owns it. Treat "not found" and
     # "not authorized" identically to avoid leaking batch IDs.
-    batch, _ = get_batch_status(batch_id)
+    batch, _ = await asyncio.to_thread(get_batch_status, batch_id)
     if batch is None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return

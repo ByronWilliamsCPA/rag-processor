@@ -52,6 +52,8 @@ def mock_ingest_settings(temp_upload_dir: str) -> Generator[None, None, None]:
             "text/plain",
         ]
         mock.upload_dir = temp_upload_dir
+        # No background enqueue in these tests (no Redis/worker available).
+        mock.enqueue_enabled = False
         yield mock
 
 

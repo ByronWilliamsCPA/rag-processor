@@ -11,25 +11,9 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
+from rag_processor.utils.time_utils import parse_iso_datetime as _parse_iso_datetime
+
 UTC = timezone.utc  # noqa: UP017
-
-
-def _parse_iso_datetime(value: str) -> datetime:
-    """Parse ISO format datetime string with Python 3.10 compatibility.
-
-    Python 3.10's fromisoformat() doesn't support 'Z' suffix for UTC.
-    This function handles both 'Z' suffix and '+00:00' format.
-
-    Args:
-        value: ISO format datetime string.
-
-    Returns:
-        Parsed datetime object.
-    """
-    # Replace Z suffix with +00:00 for Python 3.10 compatibility
-    if value.endswith("Z"):
-        value = value[:-1] + "+00:00"
-    return datetime.fromisoformat(value)
 
 
 class JobStatus(StrEnum):

@@ -426,6 +426,39 @@ class BusinessLogicError(ProjectBaseError):
         )
 
 
+def http_status_for(exc: ProjectBaseError) -> int:
+    """Map a project exception to an HTTP status code.
+
+    Used by the FastAPI exception handler so domain exceptions raised anywhere
+    in the application are translated into consistent HTTP responses. Subclasses
+    are checked before their base classes.
+
+    Args:
+        exc: The project exception instance.
+
+    Returns:
+        The HTTP status code to return for this exception.
+    """
+    # Ordered most-specific-first so subclasses (e.g. DatabaseError, which
+    # extends ExternalServiceError) match before their base classes.
+    status_by_type: tuple[tuple[type[ProjectBaseError], int], ...] = (
+        (DatabaseError, 503),
+        (APIError, 502),
+        (ExternalServiceError, 502),
+        (AuthenticationError, 401),
+        (AuthorizationError, 403),
+        (ResourceNotFoundError, 404),
+        (ValidationError, 400),
+        (BusinessLogicError, 409),
+        (ConfigurationError, 500),
+    )
+    for exc_type, http_status in status_by_type:
+        if isinstance(exc, exc_type):
+            return http_status
+    # Base ProjectBaseError or any unmapped subclass.
+    return 500
+
+
 # Export all exceptions
 __all__ = [
     "APIError",
@@ -438,4 +471,5 @@ __all__ = [
     "ProjectBaseError",
     "ResourceNotFoundError",
     "ValidationError",
+    "http_status_for",
 ]

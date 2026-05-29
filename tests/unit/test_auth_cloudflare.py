@@ -172,6 +172,19 @@ class TestVerifyCloudflareToken:
             await verify_cloudflare_token(token)
 
     @pytest.mark.anyio
+    async def test_token_within_leeway_is_accepted(self) -> None:
+        """Regression: WS path now shares the HTTP middleware's clock-skew leeway.
+
+        A token expired by less than the leeway must be accepted, matching the
+        middleware (previously verify_cloudflare_token used no leeway and would
+        reject it).
+        """
+        _jwks_cache.update({"keys": [PUBLIC_JWK]})
+        token = _make_token(exp_delta=timedelta(seconds=-3))
+        result = await verify_cloudflare_token(token)
+        assert result["email"] == "cf@example.com"
+
+    @pytest.mark.anyio
     async def test_missing_kid_raises(self) -> None:
         _jwks_cache.update({"keys": [PUBLIC_JWK]})
         token = _make_token(include_kid=False)

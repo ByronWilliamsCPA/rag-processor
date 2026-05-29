@@ -6,6 +6,7 @@ Supports bypass mode for local development without Cloudflare.
 
 from __future__ import annotations
 
+import asyncio
 import time
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -70,6 +71,117 @@ class _JWKSCache:
 
 
 _jwks_cache = _JWKSCache()
+
+# Serializes concurrent JWKS refreshes so a cache miss under load triggers a
+# single upstream fetch instead of a stampede against Cloudflare's endpoint.
+_jwks_lock = asyncio.Lock()
+
+# Leeway (seconds) applied to JWT exp/iat/nbf to tolerate minor clock skew.
+# Shared by the HTTP middleware and the WebSocket verification path so both
+# accept exactly the same tokens.
+_JWT_LEEWAY_SECONDS = 5
+
+
+async def _load_jwks(*, force_refresh: bool = False) -> JWKSData:
+    """Return JWKS, fetching from Cloudflare on cache miss under a lock.
+
+    Uses double-checked locking: the common case (valid cache) returns without
+    acquiring the lock; on a miss, the lock is taken and the cache re-checked so
+    only one coroutine performs the upstream fetch.
+
+    Args:
+        force_refresh: If True, bypass the cached value and refetch.
+
+    Returns:
+        The JWKS dictionary with public keys.
+    """
+    if not force_refresh and _jwks_cache.is_valid():
+        return _jwks_cache.data
+
+    async with _jwks_lock:
+        # Another coroutine may have refreshed while we waited for the lock.
+        if not force_refresh and _jwks_cache.is_valid():
+            return _jwks_cache.data
+
+        jwks_url = f"https://{settings.cloudflare_team_domain}/cdn-cgi/access/certs"
+        async with httpx.AsyncClient() as client:  # nosec B113 - timeout below
+            response = await client.get(jwks_url, timeout=10.0)
+            response.raise_for_status()
+            jwks: JWKSData = response.json()
+
+        _jwks_cache.update(jwks)
+        keys_list: list[Any] = jwks.get("keys", [])
+        logger.debug("Refreshed JWKS cache", keys_count=len(keys_list))
+        return jwks
+
+
+def _select_rsa_key(jwks: JWKSData, kid: str) -> RSAPublicKey | None:
+    """Find the RSA public key matching ``kid`` in a JWKS document.
+
+    Args:
+        jwks: JWKS dictionary.
+        kid: Key ID to find.
+
+    Returns:
+        The RSA public key, or None if no key matches.
+    """
+    keys_list: list[dict[str, Any]] = jwks.get("keys", [])
+    for key in keys_list:
+        if key.get("kid") == kid:
+            return RSAAlgorithm.from_jwk(key)  # type: ignore[return-value]
+    return None
+
+
+def _decode_cf_jwt(token: str, rsa_key: RSAPublicKey) -> dict[str, Any]:
+    """Validate and decode a Cloudflare Access JWT.
+
+    Single source of truth for signature/audience/issuer validation and clock
+    skew handling, shared by the HTTP middleware and the WebSocket path.
+
+    Args:
+        token: The JWT string.
+        rsa_key: The RSA public key to verify the signature against.
+
+    Returns:
+        The decoded token payload (claims).
+
+    Raises:
+        jwt.InvalidTokenError: If the token fails validation.
+    """
+    return jwt.decode(
+        token,
+        rsa_key,
+        algorithms=["RS256"],
+        audience=settings.cloudflare_audience_tag,
+        issuer=f"https://{settings.cloudflare_team_domain}",
+        leeway=_JWT_LEEWAY_SECONDS,
+    )
+
+
+def _resolve_key_or_raise(jwks: JWKSData, token: str) -> RSAPublicKey:
+    """Extract the ``kid`` from a token and resolve its RSA key.
+
+    Args:
+        jwks: JWKS dictionary.
+        token: The JWT string (header is read unverified to get the ``kid``).
+
+    Returns:
+        The matching RSA public key.
+
+    Raises:
+        jwt.InvalidTokenError: If the token has no ``kid`` or no key matches.
+    """
+    unverified_header = jwt.get_unverified_header(token)
+    kid = unverified_header.get("kid")
+    if not kid:
+        msg = "Token missing key ID"
+        raise jwt.InvalidTokenError(msg)
+
+    rsa_key = _select_rsa_key(jwks, kid)
+    if not rsa_key:
+        msg = f"Key {kid} not found in JWKS"
+        raise jwt.InvalidTokenError(msg)
+    return rsa_key
 
 
 class CloudflareAuthMiddleware(BaseHTTPMiddleware):
@@ -187,33 +299,12 @@ class CloudflareAuthMiddleware(BaseHTTPMiddleware):
         Raises:
             InvalidTokenError: If token is invalid or key not found.
         """
-        # Get JWKS for signature validation
+        # Get JWKS for signature validation, resolve the signing key, then
+        # validate/decode via the shared helpers (same logic as the WebSocket
+        # path).
         jwks = await self._get_jwks()
-
-        # Decode header to get key ID
-        unverified_header = jwt.get_unverified_header(token)
-        kid = unverified_header.get("kid")
-
-        if not kid:
-            msg = "Token missing key ID"
-            raise jwt.InvalidTokenError(msg)
-
-        # Find matching key
-        rsa_key = self._find_key(jwks, kid)
-        if not rsa_key:
-            msg = f"Key {kid} not found in JWKS"
-            raise jwt.InvalidTokenError(msg)
-
-        # Validate and decode token
-        # Use leeway to handle slight clock skew between systems
-        payload = jwt.decode(
-            token,
-            rsa_key,
-            algorithms=["RS256"],
-            audience=settings.cloudflare_audience_tag,
-            issuer=f"https://{settings.cloudflare_team_domain}",
-            leeway=5,  # 5 seconds leeway for clock skew
-        )
+        rsa_key = _resolve_key_or_raise(jwks, token)
+        payload = _decode_cf_jwt(token, rsa_key)
 
         # Parse claims and create user
         claims = TokenClaims(**payload)
@@ -222,26 +313,13 @@ class CloudflareAuthMiddleware(BaseHTTPMiddleware):
     async def _get_jwks(self) -> JWKSData:
         """Fetch JWKS from Cloudflare with caching.
 
+        Thin wrapper around the shared :func:`_load_jwks` loader. Kept as an
+        instance method so it remains an overridable seam for tests.
+
         Returns:
             JWKS dictionary with public keys.
         """
-        # Return cached JWKS if still valid
-        if _jwks_cache.is_valid():
-            return _jwks_cache.data
-
-        # Fetch fresh JWKS
-        jwks_url = f"https://{settings.cloudflare_team_domain}/cdn-cgi/access/certs"
-        async with httpx.AsyncClient() as client:  # nosec B113 - timeout is specified below
-            response = await client.get(jwks_url, timeout=10.0)
-            response.raise_for_status()
-            jwks: JWKSData = response.json()
-
-        # Update cache
-        _jwks_cache.update(jwks)
-
-        keys_list: list[Any] = jwks.get("keys", [])
-        logger.debug("Refreshed JWKS cache", keys_count=len(keys_list))
-        return jwks
+        return await _load_jwks()
 
     def _find_key(self, jwks: JWKSData, kid: str) -> RSAPublicKey | None:
         """Find RSA key by key ID in JWKS.
@@ -253,11 +331,7 @@ class CloudflareAuthMiddleware(BaseHTTPMiddleware):
         Returns:
             RSA public key or None if not found.
         """
-        keys_list: list[dict[str, Any]] = jwks.get("keys", [])
-        for key in keys_list:
-            if key.get("kid") == kid:
-                return RSAAlgorithm.from_jwk(key)  # type: ignore[return-value]
-        return None
+        return _select_rsa_key(jwks, kid)
 
     def _unauthorized_response(self, detail: str) -> JSONResponse:
         """Create 401 Unauthorized response.
@@ -297,45 +371,12 @@ async def verify_cloudflare_token(token: str) -> dict[str, Any]:
     Raises:
         InvalidTokenError: If token is invalid or expired.
     """
-    # Get JWKS for signature validation
-    if not _jwks_cache.is_valid():
-        jwks_url = f"https://{settings.cloudflare_team_domain}/cdn-cgi/access/certs"
-        async with httpx.AsyncClient() as client:  # nosec B113 - timeout below
-            response = await client.get(jwks_url, timeout=10.0)
-            response.raise_for_status()
-            jwks: JWKSData = response.json()
-        _jwks_cache.update(jwks)
-
-    jwks = _jwks_cache.data
-
-    # Decode header to get key ID
-    unverified_header = jwt.get_unverified_header(token)
-    kid = unverified_header.get("kid")
-
-    if not kid:
-        msg = "Token missing key ID"
-        raise jwt.InvalidTokenError(msg)
-
-    # Find matching key
-    rsa_key: RSAPublicKey | None = None
-    keys_list: list[dict[str, Any]] = jwks.get("keys", [])
-    for key in keys_list:
-        if key.get("kid") == kid:
-            rsa_key = RSAAlgorithm.from_jwk(key)  # type: ignore[assignment]
-            break
-
-    if not rsa_key:
-        msg = f"Key {kid} not found in JWKS"
-        raise jwt.InvalidTokenError(msg)
-
-    # Validate and decode token
-    payload = jwt.decode(
-        token,
-        rsa_key,
-        algorithms=["RS256"],
-        audience=settings.cloudflare_audience_tag,
-        issuer=f"https://{settings.cloudflare_team_domain}",
-    )
+    # Reuse the exact same JWKS loading, key resolution, and decode logic as
+    # the HTTP middleware so HTTP and WebSocket auth accept identical tokens
+    # (including the shared clock-skew leeway).
+    jwks = await _load_jwks()
+    rsa_key = _resolve_key_or_raise(jwks, token)
+    payload = _decode_cf_jwt(token, rsa_key)
 
     # Extract user info
     return {

@@ -5,7 +5,9 @@ Provides endpoints for uploading files for RAG pipeline processing.
 
 from __future__ import annotations
 
+import asyncio
 import re
+import shutil
 from pathlib import Path
 from typing import Annotated
 from uuid import UUID
@@ -26,6 +28,8 @@ from rag_processor.models.job import (
     Pipeline,
     Priority,
 )
+from rag_processor.queue.jobs import enqueue_batch_jobs
+from rag_processor.queue.redis_store import get_redis_store
 from rag_processor.routing import FileRouter
 from rag_processor.utils.logging import get_logger
 
@@ -185,6 +189,51 @@ async def validate_file(
     return content, mime_type, errors
 
 
+async def _persist_and_enqueue(
+    batch: Batch,
+    jobs: list[Job],
+    batch_dir: Path,
+) -> None:
+    """Persist a batch/jobs to Redis and enqueue them for processing.
+
+    Runs the synchronous enqueue off the event loop. On failure, rolls back the
+    persisted Redis state and the on-disk upload directory, then raises so the
+    client receives an error instead of a false success.
+
+    Args:
+        batch: The batch to persist and enqueue.
+        jobs: The jobs belonging to the batch.
+        batch_dir: The on-disk directory holding the uploaded files.
+
+    Raises:
+        HTTPException: 503 if persistence/enqueue fails.
+    """
+    try:
+        await asyncio.to_thread(enqueue_batch_jobs, batch, jobs)
+    except Exception as exc:
+        # Infra boundary: roll back on any Redis/RQ failure so we never report
+        # success for work that will not be processed.
+        logger.exception(
+            "Failed to persist/enqueue batch; rolling back",
+            batch_id=str(batch.batch_id),
+        )
+        # Best-effort rollback of partially-written Redis state and uploads.
+        try:
+            await asyncio.to_thread(get_redis_store().delete_batch, batch.batch_id)
+        except Exception:  # noqa: BLE001 - rollback is best-effort
+            logger.warning(
+                "Failed to roll back Redis state for batch",
+                batch_id=str(batch.batch_id),
+            )
+        shutil.rmtree(batch_dir, ignore_errors=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Upload accepted but could not be queued for processing. Please retry."
+            ),
+        ) from exc
+
+
 @router.post(
     "",
     response_model=IngestResponse,
@@ -327,8 +376,12 @@ async def ingest_files(
     # Update batch with actual valid file count
     batch.total_files = len(jobs)
 
-    # TODO: Store batch and jobs in Redis (Sprint 1.14)
-    # TODO: Enqueue jobs in RQ (Sprint 1.14)
+    # Persist the batch/jobs to Redis and enqueue them for background
+    # processing. Gated behind a setting so deployments without a Redis/RQ
+    # worker still accept uploads without attempting to queue them. The Redis
+    # client is synchronous, so run the enqueue off the event loop.
+    if settings.enqueue_enabled:
+        await _persist_and_enqueue(batch, jobs, batch_dir)
 
     logger.info(
         "Batch created",

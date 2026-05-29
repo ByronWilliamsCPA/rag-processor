@@ -13,8 +13,9 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from rag_processor import __version__
 from rag_processor.api import health_router
@@ -23,6 +24,8 @@ from rag_processor.api.ingest import router as ingest_router
 from rag_processor.api.user import router as user_router
 from rag_processor.auth.cloudflare import CloudflareAuthMiddleware
 from rag_processor.core.config import settings
+from rag_processor.core.exceptions import ProjectBaseError, http_status_for
+from rag_processor.core.redis import close_redis_pools
 from rag_processor.middleware import (
     CorrelationMiddleware,
     SecurityConfig,
@@ -66,6 +69,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
 
     # Shutdown
     logger.info("Shutting down RAG Processor Gateway")
+    close_redis_pools()
 
 
 # Create FastAPI application
@@ -125,6 +129,28 @@ app.include_router(user_router, prefix="/api/v1")
 app.include_router(ingest_router, prefix="/api/v1")
 app.include_router(batch_router, prefix="/api/v1")
 app.include_router(websocket_router)
+
+
+@app.exception_handler(ProjectBaseError)
+async def handle_project_error(
+    request: Request,  # noqa: ARG001 - required by FastAPI handler signature
+    exc: ProjectBaseError,
+) -> JSONResponse:
+    """Translate domain exceptions into consistent JSON error responses.
+
+    Wires the centralized exception hierarchy into the app so any
+    ``ProjectBaseError`` raised by a handler or dependency is rendered with the
+    appropriate HTTP status and a structured body, instead of surfacing as a
+    generic 500.
+
+    Args:
+        request: The incoming request (unused).
+        exc: The raised project exception.
+
+    Returns:
+        A JSON response with the mapped status code and the exception payload.
+    """
+    return JSONResponse(status_code=http_status_for(exc), content=exc.to_dict())
 
 
 @app.get(

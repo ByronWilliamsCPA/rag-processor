@@ -38,6 +38,8 @@ def mock_ingest_settings(temp_upload_dir):
             "text/plain",
         ]
         mock.upload_dir = temp_upload_dir
+        # Default to no enqueue so the base upload tests don't require Redis.
+        mock.enqueue_enabled = False
         yield mock
 
 
@@ -209,6 +211,82 @@ class TestFilenameSanitization:
             )
 
         assert response.status_code == status.HTTP_201_CREATED
+
+
+class TestIngestEnqueue:
+    """Tests for the persist+enqueue wiring gated by settings.enqueue_enabled."""
+
+    def test_enqueue_called_when_enabled(
+        self, client, sample_pdf, mock_ingest_settings
+    ):
+        """When enqueue is enabled, the batch and its jobs are enqueued."""
+        mock_ingest_settings.enqueue_enabled = True
+
+        with (
+            patch("rag_processor.api.ingest.detect_mime_type") as mock_detect,
+            patch("rag_processor.api.ingest.enqueue_batch_jobs") as mock_enqueue,
+        ):
+            mock_detect.return_value = "application/pdf"
+
+            response = client.post(
+                "/api/v1/ingest",
+                files=[("files", ("test.pdf", sample_pdf, "application/pdf"))],
+            )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        mock_enqueue.assert_called_once()
+        # First positional arg is the batch, second is the list of jobs.
+        batch_arg, jobs_arg = mock_enqueue.call_args[0]
+        assert batch_arg.total_files == 1
+        assert len(jobs_arg) == 1
+
+    def test_enqueue_not_called_when_disabled(
+        self, client, sample_pdf, mock_ingest_settings
+    ):
+        """When enqueue is disabled (default), no enqueue is attempted."""
+        mock_ingest_settings.enqueue_enabled = False
+
+        with (
+            patch("rag_processor.api.ingest.detect_mime_type") as mock_detect,
+            patch("rag_processor.api.ingest.enqueue_batch_jobs") as mock_enqueue,
+        ):
+            mock_detect.return_value = "application/pdf"
+
+            response = client.post(
+                "/api/v1/ingest",
+                files=[("files", ("test.pdf", sample_pdf, "application/pdf"))],
+            )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        mock_enqueue.assert_not_called()
+
+    def test_enqueue_failure_returns_503_and_rolls_back(
+        self, client, sample_pdf, mock_ingest_settings, temp_upload_dir
+    ):
+        """A Redis/RQ failure rolls back uploads and returns 503."""
+        from pathlib import Path
+
+        mock_ingest_settings.enqueue_enabled = True
+
+        with (
+            patch("rag_processor.api.ingest.detect_mime_type") as mock_detect,
+            patch(
+                "rag_processor.api.ingest.enqueue_batch_jobs",
+                side_effect=ConnectionError("redis down"),
+            ),
+            patch("rag_processor.api.ingest.get_redis_store"),
+        ):
+            mock_detect.return_value = "application/pdf"
+
+            response = client.post(
+                "/api/v1/ingest",
+                files=[("files", ("test.pdf", sample_pdf, "application/pdf"))],
+            )
+
+        assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+        # Upload directory for the batch must have been cleaned up on rollback.
+        batch_dirs = [p for p in Path(temp_upload_dir).iterdir() if p.is_dir()]
+        assert batch_dirs == []
 
 
 class TestIngestHealth:

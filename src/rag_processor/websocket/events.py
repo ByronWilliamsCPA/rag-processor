@@ -8,14 +8,16 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid4
 
-import redis
 from pydantic import BaseModel, Field
 
-from rag_processor.core.config import settings
+from rag_processor.core.redis import get_redis_client as _get_shared_redis_client
 from rag_processor.utils.logging import get_logger
+
+if TYPE_CHECKING:
+    import redis
 
 UTC = timezone.utc  # noqa: UP017
 
@@ -92,16 +94,14 @@ class BatchEvent(BaseModel):
 def get_redis_client() -> redis.Redis:
     """Get a Redis client for event publishing.
 
+    Returns a decoded (str) client backed by the shared connection pool in
+    ``core/redis.py`` so event publishing reuses the same Redis connections as
+    the rest of the application.
+
     Returns:
         Redis client instance.
     """
-    return redis.Redis(
-        host=settings.redis_host,
-        port=settings.redis_port,
-        password=settings.redis_password or None,
-        db=settings.redis_db,
-        decode_responses=True,
-    )
+    return _get_shared_redis_client(decode_responses=True)
 
 
 def publish_event(event: BatchEvent, redis_client: redis.Redis | None = None) -> None:
