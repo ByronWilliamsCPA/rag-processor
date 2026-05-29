@@ -29,6 +29,18 @@ services:
       # Redis configuration (job queue)
       REDIS_URL: redis://:${REDIS_PASSWORD:-redispassword}@redis:6379/0
 
+      # Application settings are read with the RAG_PROCESSOR_ prefix
+      # (see src/rag_processor/core/config.py). These must be set explicitly;
+      # REDIS_URL alone is not consumed by the gateway/worker code paths.
+      RAG_PROCESSOR_LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      RAG_PROCESSOR_JSON_LOGS: ${JSON_LOGS:-false}
+      RAG_PROCESSOR_REDIS_HOST: redis
+      RAG_PROCESSOR_REDIS_PORT: "6379"
+      RAG_PROCESSOR_REDIS_PASSWORD: ${REDIS_PASSWORD:-redispassword}
+      RAG_PROCESSOR_REDIS_DB: "0"
+      # Persist uploads to Redis and enqueue them for the worker.
+      RAG_PROCESSOR_PERSIST_ENABLED: "true"
+
       # Sentry (error tracking)
       # SENTRY_DSN: ${SENTRY_DSN:-}
       # SENTRY_ENVIRONMENT: ${ENVIRONMENT:-development}
@@ -167,17 +179,23 @@ services:
         BUILD_ENV: ${ENVIRONMENT:-development}
     image: rag_processor:${VERSION:-latest}
     container_name: rag_processor-worker
-    # Process jobs from high, default, and low priority queues
+    # Process jobs from the high, default, and low priority queues. The worker
+    # executes rag_processor.queue.jobs.process_job_task, which itself reads
+    # Redis via RAG_PROCESSOR_REDIS_* settings (for the job store and event
+    # publishing) -- so those must be present in addition to the RQ --url.
     command: >
-      python -m rq.cli worker
+      rq worker
       high default low
       --url redis://:${REDIS_PASSWORD:-redispassword}@redis:6379/0
       --with-scheduler
 
     environment:
       ENVIRONMENT: ${ENVIRONMENT:-development}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      REDIS_URL: redis://:${REDIS_PASSWORD:-redispassword}@redis:6379/0
+      RAG_PROCESSOR_LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      RAG_PROCESSOR_REDIS_HOST: redis
+      RAG_PROCESSOR_REDIS_PORT: "6379"
+      RAG_PROCESSOR_REDIS_PASSWORD: ${REDIS_PASSWORD:-redispassword}
+      RAG_PROCESSOR_REDIS_DB: "0"
 
     volumes:
       # Shared file storage with gateway
