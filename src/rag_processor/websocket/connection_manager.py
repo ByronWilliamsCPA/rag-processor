@@ -5,7 +5,6 @@ Manages active WebSocket connections per batch for broadcasting events.
 
 from __future__ import annotations
 
-from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from rag_processor.utils.logging import get_logger
@@ -33,8 +32,12 @@ class ConnectionManager:
 
     def __init__(self) -> None:
         """Initialize the connection manager."""
-        # Map batch_id -> set of WebSocket connections
-        self._connections: dict[str, set[WebSocket]] = defaultdict(set)
+        # Map batch_id -> set of WebSocket connections.
+        #
+        # A plain dict (not defaultdict) is used deliberately: defaultdict would
+        # resurrect a batch key on any read-style access (e.g. during broadcast
+        # cleanup), undoing a concurrent disconnect that emptied and removed it.
+        self._connections: dict[str, set[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, batch_id: UUID | str) -> None:
         """Accept a WebSocket connection and track it for the batch.
@@ -45,7 +48,9 @@ class ConnectionManager:
         """
         await websocket.accept()
         batch_key = str(batch_id)
-        self._connections[batch_key].add(websocket)
+        # setdefault + add are synchronous, so they are atomic with respect to
+        # other coroutines on the single-threaded event loop.
+        self._connections.setdefault(batch_key, set()).add(websocket)
 
         logger.info(
             "WebSocket connected",
@@ -61,11 +66,15 @@ class ConnectionManager:
             batch_id: Batch identifier.
         """
         batch_key = str(batch_id)
-        self._connections[batch_key].discard(websocket)
+        connections = self._connections.get(batch_key)
+        if connections is None:
+            return
 
-        # Clean up empty batch entries
-        if not self._connections[batch_key]:
-            del self._connections[batch_key]
+        connections.discard(websocket)
+
+        # Clean up empty batch entries without recreating the key.
+        if not connections:
+            self._connections.pop(batch_key, None)
 
         logger.info(
             "WebSocket disconnected",
@@ -88,7 +97,10 @@ class ConnectionManager:
             Number of clients that received the message.
         """
         batch_key = str(batch_id)
-        connections = self._connections.get(batch_key, set())
+        # Iterate over a snapshot, not the live set. The sends below are awaited,
+        # so a concurrent connect/disconnect could otherwise mutate the set
+        # mid-iteration and raise "Set changed size during iteration".
+        connections = list(self._connections.get(batch_key, ()))
 
         if not connections:
             return 0
@@ -108,9 +120,15 @@ class ConnectionManager:
                 )
                 disconnected.append(websocket)
 
-        # Clean up disconnected clients
-        for ws in disconnected:
-            self._connections[batch_key].discard(ws)
+        # Clean up disconnected clients. Use .get (not defaultdict access) so a
+        # batch already removed by a concurrent disconnect is not resurrected.
+        if disconnected:
+            live = self._connections.get(batch_key)
+            if live is not None:
+                for ws in disconnected:
+                    live.discard(ws)
+                if not live:
+                    self._connections.pop(batch_key, None)
 
         logger.debug(
             "Broadcast sent",

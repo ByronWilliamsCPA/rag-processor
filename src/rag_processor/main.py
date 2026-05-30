@@ -125,6 +125,8 @@ app.add_middleware(CloudflareAuthMiddleware)
 security_config = SecurityConfig(
     enable_rate_limiting=settings.rate_limiting_enabled,
     rate_limit_rpm=settings.rate_limit_rpm,
+    trust_proxy_headers=settings.rate_limit_trust_proxy,
+    client_ip_header=settings.rate_limit_client_ip_header,
 )
 add_security_middleware(app, security_config)
 

@@ -138,6 +138,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         burst_size: int = 10,
         max_tracked_ips: int = 10000,
         cleanup_interval: int = 300,
+        *,
+        trust_proxy_headers: bool = False,
+        client_ip_header: str = "CF-Connecting-IP",
     ) -> None:
         """Initialize rate limiter.
 
@@ -147,14 +150,56 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             burst_size: Maximum burst requests allowed.
             max_tracked_ips: Maximum IPs to track (prevents memory exhaustion).
             cleanup_interval: Seconds between full cleanup cycles.
+            trust_proxy_headers: Read the client IP from ``client_ip_header``
+                instead of ``request.client.host``. Enable only behind a trusted
+                proxy that overwrites the header, or clients can spoof it.
+            client_ip_header: Header carrying the real client IP when
+                ``trust_proxy_headers`` is true.
         """
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
         self.burst_size = burst_size
         self.max_tracked_ips = max_tracked_ips
         self.cleanup_interval = cleanup_interval
+        self.trust_proxy_headers = trust_proxy_headers
+        self.client_ip_header = client_ip_header
         self.requests: dict[str, list[float]] = defaultdict(list)
         self._last_cleanup = time.time()
+
+    def _get_client_ip(self, request: Request) -> str:
+        """Resolve the client IP used as the rate-limit key.
+
+        When ``trust_proxy_headers`` is enabled and the configured header is
+        present, its first entry (the originating client for comma-separated
+        forwarding headers) is used. Otherwise falls back to the direct peer
+        address, or ``"unknown"`` when unavailable.
+
+        Args:
+            request: The incoming HTTP request.
+
+        Returns:
+            The client IP string to rate-limit on.
+        """
+        if self.trust_proxy_headers:
+            forwarded = request.headers.get(self.client_ip_header)
+            if forwarded:
+                # X-Forwarded-For-style headers may list multiple hops; the
+                # first is the originating client.
+                return forwarded.split(",")[0].strip()
+            logger.warning(
+                "trust_proxy_headers enabled but %s header missing; "
+                "falling back to direct peer address",
+                self.client_ip_header,
+            )
+
+        if request.client is None:
+            logger.warning(
+                "request.client is None - cannot determine client IP for rate "
+                "limiting. Using 'unknown' as fallback. This may occur during "
+                "testing or with certain proxy configurations."
+            )
+            return "unknown"
+        return request.client.host
 
     def _cleanup_stale_entries(self, current_time: float) -> None:
         """Remove stale IP entries to prevent memory leaks.
@@ -212,12 +257,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         Returns:
             Response from downstream handler or 429 if rate limited.
         """
-        if request.client is None:
-            logger.warning(
-                "request.client is None - cannot determine client IP for rate limiting. "
-                "Using 'unknown' as fallback. This may occur during testing or with certain proxy configurations."
-            )
-        client_ip = request.client.host if request.client else "unknown"
+        client_ip = self._get_client_ip(request)
         current_time = time.time()
 
         # Periodic cleanup to prevent memory leaks
@@ -508,6 +548,8 @@ class SecurityConfig:
     allowed_origins: list[str] = field(default_factory=list)
     allowed_hosts: list[str] = field(default_factory=list)
     rate_limit_rpm: int = 60
+    trust_proxy_headers: bool = False
+    client_ip_header: str = "CF-Connecting-IP"
 
 
 def add_security_middleware(app: FastAPI, config: SecurityConfig | None = None) -> None:
@@ -564,6 +606,8 @@ def add_security_middleware(app: FastAPI, config: SecurityConfig | None = None) 
             RateLimitMiddleware,
             requests_per_minute=config.rate_limit_rpm,
             burst_size=10,
+            trust_proxy_headers=config.trust_proxy_headers,
+            client_ip_header=config.client_ip_header,
         )
 
     # SSRF prevention (OWASP A10)
