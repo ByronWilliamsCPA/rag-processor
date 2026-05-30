@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Any
 from uuid import UUID  # noqa: TC003 - Used at runtime in function signatures
 
 from rag_processor.models.batch import Batch, BatchStatus
@@ -15,9 +16,15 @@ from rag_processor.queue.client import get_queue_client
 from rag_processor.queue.redis_store import get_redis_store
 from rag_processor.utils.logging import get_logger
 
+if TYPE_CHECKING:
+    from rag_processor.queue.redis_store import RedisStore
+
 UTC = timezone.utc  # noqa: UP017
 
 logger = get_logger(__name__)
+
+# Default per-job processing timeout (seconds) applied when enqueuing to RQ.
+JOB_TIMEOUT_SECONDS = 600
 
 
 def enqueue_job(job: Job) -> str:
@@ -41,7 +48,7 @@ def enqueue_job(job: Job) -> str:
         process_job_task,
         str(job.job_id),
         priority=job.priority,
-        job_timeout=600,  # 10 minutes
+        job_timeout=JOB_TIMEOUT_SECONDS,
     )
 
     logger.info(
@@ -56,9 +63,13 @@ def enqueue_job(job: Job) -> str:
 
 
 def enqueue_batch_jobs(batch: Batch, jobs: list[Job]) -> list[str]:
-    """Submit a batch of jobs to the queue.
+    """Submit a batch of jobs to the queue with all-or-nothing semantics.
 
-    Saves batch and all jobs to Redis and enqueues them.
+    Saves the batch and each job to Redis and enqueues them to RQ, tracking the
+    RQ jobs as they are created. If any enqueue fails partway through, every
+    already-enqueued RQ job is cancelled and the batch's Redis state is removed
+    before re-raising, so a caller never observes a partially-enqueued batch
+    (which would otherwise leave orphaned RQ jobs whose metadata was deleted).
 
     Args:
         batch: Parent batch.
@@ -66,17 +77,37 @@ def enqueue_batch_jobs(batch: Batch, jobs: list[Job]) -> list[str]:
 
     Returns:
         List of RQ job IDs.
+
+    Raises:
+        Exception: Re-raises any enqueue failure after rolling back.
     """
     store = get_redis_store()
+    client = get_queue_client()
 
     # Save batch first
     store.save_batch(batch)
 
-    # Enqueue all jobs
-    rq_job_ids = []
-    for job in jobs:
-        rq_job_id = enqueue_job(job)
-        rq_job_ids.append(rq_job_id)
+    enqueued_rq_jobs: list[Any] = []
+    try:
+        for job in jobs:
+            # Persist job metadata, then enqueue. Tracking the RQ job lets us
+            # cancel it during rollback if a later job fails to enqueue.
+            store.save_job(job)
+            rq_job = client.enqueue(
+                process_job_task,
+                str(job.job_id),
+                priority=job.priority,
+                job_timeout=JOB_TIMEOUT_SECONDS,
+            )
+            enqueued_rq_jobs.append(rq_job)
+    except Exception:
+        logger.exception(
+            "Failed to enqueue batch; rolling back",
+            batch_id=str(batch.batch_id),
+            enqueued=len(enqueued_rq_jobs),
+        )
+        _rollback_enqueued_batch(store, batch, enqueued_rq_jobs)
+        raise
 
     logger.info(
         "Batch jobs enqueued",
@@ -84,7 +115,34 @@ def enqueue_batch_jobs(batch: Batch, jobs: list[Job]) -> list[str]:
         total_jobs=len(jobs),
     )
 
-    return rq_job_ids
+    return [rq_job.id for rq_job in enqueued_rq_jobs]
+
+
+def _rollback_enqueued_batch(
+    store: RedisStore,
+    batch: Batch,
+    enqueued_rq_jobs: list[Any],
+) -> None:
+    """Cancel already-enqueued RQ jobs and delete the batch's Redis state.
+
+    Best-effort: individual cancellation failures are logged but do not prevent
+    the remaining cleanup, since this runs while handling an enqueue failure.
+
+    Args:
+        store: Redis store used to delete the batch and its jobs.
+        batch: The batch being rolled back.
+        enqueued_rq_jobs: RQ jobs that were successfully enqueued before failure.
+    """
+    for rq_job in enqueued_rq_jobs:
+        try:
+            rq_job.cancel()
+            rq_job.delete()
+        except Exception:  # noqa: BLE001 - best-effort cleanup during rollback
+            logger.warning(
+                "Failed to cancel enqueued RQ job during rollback",
+                rq_job_id=getattr(rq_job, "id", None),
+            )
+    store.delete_batch(batch.batch_id)
 
 
 def get_job_status(job_id: UUID | str) -> Job | None:

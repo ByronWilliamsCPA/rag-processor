@@ -283,11 +283,14 @@ class TestWebSocketEndpoint:
         mock_verify = AsyncMock(
             return_value={"email": "user@example.com", "user_id": "user-123"}
         )
-        mock_batch_status = MagicMock(return_value=(None, []))
+        mock_batch_status = AsyncMock(return_value=(None, []))
 
         with (
             patch("rag_processor.websocket.router.verify_ws_token", mock_verify),
-            patch("rag_processor.websocket.router.get_batch_status", mock_batch_status),
+            patch(
+                "rag_processor.websocket.router.get_batch_status_async",
+                mock_batch_status,
+            ),
         ):
             from rag_processor.websocket.router import websocket_batch_status
 
@@ -315,7 +318,7 @@ class TestWebSocketEndpoint:
         mock_batch = MagicMock()
         mock_batch.created_by_user_id = "u-owner"
         mock_batch.created_by_email = "owner@example.com"
-        mock_batch_status = MagicMock(return_value=(mock_batch, []))
+        mock_batch_status = AsyncMock(return_value=(mock_batch, []))
 
         mock_cm = MagicMock()
         mock_cm.connect = AsyncMock()
@@ -324,7 +327,10 @@ class TestWebSocketEndpoint:
 
         with (
             patch("rag_processor.websocket.router.verify_ws_token", mock_verify),
-            patch("rag_processor.websocket.router.get_batch_status", mock_batch_status),
+            patch(
+                "rag_processor.websocket.router.get_batch_status_async",
+                mock_batch_status,
+            ),
             patch("rag_processor.websocket.router.connection_manager", mock_cm),
         ):
             from rag_processor.websocket.router import websocket_batch_status
@@ -364,7 +370,7 @@ class TestWebSocketEndpoint:
         mock_batch = MagicMock()
         mock_batch.created_by_user_id = "u-owner"
         mock_batch.created_by_email = "owner@example.com"
-        mock_batch_status = MagicMock(return_value=(mock_batch, []))
+        mock_batch_status = AsyncMock(return_value=(mock_batch, []))
 
         mock_cm = MagicMock()
         mock_cm.connect = AsyncMock()
@@ -373,7 +379,10 @@ class TestWebSocketEndpoint:
 
         with (
             patch("rag_processor.websocket.router.verify_ws_token", mock_verify),
-            patch("rag_processor.websocket.router.get_batch_status", mock_batch_status),
+            patch(
+                "rag_processor.websocket.router.get_batch_status_async",
+                mock_batch_status,
+            ),
             patch("rag_processor.websocket.router.connection_manager", mock_cm),
         ):
             from rag_processor.websocket.router import websocket_batch_status
@@ -428,7 +437,7 @@ class TestWebSocketEndpoint:
         mock_batch = MagicMock()
         mock_batch.created_by_user_id = "user-123"
         mock_batch.created_by_email = "user@example.com"
-        mock_batch_status = MagicMock(return_value=(mock_batch, []))
+        mock_batch_status = AsyncMock(return_value=(mock_batch, []))
 
         mock_cm = MagicMock()
         mock_cm.connect = AsyncMock()
@@ -442,7 +451,10 @@ class TestWebSocketEndpoint:
 
         with (
             patch("rag_processor.websocket.router.verify_ws_token", mock_verify),
-            patch("rag_processor.websocket.router.get_batch_status", mock_batch_status),
+            patch(
+                "rag_processor.websocket.router.get_batch_status_async",
+                mock_batch_status,
+            ),
             patch("rag_processor.websocket.router.connection_manager", mock_cm),
             patch(
                 "rag_processor.websocket.router._websocket_message_loop",

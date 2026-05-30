@@ -29,7 +29,6 @@ from rag_processor.models.job import (
     Priority,
 )
 from rag_processor.queue.jobs import enqueue_batch_jobs
-from rag_processor.queue.redis_store import get_redis_store
 from rag_processor.routing import FileRouter
 from rag_processor.utils.logging import get_logger
 
@@ -211,20 +210,13 @@ async def _persist_and_enqueue(
     try:
         await asyncio.to_thread(enqueue_batch_jobs, batch, jobs)
     except Exception as exc:
-        # Infra boundary: roll back on any Redis/RQ failure so we never report
-        # success for work that will not be processed.
+        # enqueue_batch_jobs rolls back its own Redis/RQ state atomically on
+        # failure; here we only clean up the on-disk uploads and surface the
+        # error so we never report success for work that will not be processed.
         logger.exception(
-            "Failed to persist/enqueue batch; rolling back",
+            "Failed to persist/enqueue batch",
             batch_id=str(batch.batch_id),
         )
-        # Best-effort rollback of partially-written Redis state and uploads.
-        try:
-            await asyncio.to_thread(get_redis_store().delete_batch, batch.batch_id)
-        except Exception:  # noqa: BLE001 - rollback is best-effort
-            logger.warning(
-                "Failed to roll back Redis state for batch",
-                batch_id=str(batch.batch_id),
-            )
         shutil.rmtree(batch_dir, ignore_errors=True)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

@@ -274,7 +274,6 @@ class TestIngestEnqueue:
                 "rag_processor.api.ingest.enqueue_batch_jobs",
                 side_effect=ConnectionError("redis down"),
             ),
-            patch("rag_processor.api.ingest.get_redis_store"),
         ):
             mock_detect.return_value = "application/pdf"
 
