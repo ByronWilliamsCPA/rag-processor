@@ -184,13 +184,23 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             forwarded = request.headers.get(self.client_ip_header)
             if forwarded:
                 # X-Forwarded-For-style headers may list multiple hops; the
-                # first is the originating client.
-                return forwarded.split(",")[0].strip()
-            logger.warning(
-                "trust_proxy_headers enabled but %s header missing; "
-                "falling back to direct peer address",
-                self.client_ip_header,
-            )
+                # first is the originating client. Guard against a blank leading
+                # entry (e.g. ", 10.0.0.1") so we don't key every malformed
+                # request on "" — fall back to the peer address instead.
+                client_ip = forwarded.split(",")[0].strip()
+                if client_ip:
+                    return client_ip
+                logger.warning(
+                    "%s header present but had no usable leading IP; falling "
+                    "back to direct peer address",
+                    self.client_ip_header,
+                )
+            else:
+                logger.warning(
+                    "trust_proxy_headers enabled but %s header missing; "
+                    "falling back to direct peer address",
+                    self.client_ip_header,
+                )
 
         if request.client is None:
             logger.warning(
@@ -540,6 +550,11 @@ class SecurityConfig:
         allowed_origins: CORS allowed origins (default: none)
         allowed_hosts: Trusted host names (default: all)
         rate_limit_rpm: Rate limit requests per minute
+        trust_proxy_headers: Resolve the rate-limit client IP from
+            ``client_ip_header`` instead of the direct peer. Enable only behind
+            a trusted proxy that overwrites the header (default: False).
+        client_ip_header: Header carrying the real client IP when
+            ``trust_proxy_headers`` is True (default: ``CF-Connecting-IP``).
     """
 
     enable_https_redirect: bool = False

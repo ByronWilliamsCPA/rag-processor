@@ -239,6 +239,16 @@ class TestRateLimitClientIp:
         req = self._req(headers={}, client_host="1.2.3.4")
         assert mw._get_client_ip(req) == "1.2.3.4"
 
+    def test_falls_back_to_peer_when_leading_forwarded_entry_blank(self) -> None:
+        # A blank leading entry must NOT become the rate-limit key ("");
+        # fall back to the peer address instead.
+        mw = self._mw(trust_proxy_headers=True, client_ip_header="X-Forwarded-For")
+        req = self._req(
+            headers={"X-Forwarded-For": ", 10.0.0.1"},
+            client_host="1.2.3.4",
+        )
+        assert mw._get_client_ip(req) == "1.2.3.4"
+
     def test_unknown_when_no_client_and_no_header(self) -> None:
         mw = self._mw(trust_proxy_headers=False)
         req = self._req(headers={}, client_host=None)
