@@ -9,7 +9,6 @@ from unittest.mock import MagicMock, patch
 
 from rag_processor.models.job import FileClassification, Pipeline
 from rag_processor.routing.classifier import (
-    SCANNED_PDF_CHARS_THRESHOLD,
     ClassificationResult,
     FileClassifier,
 )
@@ -572,8 +571,10 @@ class TestFileClassifier:
             assert result.confidence == "low"
 
     def test_scanned_pdf_chars_threshold(self) -> None:
-        """Test that threshold constant is reasonable."""
-        assert SCANNED_PDF_CHARS_THRESHOLD == 50
+        """Test that the configured threshold default is reasonable."""
+        from rag_processor.core.config import settings
+
+        assert settings.pdf_scanned_chars_threshold == 50
 
 
 # =============================================================================

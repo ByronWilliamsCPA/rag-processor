@@ -7,6 +7,8 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from unittest.mock import patch
 
+import pytest
+
 from rag_processor.core.pipeline_config import (
     AuthConfig,
     PipelineConfig,
@@ -297,3 +299,23 @@ routing: {}
             assert config.pipelines["ocr"].url == "http://default:8001"
 
             Path(f.name).unlink()
+
+
+class TestStrictMode:
+    """Strict mode fails fast instead of silently degrading (M6)."""
+
+    def test_missing_file_raises_in_strict_mode(self, tmp_path):
+        from rag_processor.core.exceptions import ConfigurationError
+        from rag_processor.core.pipeline_config import load_pipeline_config
+
+        missing = tmp_path / "nope.yaml"
+        with pytest.raises(ConfigurationError):
+            load_pipeline_config(missing, strict=True)
+
+    def test_missing_file_falls_back_when_not_strict(self, tmp_path):
+        from rag_processor.core.pipeline_config import load_pipeline_config
+
+        missing = tmp_path / "nope.yaml"
+        # Default (lenient) behavior must be unchanged: return defaults, no raise.
+        config = load_pipeline_config(missing)
+        assert config is not None
