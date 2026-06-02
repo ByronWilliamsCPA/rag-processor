@@ -74,6 +74,12 @@ _jwks_cache = _JWKSCache()
 
 # Serializes concurrent JWKS refreshes so a cache miss under load triggers a
 # single upstream fetch instead of a stampede against Cloudflare's endpoint.
+#
+# Created at import time. On Python 3.10+ this binds to the running loop lazily
+# on first await, and the app runs a single event loop, so this is safe in
+# production. The only latent risk is tests that spin up multiple event loops
+# and share this module-level lock across them; if that ever arises, construct
+# the lock inside the loop (e.g. a lazily-initialised per-loop lock) instead.
 _jwks_lock = asyncio.Lock()
 
 # Leeway (seconds) applied to JWT exp/iat/nbf to tolerate minor clock skew.

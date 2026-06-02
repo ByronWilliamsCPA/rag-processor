@@ -217,7 +217,18 @@ async def _persist_and_enqueue(
             "Failed to persist/enqueue batch",
             batch_id=str(batch.batch_id),
         )
-        shutil.rmtree(batch_dir, ignore_errors=True)
+        # Clean up the on-disk uploads, but log rather than silently swallow a
+        # cleanup failure (ignore_errors=True would hide leaked files). Wrapping
+        # rmtree in try/except is version-agnostic; the onexc/onerror callback
+        # API differs across the supported 3.11 to 3.14 range.
+        try:
+            shutil.rmtree(batch_dir)
+        except OSError as cleanup_exc:
+            logger.warning(
+                "Failed to remove upload dir during rollback; files may be leaked",
+                path=str(batch_dir),
+                error=str(cleanup_exc),
+            )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=(

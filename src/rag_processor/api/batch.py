@@ -5,7 +5,6 @@ Provides endpoints for querying batch and job status.
 
 from __future__ import annotations
 
-import asyncio
 from typing import Annotated
 from uuid import UUID
 
@@ -22,7 +21,7 @@ from rag_processor.models.job import (
     JobStatus,
     Pipeline,
 )
-from rag_processor.queue.jobs import get_batch_status, get_job_status
+from rag_processor.queue.jobs import get_batch_status_async, get_job_status_async
 from rag_processor.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -126,9 +125,8 @@ async def get_batch(
     Raises:
         HTTPException: 404 if batch not found or caller does not own it.
     """
-    # Offload the synchronous Redis read to a thread so it does not block the
-    # event loop (see core/redis.py / queue.jobs async wrappers).
-    batch, jobs = await asyncio.to_thread(get_batch_status, batch_id)
+    # Non-blocking Redis read (offloaded to a thread inside the wrapper).
+    batch, jobs = await get_batch_status_async(batch_id)
 
     # Return 404 (not 403) for non-owners to avoid leaking batch existence.
     if batch is None or not batch_is_owned_by(
@@ -217,7 +215,7 @@ async def get_job(
     Raises:
         HTTPException: 404 if job not found or caller does not own its batch.
     """
-    job = await asyncio.to_thread(get_job_status, job_id)
+    job = await get_job_status_async(job_id)
 
     if job is None:
         raise HTTPException(
@@ -226,7 +224,7 @@ async def get_job(
         )
 
     # A job inherits ownership from its parent batch.
-    batch, _ = await asyncio.to_thread(get_batch_status, job.batch_id)
+    batch, _ = await get_batch_status_async(job.batch_id)
     if batch is None or not batch_is_owned_by(
         batch, requester_user_id=user.user_id, requester_email=user.email
     ):

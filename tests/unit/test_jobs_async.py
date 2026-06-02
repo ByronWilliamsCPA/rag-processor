@@ -186,3 +186,63 @@ class TestProcessJobTaskFailure:
         stored = self.store.get_job(job.job_id)
         assert stored is not None
         assert stored.status == JobStatus.COMPLETED
+
+    def test_skips_when_parent_batch_missing(self) -> None:
+        # Orphan-race guard: a job whose parent batch was deleted (e.g. by
+        # enqueue rollback) must not be processed or have status written.
+        job = _job(uuid4())  # batch_id points at a batch we never save
+        self.store.save_job(job)
+
+        with patch(
+            "rag_processor.queue.jobs.get_redis_store",
+            return_value=self.store,
+        ):
+            from rag_processor.queue.jobs import process_job_task
+
+            result = process_job_task(str(job.job_id))
+
+        assert result["status"] == "skipped"
+        # Job status must remain QUEUED — the worker wrote nothing.
+        stored = self.store.get_job(job.job_id)
+        assert stored is not None
+        assert stored.status == JobStatus.QUEUED
+
+    def test_failure_recording_survives_redis_error(self) -> None:
+        # If recording the failure itself raises (e.g. Redis down), the worker
+        # must not crash — it returns the failure result cleanly.
+        from unittest.mock import MagicMock
+
+        batch = Batch(created_by_email="a@b.c", total_files=1)
+        job = _job(batch.batch_id)
+        self.store.save_batch(batch)
+        self.store.save_job(job)
+
+        # Wrap the real store so only the failure-recording update (status=FAILED)
+        # raises, while the earlier mark-processing update still works.
+        failing_store = MagicMock(wraps=self.store)
+
+        def _update(job_id_arg: object, **kwargs: object) -> None:
+            if kwargs.get("status") == JobStatus.FAILED.value:
+                msg = "redis down"
+                raise ConnectionError(msg)
+            self.store.update_job_status(job_id_arg, **kwargs)
+
+        failing_store.update_job_status.side_effect = _update
+
+        with (
+            patch(
+                "rag_processor.queue.jobs.get_redis_store",
+                return_value=failing_store,
+            ),
+            patch(
+                "rag_processor.queue.jobs._run_pipeline",
+                side_effect=RuntimeError("pipeline boom"),
+            ),
+        ):
+            from rag_processor.queue.jobs import process_job_task
+
+            # Must not raise despite update_job_status failing.
+            result = process_job_task(str(job.job_id))
+
+        assert result["status"] == "failed"
+        assert "pipeline boom" in result["error"]

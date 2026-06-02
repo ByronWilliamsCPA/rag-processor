@@ -23,6 +23,8 @@ thread via ``asyncio.to_thread``.
 
 from __future__ import annotations
 
+import threading
+
 import redis
 
 from rag_processor.core.config import settings
@@ -33,6 +35,11 @@ logger = get_logger(__name__)
 # Process-wide connection pools, created lazily on first use.
 _decoded_pool: redis.ConnectionPool | None = None
 _raw_pool: redis.ConnectionPool | None = None
+
+# Guards lazy pool construction/reset. get_redis_client is called from worker
+# threads via asyncio.to_thread, so without this lock two threads racing on
+# first use could build two pools (one of which leaks sockets until GC).
+_pool_lock = threading.Lock()
 
 
 def _build_pool(*, decode_responses: bool) -> redis.ConnectionPool:
@@ -68,11 +75,16 @@ def get_redis_client(*, decode_responses: bool = True) -> redis.Redis:
 
     if decode_responses:
         if _decoded_pool is None:
-            _decoded_pool = _build_pool(decode_responses=True)
+            with _pool_lock:
+                # Re-check under the lock so only one thread builds the pool.
+                if _decoded_pool is None:
+                    _decoded_pool = _build_pool(decode_responses=True)
         return redis.Redis(connection_pool=_decoded_pool)
 
     if _raw_pool is None:
-        _raw_pool = _build_pool(decode_responses=False)
+        with _pool_lock:
+            if _raw_pool is None:
+                _raw_pool = _build_pool(decode_responses=False)
     return redis.Redis(connection_pool=_raw_pool)
 
 
@@ -84,15 +96,16 @@ def close_redis_pools() -> None:
     """
     global _decoded_pool, _raw_pool  # noqa: PLW0603 - module-level pool cache
 
-    for pool in (_decoded_pool, _raw_pool):
-        if pool is not None:
-            pool.disconnect()
+    with _pool_lock:
+        for pool in (_decoded_pool, _raw_pool):
+            if pool is not None:
+                pool.disconnect()
 
-    if _decoded_pool is not None or _raw_pool is not None:
-        logger.info("Closed shared Redis connection pools")
+        if _decoded_pool is not None or _raw_pool is not None:
+            logger.info("Closed shared Redis connection pools")
 
-    _decoded_pool = None
-    _raw_pool = None
+        _decoded_pool = None
+        _raw_pool = None
 
 
 __all__ = ["close_redis_pools", "get_redis_client"]
