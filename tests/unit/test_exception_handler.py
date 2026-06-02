@@ -72,3 +72,6 @@ class TestExceptionHandlerWiring:
         body = response.json()
         assert body["error"] == "DatabaseError"
         assert body["message"] == "connection refused"
+        # 5xx responses must not leak internal infrastructure context such as
+        # the database operation carried in ``details``.
+        assert "details" not in body

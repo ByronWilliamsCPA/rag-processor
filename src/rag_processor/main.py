@@ -30,6 +30,7 @@ from rag_processor.middleware import (
     CorrelationMiddleware,
     SecurityConfig,
     add_security_middleware,
+    get_correlation_id,
 )
 from rag_processor.utils.logging import get_logger, setup_logging
 from rag_processor.websocket.router import router as websocket_router
@@ -45,6 +46,10 @@ setup_logging(
 )
 
 logger = get_logger(__name__)
+
+# Statuses at or above this value are server-class errors whose ``details``
+# must be withheld from clients to avoid leaking internal infrastructure.
+_SERVER_ERROR_THRESHOLD = 500
 
 
 @asynccontextmanager
@@ -150,7 +155,38 @@ async def handle_project_error(
     Returns:
         A JSON response with the mapped status code and the exception payload.
     """
-    return JSONResponse(status_code=http_status_for(exc), content=exc.to_dict())
+    status = http_status_for(exc)
+    correlation_id = get_correlation_id()
+
+    # Server-class failures (5xx) must never leak internal infrastructure
+    # context (e.g. service_name, status_code, database operation/table held in
+    # ``details``) to clients. Return only the safe error/message/code fields
+    # and keep the full context in server-side logs for troubleshooting.
+    if status >= _SERVER_ERROR_THRESHOLD:
+        logger.error(
+            "Request failed with server error",
+            correlation_id=correlation_id,
+            status=status,
+            error=exc.__class__.__name__,
+            error_code=exc.error_code,
+            details=exc.details,
+        )
+        payload: dict[str, object] = {
+            "error": exc.__class__.__name__,
+            "message": exc.message,
+        }
+        if exc.error_code:
+            payload["code"] = exc.error_code
+        return JSONResponse(status_code=status, content=payload)
+
+    logger.warning(
+        "Request failed with client error",
+        correlation_id=correlation_id,
+        status=status,
+        error=exc.__class__.__name__,
+        error_code=exc.error_code,
+    )
+    return JSONResponse(status_code=status, content=exc.to_dict())
 
 
 @app.get(

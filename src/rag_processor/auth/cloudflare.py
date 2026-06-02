@@ -113,12 +113,75 @@ async def _load_jwks(*, force_refresh: bool = False) -> JWKSData:
         async with httpx.AsyncClient() as client:  # nosec B113 - timeout below
             response = await client.get(jwks_url, timeout=10.0)
             response.raise_for_status()
-            jwks: JWKSData = response.json()
+            raw_payload: object = response.json()
+            jwks, keys_count = _parse_jwks_payload(raw_payload)
 
         _jwks_cache.update(jwks)
-        keys_list: list[Any] = jwks.get("keys", [])
-        logger.debug("Refreshed JWKS cache", keys_count=len(keys_list))
+        logger.debug("Refreshed JWKS cache", keys_count=keys_count)
         return jwks
+
+
+def _parse_jwks_payload(payload: object) -> tuple[JWKSData, int]:
+    """Validate a raw JWKS payload at the trust boundary before caching.
+
+    Cloudflare's certs endpoint is trusted, but the response is still untyped
+    JSON entering the auth path. Reject anything that is not an object with a
+    ``keys`` list of objects each carrying a string ``kid`` so malformed data
+    fails fast here instead of surfacing later during key resolution.
+
+    Args:
+        payload: The decoded JSON body from the JWKS endpoint.
+
+    Returns:
+        A tuple of the validated JWKS document and its key count.
+
+    Raises:
+        jwt.InvalidTokenError: If the payload shape is invalid.
+    """
+    if not isinstance(payload, dict):
+        msg = "JWKS payload is not a JSON object"
+        raise jwt.InvalidTokenError(msg)
+    raw_keys: object = payload.get("keys")
+    if not isinstance(raw_keys, list):
+        msg = "JWKS payload missing 'keys' list"
+        raise jwt.InvalidTokenError(msg)
+    keys: list[dict[str, object]] = []
+    for key in raw_keys:
+        if not isinstance(key, dict) or not isinstance(key.get("kid"), str):
+            msg = "JWKS key entry missing string 'kid'"
+            raise jwt.InvalidTokenError(msg)
+        keys.append(key)
+    return {"keys": keys}, len(keys)
+
+
+async def _resolve_signing_key(jwks: JWKSData, token: str) -> RSAPublicKey:
+    """Resolve a token's signing key, refreshing JWKS once on a key miss.
+
+    Cloudflare rotates Access signing keys within the cache TTL. On a missing
+    ``kid`` we force-refresh the JWKS and retry once so a valid token signed
+    with a freshly rotated key is not rejected until the cache expires.
+
+    # #CRITICAL: Security: auth flow — a stale JWKS cache must not reject
+    # tokens signed by a freshly rotated Cloudflare key (user-facing outage).
+    # #VERIFY: force-refresh and retry key resolution exactly once on a miss.
+
+    Args:
+        jwks: The currently cached JWKS document.
+        token: The JWT whose signing key is being resolved.
+
+    Returns:
+        The matching RSA public key.
+
+    Raises:
+        jwt.InvalidTokenError: If the key is missing even after a refresh.
+    """
+    try:
+        return _resolve_key_or_raise(jwks, token)
+    except jwt.InvalidTokenError as exc:
+        if "not found in JWKS" not in str(exc):
+            raise
+        refreshed = await _load_jwks(force_refresh=True)
+        return _resolve_key_or_raise(refreshed, token)
 
 
 def _select_rsa_key(jwks: JWKSData, kid: str) -> RSAPublicKey | None:
@@ -309,7 +372,7 @@ class CloudflareAuthMiddleware(BaseHTTPMiddleware):
         # validate/decode via the shared helpers (same logic as the WebSocket
         # path).
         jwks = await self._get_jwks()
-        rsa_key = _resolve_key_or_raise(jwks, token)
+        rsa_key = await _resolve_signing_key(jwks, token)
         payload = _decode_cf_jwt(token, rsa_key)
 
         # Parse claims and create user
@@ -381,7 +444,7 @@ async def verify_cloudflare_token(token: str) -> dict[str, Any]:
     # the HTTP middleware so HTTP and WebSocket auth accept identical tokens
     # (including the shared clock-skew leeway).
     jwks = await _load_jwks()
-    rsa_key = _resolve_key_or_raise(jwks, token)
+    rsa_key = await _resolve_signing_key(jwks, token)
     payload = _decode_cf_jwt(token, rsa_key)
 
     # Extract user info

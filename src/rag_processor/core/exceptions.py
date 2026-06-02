@@ -34,6 +34,7 @@ Usage:
 
 from __future__ import annotations
 
+from http import HTTPStatus
 from typing import Any
 
 
@@ -442,21 +443,21 @@ def http_status_for(exc: ProjectBaseError) -> int:
     # Ordered most-specific-first so subclasses (e.g. DatabaseError, which
     # extends ExternalServiceError) match before their base classes.
     status_by_type: tuple[tuple[type[ProjectBaseError], int], ...] = (
-        (DatabaseError, 503),
-        (APIError, 502),
-        (ExternalServiceError, 502),
-        (AuthenticationError, 401),
-        (AuthorizationError, 403),
-        (ResourceNotFoundError, 404),
-        (ValidationError, 400),
-        (BusinessLogicError, 409),
-        (ConfigurationError, 500),
+        (DatabaseError, HTTPStatus.SERVICE_UNAVAILABLE),
+        (APIError, HTTPStatus.BAD_GATEWAY),
+        (ExternalServiceError, HTTPStatus.BAD_GATEWAY),
+        (AuthenticationError, HTTPStatus.UNAUTHORIZED),
+        (AuthorizationError, HTTPStatus.FORBIDDEN),
+        (ResourceNotFoundError, HTTPStatus.NOT_FOUND),
+        (ValidationError, HTTPStatus.BAD_REQUEST),
+        (BusinessLogicError, HTTPStatus.CONFLICT),
+        (ConfigurationError, HTTPStatus.INTERNAL_SERVER_ERROR),
     )
     for exc_type, http_status in status_by_type:
         if isinstance(exc, exc_type):
-            return http_status
+            return int(http_status)
     # Base ProjectBaseError or any unmapped subclass.
-    return 500
+    return int(HTTPStatus.INTERNAL_SERVER_ERROR)
 
 
 # Export all exceptions

@@ -300,6 +300,10 @@ def process_job_task(job_id: str) -> dict[str, str]:
     # A narrow TOCTOU window remains between this check and the writes below;
     # it is acceptable given enqueue is gated behind enqueue_enabled and the
     # rollback path is itself an error path.
+    # FIXME(reconciliation): there is currently no automated reconciler for jobs
+    # orphaned by this race or left in PROCESSING when failure recording fails
+    # (see the best-effort handler below). Recovery is manual until a periodic
+    # sweep (e.g. reconcile_orphaned_jobs) is added alongside the rollback path.
     if store.get_batch(job.batch_id) is None:
         logger.warning(
             "Parent batch missing; skipping job to avoid orphan",
