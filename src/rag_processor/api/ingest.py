@@ -333,6 +333,16 @@ async def ingest_files(
             file_path = batch_dir / f"{name}_{counter}{ext}"
             counter += 1
 
+        # Defense-in-depth: ensure the resolved path stays within batch_dir.
+        # sanitize_filename already strips path components, so this is not
+        # reachable today; it is a second containment guard before any write in
+        # case the sanitizer ever regresses.
+        if not file_path.resolve().is_relative_to(batch_dir.resolve()):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid filename: {original_filename}",
+            )
+
         # Save file
         async with aiofiles.open(file_path, "wb") as f:
             await f.write(content)
