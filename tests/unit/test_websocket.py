@@ -451,6 +451,22 @@ class TestGetEventHistory:
         assert call_args[1] == 0
         assert call_args[2] == 49
 
+    @pytest.mark.asyncio
+    async def test_get_event_history_async_offloads_and_returns(self) -> None:
+        """The async wrapper forwards to the sync reader and returns its value."""
+        from rag_processor.websocket.events import get_event_history_async
+
+        events = [{"event_id": "e1"}]
+        with patch(
+            "rag_processor.websocket.events.get_event_history",
+            return_value=events,
+        ) as mock_sync:
+            result = await get_event_history_async(uuid4(), limit=25)
+
+        assert result == events
+        mock_sync.assert_called_once()
+        assert mock_sync.call_args.kwargs["limit"] == 25
+
 
 class TestWebSocketRouter:
     """Tests for WebSocket router."""
@@ -520,7 +536,7 @@ class TestWebSocketRouter:
 
         with (
             patch(
-                "rag_processor.websocket.router.get_event_history",
+                "rag_processor.websocket.events.get_event_history",
                 return_value=mock_history,
             ),
             patch("rag_processor.websocket.router.connection_manager") as mock_manager,

@@ -5,6 +5,7 @@ Defines event structure and functions for publishing events to Redis.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from datetime import datetime, timezone
 from enum import StrEnum
@@ -169,6 +170,26 @@ def get_event_history(
             logger.warning("Failed to parse event from history", raw_event=event_str)
 
     return events
+
+
+async def get_event_history_async(
+    batch_id: UUID | str,
+    limit: int = 100,
+) -> list[dict[str, Any]]:
+    """Async, non-blocking wrapper around :func:`get_event_history`.
+
+    Offloads the synchronous Redis reads to a worker thread so async WebSocket
+    handlers do not block the event loop, mirroring the ``*_async`` wrappers in
+    ``rag_processor.queue.jobs``.
+
+    Args:
+        batch_id: Batch identifier.
+        limit: Maximum events to return.
+
+    Returns:
+        List of events (oldest first).
+    """
+    return await asyncio.to_thread(get_event_history, batch_id, limit=limit)
 
 
 def create_job_event(

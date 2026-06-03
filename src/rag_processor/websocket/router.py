@@ -17,7 +17,7 @@ from rag_processor.core.config import settings
 from rag_processor.queue.jobs import get_batch_status_async
 from rag_processor.utils.logging import get_logger
 from rag_processor.websocket.connection_manager import connection_manager
-from rag_processor.websocket.events import get_event_history
+from rag_processor.websocket.events import get_event_history_async
 
 logger = get_logger(__name__)
 
@@ -77,8 +77,9 @@ async def _replay_events(
         batch_id: Batch identifier.
         last_event_id: Last event ID received by client.
     """
-    # Offload the synchronous Redis read off the event loop.
-    history = await asyncio.to_thread(get_event_history, batch_id)
+    # Non-blocking read via the shared async wrapper (offloads the sync Redis
+    # call off the event loop); see websocket.events.
+    history = await get_event_history_async(batch_id)
     found_last = False
 
     for event in history:

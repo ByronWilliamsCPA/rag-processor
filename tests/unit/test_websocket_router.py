@@ -171,7 +171,7 @@ class TestReplayEvents:
         mock_cm.send_personal = AsyncMock()
 
         with (
-            patch("rag_processor.websocket.router.get_event_history", mock_history),
+            patch("rag_processor.websocket.events.get_event_history", mock_history),
             patch("rag_processor.websocket.router.connection_manager", mock_cm),
         ):
             from rag_processor.websocket.router import _replay_events
@@ -197,7 +197,7 @@ class TestReplayEvents:
         mock_cm.send_personal = AsyncMock()
 
         with (
-            patch("rag_processor.websocket.router.get_event_history", mock_history),
+            patch("rag_processor.websocket.events.get_event_history", mock_history),
             patch("rag_processor.websocket.router.connection_manager", mock_cm),
         ):
             from rag_processor.websocket.router import _replay_events
