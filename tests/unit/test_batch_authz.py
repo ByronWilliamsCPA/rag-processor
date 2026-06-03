@@ -4,13 +4,13 @@ These tests exercise the ownership check added in
 src/rag_processor/api/batch.py so SonarCloud / Codecov see the new branches as
 covered. We don't use the running TestClient transport here because that
 requires booting the auth middleware and Redis; instead we drive the handler
-functions directly with mocks for `get_batch_status` / `get_job_status`.
+functions directly with mocks for `get_batch_status_async` / `get_job_status_async`.
 """
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
@@ -130,7 +130,8 @@ class TestGetBatchAuthz:
     async def test_owner_can_read_batch(self):
         batch = _batch()
         with patch(
-            "rag_processor.api.batch.get_batch_status",
+            "rag_processor.api.batch.get_batch_status_async",
+            new_callable=AsyncMock,
             return_value=(batch, []),
         ):
             resp = await get_batch(batch.batch_id, user=_user())
@@ -141,7 +142,8 @@ class TestGetBatchAuthz:
         batch = _batch(created_by_user_id="other-user", created_by_email="other@x")
         with (
             patch(
-                "rag_processor.api.batch.get_batch_status",
+                "rag_processor.api.batch.get_batch_status_async",
+                new_callable=AsyncMock,
                 return_value=(batch, []),
             ),
             pytest.raises(HTTPException) as exc,
@@ -154,7 +156,8 @@ class TestGetBatchAuthz:
     async def test_missing_batch_returns_404(self):
         with (
             patch(
-                "rag_processor.api.batch.get_batch_status",
+                "rag_processor.api.batch.get_batch_status_async",
+                new_callable=AsyncMock,
                 return_value=(None, []),
             ),
             pytest.raises(HTTPException) as exc,
@@ -171,9 +174,14 @@ class TestGetJobAuthz:
         batch = _batch()
         job = _job(batch.batch_id)
         with (
-            patch("rag_processor.api.batch.get_job_status", return_value=job),
             patch(
-                "rag_processor.api.batch.get_batch_status",
+                "rag_processor.api.batch.get_job_status_async",
+                new_callable=AsyncMock,
+                return_value=job,
+            ),
+            patch(
+                "rag_processor.api.batch.get_batch_status_async",
+                new_callable=AsyncMock,
                 return_value=(batch, [job]),
             ),
         ):
@@ -185,9 +193,14 @@ class TestGetJobAuthz:
         batch = _batch(created_by_user_id="other-user", created_by_email="other@x")
         job = _job(batch.batch_id)
         with (
-            patch("rag_processor.api.batch.get_job_status", return_value=job),
             patch(
-                "rag_processor.api.batch.get_batch_status",
+                "rag_processor.api.batch.get_job_status_async",
+                new_callable=AsyncMock,
+                return_value=job,
+            ),
+            patch(
+                "rag_processor.api.batch.get_batch_status_async",
+                new_callable=AsyncMock,
                 return_value=(batch, [job]),
             ),
             pytest.raises(HTTPException) as exc,
@@ -198,7 +211,11 @@ class TestGetJobAuthz:
     @pytest.mark.asyncio
     async def test_missing_job_returns_404(self):
         with (
-            patch("rag_processor.api.batch.get_job_status", return_value=None),
+            patch(
+                "rag_processor.api.batch.get_job_status_async",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
             pytest.raises(HTTPException) as exc,
         ):
             await get_job(uuid4(), user=_user())
@@ -209,9 +226,14 @@ class TestGetJobAuthz:
         # Defensive: a job whose batch row has been deleted must not be readable.
         job = _job(uuid4())
         with (
-            patch("rag_processor.api.batch.get_job_status", return_value=job),
             patch(
-                "rag_processor.api.batch.get_batch_status",
+                "rag_processor.api.batch.get_job_status_async",
+                new_callable=AsyncMock,
+                return_value=job,
+            ),
+            patch(
+                "rag_processor.api.batch.get_batch_status_async",
+                new_callable=AsyncMock,
                 return_value=(None, []),
             ),
             pytest.raises(HTTPException) as exc,

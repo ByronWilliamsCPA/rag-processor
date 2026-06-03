@@ -5,17 +5,20 @@ Defines event structure and functions for publishing events to Redis.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid4
 
-import redis
 from pydantic import BaseModel, Field
 
-from rag_processor.core.config import settings
+from rag_processor.core.redis import get_redis_client as _get_shared_redis_client
 from rag_processor.utils.logging import get_logger
+
+if TYPE_CHECKING:
+    import redis
 
 UTC = timezone.utc  # noqa: UP017
 
@@ -92,16 +95,14 @@ class BatchEvent(BaseModel):
 def get_redis_client() -> redis.Redis:
     """Get a Redis client for event publishing.
 
+    Returns a decoded (str) client backed by the shared connection pool in
+    ``core/redis.py`` so event publishing reuses the same Redis connections as
+    the rest of the application.
+
     Returns:
         Redis client instance.
     """
-    return redis.Redis(
-        host=settings.redis_host,
-        port=settings.redis_port,
-        password=settings.redis_password or None,
-        db=settings.redis_db,
-        decode_responses=True,
-    )
+    return _get_shared_redis_client(decode_responses=True)
 
 
 def publish_event(event: BatchEvent, redis_client: redis.Redis | None = None) -> None:
@@ -169,6 +170,26 @@ def get_event_history(
             logger.warning("Failed to parse event from history", raw_event=event_str)
 
     return events
+
+
+async def get_event_history_async(
+    batch_id: UUID | str,
+    limit: int = 100,
+) -> list[dict[str, Any]]:
+    """Async, non-blocking wrapper around :func:`get_event_history`.
+
+    Offloads the synchronous Redis reads to a worker thread so async WebSocket
+    handlers do not block the event loop, mirroring the ``*_async`` wrappers in
+    ``rag_processor.queue.jobs``.
+
+    Args:
+        batch_id: Batch identifier.
+        limit: Maximum events to return.
+
+    Returns:
+        List of events (oldest first).
+    """
+    return await asyncio.to_thread(get_event_history, batch_id, limit=limit)
 
 
 def create_job_event(

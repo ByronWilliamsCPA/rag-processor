@@ -5,7 +5,9 @@ Provides endpoints for uploading files for RAG pipeline processing.
 
 from __future__ import annotations
 
+import asyncio
 import re
+import shutil
 from pathlib import Path
 from typing import Annotated
 from uuid import UUID
@@ -26,6 +28,7 @@ from rag_processor.models.job import (
     Pipeline,
     Priority,
 )
+from rag_processor.queue.jobs import enqueue_batch_jobs
 from rag_processor.routing import FileRouter
 from rag_processor.utils.logging import get_logger
 
@@ -185,6 +188,55 @@ async def validate_file(
     return content, mime_type, errors
 
 
+async def _persist_and_enqueue(
+    batch: Batch,
+    jobs: list[Job],
+    batch_dir: Path,
+) -> None:
+    """Persist a batch/jobs to Redis and enqueue them for processing.
+
+    Runs the synchronous enqueue off the event loop. On failure, rolls back the
+    persisted Redis state and the on-disk upload directory, then raises so the
+    client receives an error instead of a false success.
+
+    Args:
+        batch: The batch to persist and enqueue.
+        jobs: The jobs belonging to the batch.
+        batch_dir: The on-disk directory holding the uploaded files.
+
+    Raises:
+        HTTPException: 503 if persistence/enqueue fails.
+    """
+    try:
+        await asyncio.to_thread(enqueue_batch_jobs, batch, jobs)
+    except Exception as exc:
+        # enqueue_batch_jobs rolls back its own Redis/RQ state atomically on
+        # failure; here we only clean up the on-disk uploads and surface the
+        # error so we never report success for work that will not be processed.
+        logger.exception(
+            "Failed to persist/enqueue batch",
+            batch_id=str(batch.batch_id),
+        )
+        # Clean up the on-disk uploads, but log rather than silently swallow a
+        # cleanup failure (ignore_errors=True would hide leaked files). Wrapping
+        # rmtree in try/except is version-agnostic; the onexc/onerror callback
+        # API differs across the supported 3.11 to 3.14 range.
+        try:
+            shutil.rmtree(batch_dir)
+        except OSError as cleanup_exc:
+            logger.warning(
+                "Failed to remove upload dir during rollback; files may be leaked",
+                path=str(batch_dir),
+                error=str(cleanup_exc),
+            )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Upload accepted but could not be queued for processing. Please retry."
+            ),
+        ) from exc
+
+
 @router.post(
     "",
     response_model=IngestResponse,
@@ -281,6 +333,16 @@ async def ingest_files(
             file_path = batch_dir / f"{name}_{counter}{ext}"
             counter += 1
 
+        # Defense-in-depth: ensure the resolved path stays within batch_dir.
+        # sanitize_filename already strips path components, so this is not
+        # reachable today; it is a second containment guard before any write in
+        # case the sanitizer ever regresses.
+        if not file_path.resolve().is_relative_to(batch_dir.resolve()):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid filename: {original_filename}",
+            )
+
         # Save file
         async with aiofiles.open(file_path, "wb") as f:
             await f.write(content)
@@ -327,8 +389,12 @@ async def ingest_files(
     # Update batch with actual valid file count
     batch.total_files = len(jobs)
 
-    # TODO: Store batch and jobs in Redis (Sprint 1.14)
-    # TODO: Enqueue jobs in RQ (Sprint 1.14)
+    # Persist the batch/jobs to Redis and enqueue them for background
+    # processing. Gated behind a setting so deployments without a Redis/RQ
+    # worker still accept uploads without attempting to queue them. The Redis
+    # client is synchronous, so run the enqueue off the event loop.
+    if settings.enqueue_enabled:
+        await _persist_and_enqueue(batch, jobs, batch_dir)
 
     logger.info(
         "Batch created",

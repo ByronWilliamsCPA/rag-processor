@@ -27,6 +27,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Ingestion Pipeline & Architecture Review
+
+- **Background ingestion pipeline** wired end-to-end: uploaded batches/jobs are
+  persisted to Redis and enqueued to RQ, gated behind the new default-off
+  `RAG_PROCESSOR_ENQUEUE_ENABLED` setting so deployments without an RQ worker
+  keep accepting uploads. Enqueue is all-or-nothing (partial failures roll back
+  Redis state and cancel enqueued jobs); the worker records failures
+  best-effort and skips jobs whose parent batch has disappeared.
+- **Unified synchronous Redis client** (`core/redis.py`) with shared, lazily
+  built (thread-safe) connection pools and graceful shutdown, replacing
+  per-module client construction. Async handlers use non-blocking
+  `get_batch_status_async` / `get_job_status_async` wrappers.
+- **Consolidated Cloudflare JWT validation**: HTTP-middleware and WebSocket
+  paths share one JWKS loader (with single-flight refresh lock) and decode
+  helper, so both enforce the same RS256 + audience + issuer checks and clock-skew leeway.
+- **Domain exception hierarchy wired into FastAPI** via an exception handler
+  mapping `ProjectBaseError` subclasses to HTTP responses.
+
 #### Phase 0: Foundation Infrastructure
 
 - **FastAPI Gateway**: Main application entry point (`src/rag_processor/main.py`)

@@ -72,6 +72,17 @@ class Settings(BaseSettings):
         ),
     )
 
+    # Background processing
+    enqueue_enabled: bool = Field(
+        default=False,
+        description=(
+            "Persist uploaded batches/jobs to Redis and enqueue them to RQ for "
+            "background processing. Disabled by default so deployments without "
+            "a Redis/RQ worker accept uploads without attempting to queue them. "
+            "Set to true once a worker is running."
+        ),
+    )
+
     # Rate Limiting
     rate_limiting_enabled: bool = Field(
         default=True,
