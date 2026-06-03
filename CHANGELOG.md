@@ -66,6 +66,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   helper, so both enforce the same RS256 + audience + issuer checks and clock-skew leeway.
 - **Domain exception hierarchy wired into FastAPI** via an exception handler
   mapping `ProjectBaseError` subclasses to HTTP responses.
+- **Real-time event delivery to WebSocket clients** via a new
+  `EventBridge` (`websocket/bridge.py`) that subscribes to the Redis
+  `batch:*:events` pub/sub channels and relays each event to the locally
+  connected clients. Started and stopped in the application lifespan; degrades
+  gracefully when Redis is unavailable and reconnects with bounded exponential
+  backoff after transient outages. Previously, worker events were published to
+  Redis but never reached browsers (clients saw only the initial snapshot and
+  `last_event_id` replay).
+- **Application factory** (`create_app()` in `main.py`) is now the single source
+  of truth for middleware ordering and CORS, replacing the import-time global
+  app construction. The `FileRouter` is injected via `Depends(get_file_router)`
+  (`api/dependencies.py`) instead of a module-level singleton, giving tests an
+  override seam.
+
+### Fixed (Architecture Review follow-up)
+
+- **Duplicate CORS middleware removed**: `add_security_middleware` no longer
+  registers a second, conflicting `CORSMiddleware` (empty origins,
+  `allow_headers=["*"]`) on top of the application's own. It now configures CORS
+  only when the caller explicitly supplies `allowed_origins`; `create_app` owns
+  CORS for the gateway.
+- **Docker Compose Redis wiring**: the `app` and `worker` services only received
+  `REDIS_URL`/`LOG_LEVEL`, but application code reads the `RAG_PROCESSOR_`-prefixed
+  settings, so both silently fell back to `redis_host=localhost` and never
+  reached the `redis` service. Added `RAG_PROCESSOR_REDIS_*` (plus log/enqueue)
+  variables to both services and switched the worker to the `rq worker` console
+  script.
 
 #### Phase 0: Foundation Infrastructure
 

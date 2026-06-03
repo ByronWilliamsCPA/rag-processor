@@ -18,16 +18,33 @@ services:
     ports:
       - "${APP_PORT:-8000}:8000"
     environment:
-      # Core settings
+      # Core settings. Application code reads configuration via the
+      # RAG_PROCESSOR_ env prefix (see core/config.py); the unprefixed names
+      # below are retained only for external tooling and are NOT read by the app.
       ENVIRONMENT: ${ENVIRONMENT:-development}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       JSON_LOGS: ${JSON_LOGS:-false}
+      RAG_PROCESSOR_LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      RAG_PROCESSOR_JSON_LOGS: ${JSON_LOGS:-false}
 
-      # Database configuration
-      DATABASE_URL: ${DATABASE_URL:-postgresql://rag_processor:password@db:5432/rag_processor}
+      # Database configuration. The default credential is a non-secret local
+      # development placeholder (overridden in real deployments via DATABASE_URL);
+      # trufflehog:ignore marks it so the secret scanner does not treat the dummy
+      # value as a leaked credential.
+      DATABASE_URL: ${DATABASE_URL:-postgresql://rag_processor:password@db:5432/rag_processor}  # trufflehog:ignore
 
-      # Redis configuration (job queue)
+      # Redis configuration. The app builds its Redis client from the discrete
+      # RAG_PROCESSOR_REDIS_* settings (core/redis.py), NOT from REDIS_URL, so
+      # these must point at the `redis` service or the client silently falls
+      # back to localhost and never connects.
       REDIS_URL: redis://:${REDIS_PASSWORD:-redispassword}@redis:6379/0
+      RAG_PROCESSOR_REDIS_HOST: redis
+      RAG_PROCESSOR_REDIS_PORT: "6379"
+      RAG_PROCESSOR_REDIS_PASSWORD: ${REDIS_PASSWORD:-redispassword}
+      RAG_PROCESSOR_REDIS_DB: "0"
+
+      # Persistence/enqueue is enabled because this stack runs an RQ worker.
+      RAG_PROCESSOR_ENQUEUE_ENABLED: ${ENQUEUE_ENABLED:-true}
 
       # Sentry (error tracking)
       # SENTRY_DSN: ${SENTRY_DSN:-}
@@ -167,9 +184,11 @@ services:
         BUILD_ENV: ${ENVIRONMENT:-development}
     image: rag_processor:${VERSION:-latest}
     container_name: rag_processor-worker
-    # Process jobs from high, default, and low priority queues
+    # Process jobs from high, default, and low priority queues. Use the `rq`
+    # console script rather than `python -m rq.cli`, which is not a stable
+    # module entry point across rq versions.
     command: >
-      python -m rq.cli worker
+      rq worker
       high default low
       --url redis://:${REDIS_PASSWORD:-redispassword}@redis:6379/0
       --with-scheduler
@@ -178,6 +197,17 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-development}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       REDIS_URL: redis://:${REDIS_PASSWORD:-redispassword}@redis:6379/0
+      # process_job_task builds its job store and event publisher from the
+      # discrete RAG_PROCESSOR_REDIS_* settings (core/redis.py). The RQ --url
+      # flag only configures the queue connection, so these are required for the
+      # worker to record job state and publish WebSocket events.
+      RAG_PROCESSOR_LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      RAG_PROCESSOR_JSON_LOGS: ${JSON_LOGS:-false}
+      RAG_PROCESSOR_REDIS_HOST: redis
+      RAG_PROCESSOR_REDIS_PORT: "6379"
+      RAG_PROCESSOR_REDIS_PASSWORD: ${REDIS_PASSWORD:-redispassword}
+      RAG_PROCESSOR_REDIS_DB: "0"
+      RAG_PROCESSOR_ENQUEUE_ENABLED: ${ENQUEUE_ENABLED:-true}
 
     volumes:
       # Shared file storage with gateway
