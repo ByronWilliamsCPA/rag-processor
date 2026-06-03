@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, cast
 import redis
 from rq import Queue
 
-from rag_processor.core.config import settings
+from rag_processor.core.redis import get_redis_client
 from rag_processor.models.job import Priority
 from rag_processor.utils.logging import get_logger
 
@@ -52,12 +52,8 @@ class QueueClient:
         if redis_client is not None:
             self._redis = redis_client
         else:
-            self._redis = redis.Redis(
-                host=settings.redis_host,
-                port=settings.redis_port,
-                password=settings.redis_password or None,
-                db=settings.redis_db,
-            )
+            # RQ requires raw (bytes) responses; use the shared raw pool.
+            self._redis = get_redis_client(decode_responses=False)
 
         # Create priority queues
         self._queues = {

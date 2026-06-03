@@ -18,6 +18,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from rag_processor.auth.cloudflare import (
     _jwks_cache,
     _JWKSCache,
+    _parse_jwks_payload,
     clear_jwks_cache,
     verify_cloudflare_token,
 )
@@ -172,6 +173,19 @@ class TestVerifyCloudflareToken:
             await verify_cloudflare_token(token)
 
     @pytest.mark.anyio
+    async def test_token_within_leeway_is_accepted(self) -> None:
+        """Regression: WS path now shares the HTTP middleware's clock-skew leeway.
+
+        A token expired by less than the leeway must be accepted, matching the
+        middleware (previously verify_cloudflare_token used no leeway and would
+        reject it).
+        """
+        _jwks_cache.update({"keys": [PUBLIC_JWK]})
+        token = _make_token(exp_delta=timedelta(seconds=-3))
+        result = await verify_cloudflare_token(token)
+        assert result["email"] == "cf@example.com"
+
+    @pytest.mark.anyio
     async def test_missing_kid_raises(self) -> None:
         _jwks_cache.update({"keys": [PUBLIC_JWK]})
         token = _make_token(include_kid=False)
@@ -216,3 +230,57 @@ class TestVerifyCloudflareToken:
         assert result["email"] == "cf@example.com"
         mock_client.get.assert_awaited_once()
         assert _jwks_cache.is_valid()
+
+    @pytest.mark.anyio
+    async def test_key_rotation_forces_refresh_and_recovers(self) -> None:
+        """A token signed with a rotated key recovers via a forced refresh.
+
+        The cache is valid but lacks the token's signing key (Cloudflare
+        rotated keys within the TTL). Resolution must force-refresh the JWKS
+        once and succeed rather than rejecting a valid token.
+        """
+        # Valid cache that does not contain the token's signing key.
+        _jwks_cache.update({"keys": []})
+        assert _jwks_cache.is_valid()
+        token = _make_token()
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"keys": [PUBLIC_JWK]}
+        mock_response.raise_for_status = MagicMock()
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.get = AsyncMock(return_value=mock_response)
+
+        with patch(
+            "rag_processor.auth.cloudflare.httpx.AsyncClient", return_value=mock_client
+        ):
+            result = await verify_cloudflare_token(token)
+
+        assert result["email"] == "cf@example.com"
+        # The forced refresh must have hit Cloudflare exactly once.
+        mock_client.get.assert_awaited_once()
+
+
+class TestParseJWKSPayload:
+    """The JWKS payload is validated at the trust boundary before caching."""
+
+    def test_valid_payload_is_normalized(self) -> None:
+        jwks, keys_count = _parse_jwks_payload({"keys": [PUBLIC_JWK]})
+        assert jwks["keys"] == [PUBLIC_JWK]
+        assert keys_count == 1
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            "not-a-dict",
+            {"keys": "not-a-list"},
+            {"keys": ["not-a-dict"]},
+            {"keys": [{"kty": "RSA"}]},  # missing string "kid"
+            {"keys": [{"kid": 123}]},  # non-string "kid"
+        ],
+    )
+    def test_malformed_payload_raises(self, payload: object) -> None:
+        with pytest.raises(jwt.InvalidTokenError):
+            _parse_jwks_payload(payload)

@@ -11,7 +11,7 @@ from uuid import UUID  # noqa: TC003 - Used at runtime in function signatures
 
 import redis
 
-from rag_processor.core.config import settings
+from rag_processor.core.redis import get_redis_client
 from rag_processor.models.batch import Batch
 from rag_processor.models.job import Job
 from rag_processor.utils.logging import get_logger
@@ -47,13 +47,8 @@ class RedisStore:
         if redis_client is not None:
             self._redis = redis_client
         else:
-            self._redis = redis.Redis(
-                host=settings.redis_host,
-                port=settings.redis_port,
-                password=settings.redis_password or None,
-                db=settings.redis_db,
-                decode_responses=True,
-            )
+            # Decoded (str) client from the shared pool; see core/redis.py.
+            self._redis = get_redis_client(decode_responses=True)
 
     def save_batch(self, batch: Batch) -> None:
         """Save a batch to Redis.
