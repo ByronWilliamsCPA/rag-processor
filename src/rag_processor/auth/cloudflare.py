@@ -104,9 +104,17 @@ async def _load_jwks(*, force_refresh: bool = False) -> JWKSData:
     if not force_refresh and _jwks_cache.is_valid():
         return _jwks_cache.data
 
+    # Snapshot before contending for the lock so we can detect a refresh that
+    # another coroutine completed while we waited (covers the force_refresh
+    # path too, where the is_valid() re-check alone would not short-circuit).
+    cache_ts_before_lock = _jwks_cache.timestamp
+
     async with _jwks_lock:
-        # Another coroutine may have refreshed while we waited for the lock.
-        if not force_refresh and _jwks_cache.is_valid():
+        # Another coroutine may have refreshed while we waited for the lock. For
+        # a normal load a valid cache is enough; for a forced refresh, only a
+        # refresh newer than our snapshot counts as fresh enough to reuse.
+        refreshed_during_wait = _jwks_cache.timestamp != cache_ts_before_lock
+        if _jwks_cache.is_valid() and (not force_refresh or refreshed_during_wait):
             return _jwks_cache.data
 
         jwks_url = f"https://{settings.cloudflare_team_domain}/cdn-cgi/access/certs"
