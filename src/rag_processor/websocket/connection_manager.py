@@ -23,6 +23,18 @@ class ConnectionManager:
     Tracks active connections per batch_id and provides
     methods to broadcast messages to all connected clients.
 
+    Concurrency invariant (no lock by design): correctness relies on every
+    read-then-write of ``self._connections`` in ``connect``/``disconnect`` being
+    free of an intervening ``await``. On CPython's single-threaded event loop a
+    coroutine can only be preempted at an ``await`` point, so those mutations are
+    atomic with respect to other coroutines today (``connect`` awaits
+    ``accept()`` *before* it mutates; ``disconnect`` is fully synchronous). The
+    only awaited section is the per-client ``send_json`` in ``broadcast``, which
+    is made safe by iterating a snapshot and using non-resurrecting cleanup. If
+    an ``await`` is ever introduced between a read and a write of
+    ``self._connections``, this invariant breaks and an ``asyncio.Lock`` becomes
+    necessary.
+
     Example:
         manager = ConnectionManager()
         await manager.connect(websocket, batch_id)
