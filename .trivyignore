@@ -39,3 +39,37 @@ GHSA-f83h-ghpp-7wcc
 # Decision: Accept risk; revisit when Debian 13 releases a patch
 # Review Date: 2026-05-21
 CVE-2025-69720
+
+# Perl base-image CVEs (Archive::Tar / IO-Compress / Perl core)
+# ----------------------------------------------------------
+# Status: No upstream Debian fix available as of 2026-06-02. All five are
+#         reported by Trivy as "affected" with no Fixed Version.
+# Severity: CRITICAL x2, HIGH x3
+# Packages: perl-base, perl-IO-Compress (baked into python:3.12-slim)
+#
+# CVEs:
+# - CVE-2026-42496 (CRITICAL) Archive::Tar < 3.08 symlink extraction
+# - CVE-2026-8376  (CRITICAL) Perl <= 5.43.10 heap buffer overflow (compile)
+# - CVE-2026-42497 (HIGH)     Archive::Tar < 3.08 hardlink extraction
+# - CVE-2026-48962 (HIGH)     perl-IO-Compress arbitrary code execution
+# - CVE-2026-9538  (HIGH)     Archive::Tar < 3.10 memory issue
+#
+# Risk Assessment:
+# - Perl is a transitive dependency of the Debian base image (pulled in via
+#   perl-base / dpkg tooling); it is NOT used by this application, which is a
+#   pure-Python FastAPI service. No application code path invokes perl,
+#   Archive::Tar, or IO-Compress.
+# - The base image is already pinned to the latest python:3.12-slim digest, so
+#   there is no newer image that resolves these; they are unfixed upstream.
+# - The container runs headless as a non-root user; no untrusted input is
+#   passed to any Perl tooling, so the practical attack surface is ~zero.
+# - perl-base cannot be safely purged from python:3.12-slim (dpkg depends on it).
+#
+# Decision: Accept risk; revisit when Debian ships fixed perl packages, or
+#           migrate to a perl-free base (e.g. distroless) in a tracked follow-up.
+# Review Date: 2026-06-02
+CVE-2026-42496
+CVE-2026-8376
+CVE-2026-42497
+CVE-2026-48962
+CVE-2026-9538

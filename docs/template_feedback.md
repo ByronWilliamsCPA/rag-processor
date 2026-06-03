@@ -148,6 +148,29 @@ use), (b) mark it `; python_version >= '3.11'` so 3.10 stays installable, or (c)
 
 ---
 
+### Container security scan does not re-trigger on `.trivyignore` changes
+
+- **Priority**: Medium
+- **Category**: CI/CD
+- **Discovered**: 2026-06-02
+
+**Issue**: `container-security.yml` filters its `push`/`pull_request` triggers on `paths` that include the Dockerfile
+and dependency files but **not** `.trivyignore`. Because the scan also fails on unfixed base-image CVEs (the reusable
+workflow runs with `IGNORE_UNFIXED: false`), the only supported remediation for an unavoidable finding is to add the
+CVE to `.trivyignore` — yet editing that file does not trigger the scan to re-validate. The fix only takes effect on
+the next Dockerfile/dependency change or the weekly scheduled run, so a PR that adds an ignore entry cannot prove it
+resolves the failure.
+
+**Context**: Discovered while clearing five unfixed Perl base-image CVEs (CVE-2026-42496 et al.) from
+`python:3.12-slim`. The `.trivyignore`-only fix produced no scan run, leaving the change unverifiable in CI.
+
+**Suggested Fix**: Add `.trivyignore` (and `.trivyignore.yaml`) to the `paths` filters of both the `push` and
+`pull_request` triggers in the container-security workflow.
+
+**Affected Files**: `{{cookiecutter.project_slug}}/.github/workflows/container-security.yml`
+
+---
+
 ## Submitting Feedback
 
 Once you've collected feedback, you can:
