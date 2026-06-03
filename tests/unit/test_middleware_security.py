@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import dataclasses
 import time
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import FastAPI
@@ -280,6 +281,46 @@ class TestRateLimitClientIp:
             client.get("/test", headers={"CF-Connecting-IP": "8.8.8.8"}).status_code
             == 200
         )
+
+    def test_falls_back_to_peer_when_forwarded_entry_is_not_an_ip(self) -> None:
+        # A non-IP leading entry (e.g. a misconfigured upstream forwarding a
+        # token) must not become the rate-limit key; fall back to the peer.
+        mw = self._mw(trust_proxy_headers=True, client_ip_header="X-Forwarded-For")
+        req = self._req(
+            headers={"X-Forwarded-For": "not-an-ip, 10.0.0.1"},
+            client_host="1.2.3.4",
+        )
+        assert mw._get_client_ip(req) == "1.2.3.4"
+
+    def test_table_bounded_under_distinct_ip_flood(self) -> None:
+        """max_tracked_ips is enforced on insert, not only at periodic cleanup.
+
+        Regression: once proxy headers are trusted the key is the real client
+        IP, so a burst of distinct IPs must not grow the tracking table without
+        limit between the time-gated cleanup cycles.
+        """
+        mw = self._mw(
+            trust_proxy_headers=True,
+            client_ip_header="CF-Connecting-IP",
+            max_tracked_ips=5,
+            # Large interval so the periodic cleanup never runs during the test;
+            # the inline cap is the only thing that can bound the table.
+            cleanup_interval=10_000,
+        )
+
+        async def _drive() -> None:
+            call_next = AsyncMock(return_value=MagicMock())
+            for i in range(50):
+                req = self._req(
+                    headers={"CF-Connecting-IP": f"10.0.0.{i}"},
+                    client_host="1.2.3.4",
+                )
+                await mw.dispatch(req, call_next)
+
+        asyncio.run(_drive())
+
+        # The table never exceeds the configured cap despite 50 distinct IPs.
+        assert len(mw.requests) <= 5
 
 
 # ---------------------------------------------------------------------------

@@ -40,6 +40,26 @@ if TYPE_CHECKING:
     from starlette.types import ASGIApp
 
 
+def _is_valid_ip(value: str) -> bool:
+    """Return True if ``value`` parses as an IPv4 or IPv6 address.
+
+    Used to reject non-IP values from a trusted proxy header before they become
+    rate-limit keys, so a misconfigured upstream cannot inject arbitrary keys
+    into the tracking table.
+
+    Args:
+        value: Candidate client IP string.
+
+    Returns:
+        True if the value is a valid IP address, False otherwise.
+    """
+    try:
+        ipaddress.ip_address(value)
+    except ValueError:
+        return False
+    return True
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Add security headers to all responses.
 
@@ -188,12 +208,17 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 # entry (e.g. ", 10.0.0.1") so we don't key every malformed
                 # request on "" — fall back to the peer address instead.
                 client_ip = forwarded.split(",")[0].strip()
-                if client_ip:
+                if client_ip and _is_valid_ip(client_ip):
                     return client_ip
+                # A blank or non-IP leading entry must not become the rate-limit
+                # key: it would let malformed requests share one bucket and, worse,
+                # let arbitrary header values inflate the tracking table. Fall back
+                # to the direct peer address instead.
                 logger.warning(
-                    "%s header present but had no usable leading IP; falling "
+                    "%s header had no usable leading IP (got %r); falling "
                     "back to direct peer address",
                     self.client_ip_header,
+                    client_ip,
                 )
             else:
                 logger.warning(
@@ -241,21 +266,46 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         for ip in stale_ips:
             del self.requests[ip]
 
-        # If still over limit, remove oldest IPs (LRU-style)
-        if len(self.requests) > self.max_tracked_ips:
-            # Sort by most recent activity and keep only max_tracked_ips
-            sorted_ips = sorted(
-                self.requests.items(),
-                key=lambda x: max(x[1]) if x[1] else 0,
-                reverse=True,
-            )
-            self.requests = defaultdict(
-                list,
-                {
-                    ip: timestamps
-                    for ip, timestamps in sorted_ips[: self.max_tracked_ips]
-                },
-            )
+        # Enforce the tracking-table cap after pruning stale entries.
+        self._enforce_max_tracked_ips()
+
+    def _enforce_max_tracked_ips(self) -> None:
+        """Evict least-recently-active IPs when the table exceeds its cap.
+
+        Bounds memory independently of the time-gated periodic cleanup. Once
+        ``trust_proxy_headers`` is enabled the rate-limit key is the real,
+        high-cardinality client IP, so a burst of distinct IPs could otherwise
+        grow ``self.requests`` without limit between cleanup cycles. Keeps the
+        ``max_tracked_ips`` most-recently-active entries (LRU eviction).
+        """
+        if len(self.requests) <= self.max_tracked_ips:
+            return
+
+        # Sort by most recent activity and keep only max_tracked_ips.
+        sorted_ips = sorted(
+            self.requests.items(),
+            key=lambda item: max(item[1]) if item[1] else 0,
+            reverse=True,
+        )
+        self.requests = defaultdict(
+            list,
+            dict(sorted_ips[: self.max_tracked_ips]),
+        )
+
+    def _evict_oldest_if_over_cap(self) -> None:
+        """Evict oldest-inserted IPs until the table is within its cap (O(1)).
+
+        Applied on the request fast path so a flood of distinct client IPs
+        (possible once ``trust_proxy_headers`` is enabled) cannot grow the table
+        without limit between the time-gated cleanup cycles. Uses cheap
+        insertion-order eviction (dicts preserve insertion order, so
+        ``next(iter(...))`` is the oldest key) rather than the full activity sort
+        in :meth:`_enforce_max_tracked_ips`, avoiding an O(n log n) cost on every
+        request under a high-cardinality flood. The periodic cleanup still does
+        the activity-based LRU trim.
+        """
+        while len(self.requests) > self.max_tracked_ips:
+            del self.requests[next(iter(self.requests))]
 
     async def dispatch(self, request: Request, call_next) -> Response:
         """Apply rate limiting per IP address.
@@ -272,6 +322,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         # Periodic cleanup to prevent memory leaks
         self._cleanup_stale_entries(current_time)
+
+        # A new key can push the table over max_tracked_ips between the
+        # time-gated cleanup cycles; remember so we can re-bound it below.
+        is_new_ip = client_ip not in self.requests
 
         # Clean up old entries for current IP (older than 1 minute)
         self.requests[client_ip] = [
@@ -309,6 +363,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         # Record request
         self.requests[client_ip].append(current_time)
+
+        # Bound the table immediately when a new IP pushed it over the cap,
+        # instead of waiting for the next time-gated cleanup cycle. O(1)
+        # insertion-order eviction on this fast path keeps max_tracked_ips
+        # effective under a flood of distinct client IPs (possible once proxy
+        # headers are trusted) without paying the periodic cleanup's full
+        # activity-sort per request.
+        if is_new_ip:
+            self._evict_oldest_if_over_cap()
 
         return await call_next(request)
 
