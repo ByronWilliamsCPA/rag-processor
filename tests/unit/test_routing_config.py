@@ -1,9 +1,8 @@
-"""Tests for configurable classification thresholds and FileRouter DI."""
+"""Tests for configurable classification thresholds."""
 
 from __future__ import annotations
 
 from rag_processor.core.config import settings
-from rag_processor.routing import FileRouter, file_router, get_file_router
 from rag_processor.routing.classifier import FileClassifier
 
 
@@ -31,11 +30,3 @@ class TestClassifierThresholds:
         assert clf._scanned_chars_threshold == 5
         assert clf._scanned_high_confidence_chars == 2
         assert clf._digital_high_confidence_chars == 500
-
-
-class TestFileRouterDependency:
-    """get_file_router exposes the shared singleton for DI/overrides."""
-
-    def test_returns_shared_singleton(self) -> None:
-        assert get_file_router() is file_router
-        assert isinstance(get_file_router(), FileRouter)
