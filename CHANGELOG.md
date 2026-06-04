@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Renovate covers the npm frontend**: added `npm` to `enabledManagers` in
+  `renovate.json` so `frontend/package.json` and `frontend/package-lock.json`
+  are managed (previously only `pep621` and `github-actions` were enabled,
+  leaving the frontend's npm vulnerabilities unmanaged). The `npm` datasource
+  was added to both security `packageRules` so frontend CVEs receive the same
+  priority and labels as Python, and a "npm dependencies" grouping rule keeps
+  frontend update PRs batched.
+
 ### Removed (BREAKING)
 
 - **Python 3.10 support dropped** (2026-05-24): codebase now uses `StrEnum`
