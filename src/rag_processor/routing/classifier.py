@@ -14,15 +14,12 @@ from pdfminer.pdfdocument import PDFEncryptionError, PDFPasswordIncorrect
 from pdfminer.pdfparser import PDFSyntaxError
 from pdfplumber.utils.exceptions import PdfminerException
 
+from rag_processor.core.config import settings
 from rag_processor.models.job import FileClassification
 from rag_processor.routing.detector import FileTypeDetector
 from rag_processor.utils.logging import get_logger
 
 logger = get_logger(__name__)
-
-# Threshold for PDF classification (chars per page)
-# PDFs with less than this many characters per page are considered scanned
-SCANNED_PDF_CHARS_THRESHOLD = 50
 
 
 @dataclass
@@ -53,9 +50,39 @@ class FileClassifier:
         print(f"Classification: {result.classification}")
     """
 
-    def __init__(self) -> None:
-        """Initialize the file classifier."""
+    def __init__(
+        self,
+        *,
+        scanned_chars_threshold: int | None = None,
+        scanned_high_confidence_chars: int | None = None,
+        digital_high_confidence_chars: int | None = None,
+    ) -> None:
+        """Initialize the file classifier.
+
+        Args:
+            scanned_chars_threshold: Chars/page below which a PDF is scanned.
+                Defaults to the configured ``pdf_scanned_chars_threshold``.
+            scanned_high_confidence_chars: Chars/page below which a scanned
+                classification is 'high' confidence. Defaults to settings.
+            digital_high_confidence_chars: Chars/page above which a born-digital
+                classification is 'high' confidence. Defaults to settings.
+        """
         self._detector = FileTypeDetector()
+        self._scanned_chars_threshold = (
+            scanned_chars_threshold
+            if scanned_chars_threshold is not None
+            else settings.pdf_scanned_chars_threshold
+        )
+        self._scanned_high_confidence_chars = (
+            scanned_high_confidence_chars
+            if scanned_high_confidence_chars is not None
+            else settings.pdf_scanned_high_confidence_chars
+        )
+        self._digital_high_confidence_chars = (
+            digital_high_confidence_chars
+            if digital_high_confidence_chars is not None
+            else settings.pdf_digital_high_confidence_chars
+        )
 
     def classify_from_bytes(
         self,
@@ -156,12 +183,20 @@ class FileClassifier:
 
                 chars_per_page = total_chars / total_pages
 
-                if chars_per_page < SCANNED_PDF_CHARS_THRESHOLD:
+                if chars_per_page < self._scanned_chars_threshold:
                     classification = FileClassification.SCANNED_PDF
-                    confidence = "high" if chars_per_page < 10 else "medium"
+                    confidence = (
+                        "high"
+                        if chars_per_page < self._scanned_high_confidence_chars
+                        else "medium"
+                    )
                 else:
                     classification = FileClassification.BORN_DIGITAL_PDF
-                    confidence = "high" if chars_per_page > 200 else "medium"
+                    confidence = (
+                        "high"
+                        if chars_per_page > self._digital_high_confidence_chars
+                        else "medium"
+                    )
 
                 logger.debug(
                     "PDF classified",
@@ -178,7 +213,7 @@ class FileClassifier:
                         "total_pages": total_pages,
                         "total_chars": total_chars,
                         "chars_per_page": round(chars_per_page, 2),
-                        "threshold": SCANNED_PDF_CHARS_THRESHOLD,
+                        "threshold": self._scanned_chars_threshold,
                     },
                 )
 

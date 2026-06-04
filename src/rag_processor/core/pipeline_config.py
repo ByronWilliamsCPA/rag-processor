@@ -13,6 +13,7 @@ from typing import Any
 
 import yaml
 
+from rag_processor.core.exceptions import ConfigurationError
 from rag_processor.models.job import FileClassification, Pipeline
 from rag_processor.utils.logging import get_logger
 
@@ -184,16 +185,25 @@ class PipelineConfiguration:
 
 def load_pipeline_config(
     config_path: str | Path | None = None,
+    *,
+    strict: bool = False,
 ) -> PipelineConfiguration:
     """Load pipeline configuration from YAML file.
 
-    Falls back to default configuration if the file doesn't exist.
+    Falls back to default configuration if the file doesn't exist, unless
+    strict mode is enabled.
 
     Args:
         config_path: Path to the config file. If None, uses default location.
+        strict: If True, raise ConfigurationError when the file is missing
+            instead of silently falling back to the built-in localhost
+            defaults. Use in production to fail fast on misconfiguration.
 
     Returns:
         Loaded pipeline configuration.
+
+    Raises:
+        ConfigurationError: In strict mode, when the config file is missing.
     """
     if config_path is None:
         # Default to config/pipelines.yaml relative to project root
@@ -204,8 +214,12 @@ def load_pipeline_config(
         config_path = Path(config_path)
 
     if not config_path.exists():
+        if strict:
+            msg = f"Pipeline config file not found: {config_path}"
+            raise ConfigurationError(msg, details={"path": str(config_path)})
         logger.warning(
-            "Pipeline config not found, using defaults",
+            "Pipeline config not found, using built-in defaults (which point at "
+            "localhost and are NOT production-safe)",
             path=str(config_path),
         )
         return _create_default_config()

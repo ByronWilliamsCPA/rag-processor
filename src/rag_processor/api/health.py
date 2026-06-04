@@ -14,11 +14,14 @@ Implements:
 
 from __future__ import annotations
 
+import asyncio
 import sys
 import time
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
+
+from rag_processor.core.config import settings
 
 router = APIRouter(prefix="/health", tags=["health"])
 
@@ -40,16 +43,17 @@ class ReadinessCheck(BaseModel):
     """Individual dependency check result."""
 
     name: str = Field(..., description="Dependency name")
-    status: bool = Field(..., description="Check passed")
-    latency_ms: float | None = Field(None, description="Check latency in milliseconds")
-    error: str | None = Field(None, description="Error message if failed")
+    healthy: bool = Field(..., description="Whether the dependency is reachable")
+    message: str = Field(default="", description="Human-readable check detail")
 
 
-class ReadinessStatus(HealthStatus):
+class ReadinessStatus(BaseModel):
     """Readiness check response with dependency details."""
 
-    checks: dict[str, ReadinessCheck] = Field(
-        default_factory=dict, description="Individual dependency checks"
+    status: str = Field(..., description="Overall readiness: ready or unavailable")
+    timestamp: float = Field(default_factory=time.time, description="Unix timestamp")
+    checks: list[ReadinessCheck] = Field(
+        default_factory=list, description="Individual dependency checks"
     )
 
 
@@ -83,92 +87,35 @@ async def liveness() -> HealthStatus:
     )
 
 
-async def check_database() -> ReadinessCheck:
-    """Check database connectivity.
+async def check_redis() -> ReadinessCheck:
+    """Check Redis connectivity by issuing a PING.
+
+    Uses the shared synchronous Redis client (offloaded to a worker thread so
+    the probe does not block the event loop). Never raises: connectivity
+    failures are reported as an unhealthy check so the readiness handler can
+    decide whether to fail the probe.
 
     Returns:
-        ReadinessCheck with database status and latency
+        ReadinessCheck reflecting the real Redis reachability.
     """
-    start = time.time()
+    from rag_processor.core.redis import get_redis_client
+
     try:
-        # Placeholder: replace with actual database check when database module is added
-        latency_ms = (time.time() - start) * 1000
+        client = get_redis_client(decode_responses=True)
+        pong = await asyncio.to_thread(client.ping)
+    except Exception as exc:
+        # Readiness must report status, not raise; capture any connectivity error.
         return ReadinessCheck(
-            name="database",
-            status=True,
-            latency_ms=round(latency_ms, 2),
-            error=None,
+            name="redis",
+            healthy=False,
+            message=f"Redis unreachable: {exc}",
         )
-    except Exception as e:
-        latency_ms = (time.time() - start) * 1000
-        return ReadinessCheck(
-            name="database",
-            status=False,
-            latency_ms=round(latency_ms, 2),
-            error=str(e),
-        )
-
-
-async def check_cache() -> ReadinessCheck:
-    """Check Redis/cache connectivity.
-
-    Returns:
-        ReadinessCheck with cache status and latency
-    """
-    start = time.time()
-    try:
-        # Example Redis check - adjust based on your cache implementation
-        # from rag_processor.core.cache import redis_client
-        # await redis_client.ping()
-
-        # Placeholder - replace with actual cache check
-        latency_ms = (time.time() - start) * 1000
-        return ReadinessCheck(
-            name="cache",
-            status=True,
-            latency_ms=round(latency_ms, 2),
-            error=None,
-        )
-    except Exception as e:
-        latency_ms = (time.time() - start) * 1000
-        return ReadinessCheck(
-            name="cache",
-            status=False,
-            latency_ms=round(latency_ms, 2),
-            error=str(e),
-        )
-
-
-async def check_external_service() -> ReadinessCheck:
-    """Check external API/service connectivity.
-
-    Returns:
-        ReadinessCheck with external service status
-    """
-    start = time.time()
-    try:
-        # Example external service check
-        # import httpx
-        # async with httpx.AsyncClient() as client:
-        #     response = await client.get("https://api.example.com/health", timeout=2.0)
-        #     response.raise_for_status()
-
-        # Placeholder - replace with actual external service check
-        latency_ms = (time.time() - start) * 1000
-        return ReadinessCheck(
-            name="external_api",
-            status=True,
-            latency_ms=round(latency_ms, 2),
-            error=None,
-        )
-    except Exception as e:
-        latency_ms = (time.time() - start) * 1000
-        return ReadinessCheck(
-            name="external_api",
-            status=False,
-            latency_ms=round(latency_ms, 2),
-            error=str(e),
-        )
+    healthy = bool(pong)
+    return ReadinessCheck(
+        name="redis",
+        healthy=healthy,
+        message="Redis reachable" if healthy else "Redis PING returned no response",
+    )
 
 
 @router.get(
@@ -204,35 +151,39 @@ async def readiness() -> ReadinessStatus:
     Raises:
         HTTPException: 503 when one or more critical dependencies fail.
     """
-    checks: dict[str, ReadinessCheck] = {}
+    # Run all readiness checks. Each check reports its real status; whether a
+    # failing check fails the probe is decided below based on configuration.
+    checks = [
+        await check_redis(),
+    ]
 
-    # Run all checks in parallel for better performance
-    # For now, run sequentially - can be optimized with asyncio.gather()
-    checks["database"] = await check_database()
-    # Uncomment if using cache:
-    # checks["cache"] = await check_cache()
+    # A check only fails readiness if it is "required". Redis is required only
+    # when settings.readiness_require_redis is set, so deployments/CI without a
+    # Redis dependency still report ready while the check stays truthful.
+    required_names: set[str] = set()
+    if settings.readiness_require_redis:
+        required_names.add("redis")
 
-    # Uncomment if checking external services:
-    # checks["external_api"] = await check_external_service()
+    all_required_healthy = all(
+        check.healthy for check in checks if check.name in required_names
+    )
 
-    # Determine overall status
-    all_healthy = all(check.status for check in checks.values())
-
-    if not all_healthy:
-        # Return 503 if any critical check fails
+    if not all_required_healthy:
+        # Use the declared response schema for the error body too, so the 503
+        # payload matches ReadinessStatus instead of an ad-hoc dict (L5).
+        unavailable = ReadinessStatus(
+            status="unavailable",
+            timestamp=time.time(),
+            checks=checks,
+        )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={
-                "status": "unavailable",
-                "timestamp": time.time(),
-                "uptime_seconds": time.time() - _START_TIME,
-                "checks": {name: check.model_dump() for name, check in checks.items()},
-            },
+            detail=unavailable.model_dump(),
         )
 
     return ReadinessStatus(
-        status="ok",
-        uptime_seconds=time.time() - _START_TIME,
+        status="ready",
+        timestamp=time.time(),
         checks=checks,
     )
 

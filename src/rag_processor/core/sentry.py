@@ -194,11 +194,14 @@ def before_send_hook(event: Event, hint: Hint) -> Event | None:
     Returns:
         Modified event dictionary, or None to drop the event
     """
-    # Example: Filter out specific exceptions
+    # Filter out exceptions that represent normal process control rather than
+    # application errors. KeyboardInterrupt (Ctrl-C / SIGINT) and SystemExit
+    # (graceful shutdown, e.g. uvicorn reload or container stop) are expected
+    # lifecycle signals; reporting them to Sentry would create noisy,
+    # non-actionable alerts. They are dropped here intentionally.
     if "exc_info" in hint:
         exc_type, _exc_value, _tb = hint["exc_info"]
 
-        # Don't send certain exception types
         if exc_type.__name__ in ("KeyboardInterrupt", "SystemExit"):
             return None
 

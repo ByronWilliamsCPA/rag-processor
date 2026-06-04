@@ -147,3 +147,20 @@ class FileRouter:
         """
         pipeline = self._routing.get(classification, Pipeline.NONE)
         return pipeline != Pipeline.NONE
+
+
+# Module-level shared instance used by the API layer.
+file_router = FileRouter()
+
+
+def get_file_router() -> FileRouter:
+    """FastAPI dependency returning the shared FileRouter instance.
+
+    Using a dependency (rather than referencing the module-level singleton
+    directly in handlers) lets callers and tests override routing via
+    ``app.dependency_overrides`` without monkeypatching module globals.
+
+    Returns:
+        The shared FileRouter singleton.
+    """
+    return file_router
