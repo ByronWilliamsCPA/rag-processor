@@ -42,6 +42,37 @@ When working on this project, if you discover any issue that originates from the
 
 <!-- Add your feedback below this line -->
 
+### `dev` extra bundles `atheris`, breaking `uv sync --all-extras` without an LLVM toolchain
+
+- **Priority**: Medium
+- **Category**: Tooling
+- **Discovered**: 2026-06-03
+
+**Issue**: The `dev` optional-dependency group in `pyproject.toml` includes `atheris` (a
+coverage-guided fuzzing library). `atheris` ships no prebuilt wheels for many platforms and
+builds from source against `libFuzzer`, so `uv sync --all-extras` aborts with
+`RuntimeError: Failed to find libFuzzer; set either $CLANG_BIN ... or $LIBFUZZER_LIB` on any
+machine without a matching Clang/LLVM toolchain. Because the sync aborts, none of the other
+`dev` tools (ruff, basedpyright, pytest, darglint, etc.) install either, so a fresh checkout
+cannot run the documented type-check or test commands at all.
+
+**Context**: Discovered while setting up a worktree to run the local quality gate during a PR
+fix. `uv sync --all-extras` failed on the `atheris` build, leaving `fastapi` and every dev tool
+uninstalled. This in turn produced roughly 50 spurious `reportMissingImports` "errors" from
+basedpyright that looked like real type failures but were purely a broken environment, a
+misleading signal that cost investigation time.
+
+**Suggested Fix**: Move `atheris` (and any other heavyweight, compiler-dependent fuzzing
+dependencies) out of the default `dev` extra into a dedicated optional extra (e.g. `fuzz`), so
+`uv sync --all-extras` and the documented dev setup install cleanly on a stock machine. Fuzzing
+CI opts in with `--extra fuzz`. The `CLAUDE.md` "Quick Start" and "Git Worktree Workflow"
+sections both instruct contributors to run `uv sync --all-extras`, so the default must not
+require an LLVM build toolchain.
+
+**Affected Files**: `pyproject.toml` (`[project.optional-dependencies].dev`), `CLAUDE.md`
+(Quick Start and worktree setup commands), any `noxfile.py` or CI step that assumes
+`--all-extras`.
+
 ### Org reusable workflow callers do not set `no-build: false`
 
 - **Priority**: High
