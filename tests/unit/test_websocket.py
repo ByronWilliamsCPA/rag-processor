@@ -81,7 +81,7 @@ class TestConnectionManager:
         batch_key = str(batch_id)
 
         # Manually add connection (bypass connect to avoid accept call)
-        manager._connections[batch_key].add(mock_websocket)
+        manager._connections.setdefault(batch_key, set()).add(mock_websocket)
         assert manager.get_connection_count(batch_id) == 1
 
         manager.disconnect(mock_websocket, batch_id)
@@ -94,7 +94,7 @@ class TestConnectionManager:
         batch_id = uuid4()
         batch_key = str(batch_id)
 
-        manager._connections[batch_key].add(mock_websocket)
+        manager._connections.setdefault(batch_key, set()).add(mock_websocket)
         manager.disconnect(mock_websocket, batch_id)
 
         assert batch_key not in manager._connections
@@ -155,6 +155,68 @@ class TestConnectionManager:
         assert manager.get_connection_count(batch_id) == 1
 
     @pytest.mark.asyncio
+    async def test_broadcast_tolerates_concurrent_disconnect(
+        self, manager: ConnectionManager
+    ) -> None:
+        """Broadcast must not raise if a peer disconnects mid-send.
+
+        Regression: broadcast previously iterated the live set while awaiting
+        send_json, so a concurrent disconnect mutating that set raised
+        "Set changed size during iteration".
+        """
+        batch_id = uuid4()
+
+        ws2 = MagicMock()
+        ws2.accept = AsyncMock()
+        ws2.send_json = AsyncMock()
+
+        ws1 = MagicMock()
+        ws1.accept = AsyncMock()
+
+        # While sending to ws1, simulate ws2 disconnecting (mutating the set
+        # that the broadcast loop is iterating over).
+        async def disconnect_peer(_message: object) -> None:
+            manager.disconnect(ws2, batch_id)
+
+        ws1.send_json = AsyncMock(side_effect=disconnect_peer)
+
+        await manager.connect(ws1, batch_id)
+        await manager.connect(ws2, batch_id)
+
+        # Must not raise despite the mid-iteration mutation.
+        sent_count = await manager.broadcast(batch_id, {"type": "test"})
+        assert sent_count >= 1
+
+    @pytest.mark.asyncio
+    async def test_broadcast_does_not_resurrect_removed_batch(
+        self, manager: ConnectionManager
+    ) -> None:
+        """Broadcast cleanup must not recreate a concurrently-removed batch key.
+
+        Regression: with defaultdict, the disconnected-client cleanup re-created
+        the batch entry as an empty set, leaking keys and undoing a concurrent
+        disconnect that had emptied and removed the batch.
+        """
+        batch_id = uuid4()
+        batch_key = str(batch_id)
+
+        ws1 = MagicMock()
+        ws1.accept = AsyncMock()
+
+        # ws1's send fails AND the batch is fully removed during the send.
+        async def fail_and_remove(_message: object) -> None:
+            manager.disconnect(ws1, batch_id)
+            raise RuntimeError("closed")
+
+        ws1.send_json = AsyncMock(side_effect=fail_and_remove)
+
+        await manager.connect(ws1, batch_id)
+        await manager.broadcast(batch_id, {"type": "test"})
+
+        # The emptied batch must stay removed, not be resurrected by cleanup.
+        assert batch_key not in manager._connections
+
+    @pytest.mark.asyncio
     async def test_send_personal_success(
         self, manager: ConnectionManager, mock_websocket: MagicMock
     ) -> None:
@@ -180,8 +242,8 @@ class TestConnectionManager:
         batch1 = str(uuid4())
         batch2 = str(uuid4())
 
-        manager._connections[batch1].add(MagicMock())
-        manager._connections[batch2].add(MagicMock())
+        manager._connections.setdefault(batch1, set()).add(MagicMock())
+        manager._connections.setdefault(batch2, set()).add(MagicMock())
 
         batch_ids = manager.get_all_batch_ids()
 
@@ -192,8 +254,8 @@ class TestConnectionManager:
         batch1 = str(uuid4())
         batch2 = str(uuid4())
 
-        manager._connections[batch1].add(MagicMock())
-        manager._connections[batch2].add(MagicMock())
+        manager._connections.setdefault(batch1, set()).add(MagicMock())
+        manager._connections.setdefault(batch2, set()).add(MagicMock())
 
         manager.clear_all()
 

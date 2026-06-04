@@ -40,6 +40,26 @@ if TYPE_CHECKING:
     from starlette.types import ASGIApp
 
 
+def _is_valid_ip(value: str) -> bool:
+    """Return True if ``value`` parses as an IPv4 or IPv6 address.
+
+    Used to reject non-IP values from a trusted proxy header before they become
+    rate-limit keys, so a misconfigured upstream cannot inject arbitrary keys
+    into the tracking table.
+
+    Args:
+        value: Candidate client IP string.
+
+    Returns:
+        True if the value is a valid IP address, False otherwise.
+    """
+    try:
+        ipaddress.ip_address(value)
+    except ValueError:
+        return False
+    return True
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Add security headers to all responses.
 
@@ -138,6 +158,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         burst_size: int = 10,
         max_tracked_ips: int = 10000,
         cleanup_interval: int = 300,
+        *,
+        trust_proxy_headers: bool = False,
+        client_ip_header: str = "CF-Connecting-IP",
     ) -> None:
         """Initialize rate limiter.
 
@@ -147,14 +170,71 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             burst_size: Maximum burst requests allowed.
             max_tracked_ips: Maximum IPs to track (prevents memory exhaustion).
             cleanup_interval: Seconds between full cleanup cycles.
+            trust_proxy_headers: Read the client IP from ``client_ip_header``
+                instead of ``request.client.host``. Enable only behind a trusted
+                proxy that overwrites the header, or clients can spoof it.
+            client_ip_header: Header carrying the real client IP when
+                ``trust_proxy_headers`` is true.
         """
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
         self.burst_size = burst_size
         self.max_tracked_ips = max_tracked_ips
         self.cleanup_interval = cleanup_interval
+        self.trust_proxy_headers = trust_proxy_headers
+        self.client_ip_header = client_ip_header
         self.requests: dict[str, list[float]] = defaultdict(list)
         self._last_cleanup = time.time()
+
+    def _get_client_ip(self, request: Request) -> str:
+        """Resolve the client IP used as the rate-limit key.
+
+        When ``trust_proxy_headers`` is enabled and the configured header is
+        present, its first entry (the originating client for comma-separated
+        forwarding headers) is used. Otherwise falls back to the direct peer
+        address, or ``"unknown"`` when unavailable.
+
+        Args:
+            request: The incoming HTTP request.
+
+        Returns:
+            The client IP string to rate-limit on.
+        """
+        if self.trust_proxy_headers:
+            forwarded = request.headers.get(self.client_ip_header)
+            if forwarded:
+                # X-Forwarded-For-style headers may list multiple hops; the
+                # first is the originating client. Guard against a blank leading
+                # entry (e.g. ", 10.0.0.1") so we don't key every malformed
+                # request on "" — fall back to the peer address instead.
+                client_ip = forwarded.split(",")[0].strip()
+                if client_ip and _is_valid_ip(client_ip):
+                    return client_ip
+                # A blank or non-IP leading entry must not become the rate-limit
+                # key: it would let malformed requests share one bucket and, worse,
+                # let arbitrary header values inflate the tracking table. Fall back
+                # to the direct peer address instead.
+                logger.warning(
+                    "%s header had no usable leading IP (got %r); falling "
+                    "back to direct peer address",
+                    self.client_ip_header,
+                    client_ip,
+                )
+            else:
+                logger.warning(
+                    "trust_proxy_headers enabled but %s header missing; "
+                    "falling back to direct peer address",
+                    self.client_ip_header,
+                )
+
+        if request.client is None:
+            logger.warning(
+                "request.client is None - cannot determine client IP for rate "
+                "limiting. Using 'unknown' as fallback. This may occur during "
+                "testing or with certain proxy configurations."
+            )
+            return "unknown"
+        return request.client.host
 
     def _cleanup_stale_entries(self, current_time: float) -> None:
         """Remove stale IP entries to prevent memory leaks.
@@ -186,21 +266,46 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         for ip in stale_ips:
             del self.requests[ip]
 
-        # If still over limit, remove oldest IPs (LRU-style)
-        if len(self.requests) > self.max_tracked_ips:
-            # Sort by most recent activity and keep only max_tracked_ips
-            sorted_ips = sorted(
-                self.requests.items(),
-                key=lambda x: max(x[1]) if x[1] else 0,
-                reverse=True,
-            )
-            self.requests = defaultdict(
-                list,
-                {
-                    ip: timestamps
-                    for ip, timestamps in sorted_ips[: self.max_tracked_ips]
-                },
-            )
+        # Enforce the tracking-table cap after pruning stale entries.
+        self._enforce_max_tracked_ips()
+
+    def _enforce_max_tracked_ips(self) -> None:
+        """Evict least-recently-active IPs when the table exceeds its cap.
+
+        Bounds memory independently of the time-gated periodic cleanup. Once
+        ``trust_proxy_headers`` is enabled the rate-limit key is the real,
+        high-cardinality client IP, so a burst of distinct IPs could otherwise
+        grow ``self.requests`` without limit between cleanup cycles. Keeps the
+        ``max_tracked_ips`` most-recently-active entries (LRU eviction).
+        """
+        if len(self.requests) <= self.max_tracked_ips:
+            return
+
+        # Sort by most recent activity and keep only max_tracked_ips.
+        sorted_ips = sorted(
+            self.requests.items(),
+            key=lambda item: max(item[1]) if item[1] else 0,
+            reverse=True,
+        )
+        self.requests = defaultdict(
+            list,
+            dict(sorted_ips[: self.max_tracked_ips]),
+        )
+
+    def _evict_oldest_if_over_cap(self) -> None:
+        """Evict oldest-inserted IPs until the table is within its cap (O(1)).
+
+        Applied on the request fast path so a flood of distinct client IPs
+        (possible once ``trust_proxy_headers`` is enabled) cannot grow the table
+        without limit between the time-gated cleanup cycles. Uses cheap
+        insertion-order eviction (dicts preserve insertion order, so
+        ``next(iter(...))`` is the oldest key) rather than the full activity sort
+        in :meth:`_enforce_max_tracked_ips`, avoiding an O(n log n) cost on every
+        request under a high-cardinality flood. The periodic cleanup still does
+        the activity-based LRU trim.
+        """
+        while len(self.requests) > self.max_tracked_ips:
+            del self.requests[next(iter(self.requests))]
 
     async def dispatch(self, request: Request, call_next) -> Response:
         """Apply rate limiting per IP address.
@@ -212,16 +317,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         Returns:
             Response from downstream handler or 429 if rate limited.
         """
-        if request.client is None:
-            logger.warning(
-                "request.client is None - cannot determine client IP for rate limiting. "
-                "Using 'unknown' as fallback. This may occur during testing or with certain proxy configurations."
-            )
-        client_ip = request.client.host if request.client else "unknown"
+        client_ip = self._get_client_ip(request)
         current_time = time.time()
 
         # Periodic cleanup to prevent memory leaks
         self._cleanup_stale_entries(current_time)
+
+        # A new key can push the table over max_tracked_ips between the
+        # time-gated cleanup cycles; remember so we can re-bound it below.
+        is_new_ip = client_ip not in self.requests
 
         # Clean up old entries for current IP (older than 1 minute)
         self.requests[client_ip] = [
@@ -259,6 +363,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         # Record request
         self.requests[client_ip].append(current_time)
+
+        # Bound the table immediately when a new IP pushed it over the cap,
+        # instead of waiting for the next time-gated cleanup cycle. O(1)
+        # insertion-order eviction on this fast path keeps max_tracked_ips
+        # effective under a flood of distinct client IPs (possible once proxy
+        # headers are trusted) without paying the periodic cleanup's full
+        # activity-sort per request.
+        if is_new_ip:
+            self._evict_oldest_if_over_cap()
 
         return await call_next(request)
 
@@ -500,6 +613,11 @@ class SecurityConfig:
         allowed_origins: CORS allowed origins (default: none)
         allowed_hosts: Trusted host names (default: all)
         rate_limit_rpm: Rate limit requests per minute
+        trust_proxy_headers: Resolve the rate-limit client IP from
+            ``client_ip_header`` instead of the direct peer. Enable only behind
+            a trusted proxy that overwrites the header (default: False).
+        client_ip_header: Header carrying the real client IP when
+            ``trust_proxy_headers`` is True (default: ``CF-Connecting-IP``).
     """
 
     enable_https_redirect: bool = False
@@ -508,6 +626,8 @@ class SecurityConfig:
     allowed_origins: list[str] = field(default_factory=list)
     allowed_hosts: list[str] = field(default_factory=list)
     rate_limit_rpm: int = 60
+    trust_proxy_headers: bool = False
+    client_ip_header: str = "CF-Connecting-IP"
 
 
 def add_security_middleware(app: FastAPI, config: SecurityConfig | None = None) -> None:
@@ -564,6 +684,8 @@ def add_security_middleware(app: FastAPI, config: SecurityConfig | None = None) 
             RateLimitMiddleware,
             requests_per_minute=config.rate_limit_rpm,
             burst_size=10,
+            trust_proxy_headers=config.trust_proxy_headers,
+            client_ip_header=config.client_ip_header,
         )
 
     # SSRF prevention (OWASP A10)

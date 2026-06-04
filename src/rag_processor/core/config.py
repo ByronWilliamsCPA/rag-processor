@@ -93,6 +93,23 @@ class Settings(BaseSettings):
         ge=1,
         description="Rate limit requests per minute per IP",
     )
+    rate_limit_trust_proxy: bool = Field(
+        default=False,
+        description=(
+            "Trust a proxy-provided client IP header for rate limiting. Enable "
+            "ONLY when the app is deployed behind a trusted proxy (e.g. "
+            "Cloudflare) that overwrites the header; otherwise clients can spoof "
+            "it to evade per-IP limits. When false, request.client.host is used."
+        ),
+    )
+    rate_limit_client_ip_header: str = Field(
+        default="CF-Connecting-IP",
+        description=(
+            "Header to read the real client IP from when rate_limit_trust_proxy "
+            "is true (e.g. CF-Connecting-IP for Cloudflare, X-Forwarded-For for "
+            "generic proxies)."
+        ),
+    )
 
     # Redis
     redis_host: str = Field(

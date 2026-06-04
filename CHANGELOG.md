@@ -18,6 +18,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **WebSocket `ConnectionManager` concurrency (C3)**: `broadcast` now iterates a
+  snapshot of the connection set, so a concurrent connect/disconnect during an
+  awaited send can no longer raise "Set changed size during iteration". The
+  manager uses a plain `dict` with non-resurrecting cleanup (`.get`/`.pop`) in
+  `broadcast` and `disconnect`, so a batch emptied/removed by a concurrent
+  disconnect is not silently recreated as an empty set (key leak).
+- **Rate-limit tracking-table bound (H6 hardening)**: `max_tracked_ips` is now
+  enforced on insert in `RateLimitMiddleware.dispatch`, not only during the
+  time-gated periodic cleanup. This keeps the cap effective under a flood of
+  distinct client IPs once `rate_limit_trust_proxy` is enabled. Non-IP values in
+  the trusted proxy header are rejected (fall back to the peer address) so they
+  cannot be injected as tracking keys.
 - **CI unblock (RUF100)**: removed `# noqa: ASYNC240` from
   `src/rag_processor/api/ingest.py:404`; ASYNC240 is a preview-only ruff rule
   and the noqa was flagged as unused. Inline comment retained as rationale for
@@ -26,6 +38,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `~/.claude/.claude/rules/` (typo) to `~/.claude/rules/`.
 
 ### Added
+
+#### WebSocket & Rate Limiting (Tier 2)
+
+- **Proxy-aware rate limiting (H6)**: `RateLimitMiddleware` can resolve the
+  client IP from a configured header via the new default-off
+  `rate_limit_trust_proxy` and `rate_limit_client_ip_header`
+  (default `CF-Connecting-IP`) settings. Default-off is deliberate: the header
+  is only trusted behind a proxy that overwrites it, otherwise clients could
+  spoof it to evade per-IP limits. Behind Cloudflare this makes per-IP limiting
+  effective again instead of keying every request on the proxy IP.
 
 #### Ingestion Pipeline & Architecture Review
 

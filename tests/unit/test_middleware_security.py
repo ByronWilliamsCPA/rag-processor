@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import dataclasses
 import time
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import FastAPI
@@ -193,6 +194,133 @@ class TestRateLimitMiddleware:
         mw._cleanup_stale_entries(time.time())
         # Entry should NOT be removed because the interval has not elapsed
         assert "ip-a" in mw.requests
+
+
+class TestRateLimitClientIp:
+    """Tests for proxy-aware client IP resolution (rate-limit key)."""
+
+    def _mw(self, **kwargs: object) -> RateLimitMiddleware:
+        return RateLimitMiddleware(FastAPI(), **kwargs)  # type: ignore[arg-type]
+
+    def _req(
+        self,
+        headers: dict[str, str] | None = None,
+        client_host: str | None = "1.2.3.4",
+    ) -> MagicMock:
+        req = MagicMock()
+        req.headers = headers or {}
+        if client_host is None:
+            req.client = None
+        else:
+            req.client = MagicMock()
+            req.client.host = client_host
+        return req
+
+    def test_uses_peer_when_proxy_not_trusted(self) -> None:
+        mw = self._mw(trust_proxy_headers=False)
+        # Header present but must be ignored when proxy is not trusted (anti-spoof).
+        req = self._req(headers={"CF-Connecting-IP": "9.9.9.9"}, client_host="1.2.3.4")
+        assert mw._get_client_ip(req) == "1.2.3.4"
+
+    def test_uses_header_when_proxy_trusted(self) -> None:
+        mw = self._mw(trust_proxy_headers=True)
+        req = self._req(headers={"CF-Connecting-IP": "9.9.9.9"}, client_host="1.2.3.4")
+        assert mw._get_client_ip(req) == "9.9.9.9"
+
+    def test_takes_first_entry_of_forwarded_list(self) -> None:
+        mw = self._mw(trust_proxy_headers=True, client_ip_header="X-Forwarded-For")
+        req = self._req(
+            headers={"X-Forwarded-For": "9.9.9.9, 10.0.0.1"},
+            client_host="1.2.3.4",
+        )
+        assert mw._get_client_ip(req) == "9.9.9.9"
+
+    def test_falls_back_to_peer_when_trusted_header_missing(self) -> None:
+        mw = self._mw(trust_proxy_headers=True)
+        req = self._req(headers={}, client_host="1.2.3.4")
+        assert mw._get_client_ip(req) == "1.2.3.4"
+
+    def test_falls_back_to_peer_when_leading_forwarded_entry_blank(self) -> None:
+        # A blank leading entry must NOT become the rate-limit key ("");
+        # fall back to the peer address instead.
+        mw = self._mw(trust_proxy_headers=True, client_ip_header="X-Forwarded-For")
+        req = self._req(
+            headers={"X-Forwarded-For": ", 10.0.0.1"},
+            client_host="1.2.3.4",
+        )
+        assert mw._get_client_ip(req) == "1.2.3.4"
+
+    def test_unknown_when_no_client_and_no_header(self) -> None:
+        mw = self._mw(trust_proxy_headers=False)
+        req = self._req(headers={}, client_host=None)
+        assert mw._get_client_ip(req) == "unknown"
+
+    def test_rate_limit_keys_per_forwarded_ip(self) -> None:
+        """With proxy trust, distinct CF-Connecting-IP values are limited apart."""
+        app = _bare_app()
+        app.add_middleware(
+            RateLimitMiddleware,
+            requests_per_minute=1,
+            burst_size=100,
+            trust_proxy_headers=True,
+            client_ip_header="CF-Connecting-IP",
+        )
+        client = TestClient(app)
+
+        # Same forwarded IP twice -> second is limited.
+        assert (
+            client.get("/test", headers={"CF-Connecting-IP": "9.9.9.9"}).status_code
+            == 200
+        )
+        assert (
+            client.get("/test", headers={"CF-Connecting-IP": "9.9.9.9"}).status_code
+            == 429
+        )
+        # A different forwarded IP is tracked independently.
+        assert (
+            client.get("/test", headers={"CF-Connecting-IP": "8.8.8.8"}).status_code
+            == 200
+        )
+
+    def test_falls_back_to_peer_when_forwarded_entry_is_not_an_ip(self) -> None:
+        # A non-IP leading entry (e.g. a misconfigured upstream forwarding a
+        # token) must not become the rate-limit key; fall back to the peer.
+        mw = self._mw(trust_proxy_headers=True, client_ip_header="X-Forwarded-For")
+        req = self._req(
+            headers={"X-Forwarded-For": "not-an-ip, 10.0.0.1"},
+            client_host="1.2.3.4",
+        )
+        assert mw._get_client_ip(req) == "1.2.3.4"
+
+    def test_table_bounded_under_distinct_ip_flood(self) -> None:
+        """max_tracked_ips is enforced on insert, not only at periodic cleanup.
+
+        Regression: once proxy headers are trusted the key is the real client
+        IP, so a burst of distinct IPs must not grow the tracking table without
+        limit between the time-gated cleanup cycles.
+        """
+        mw = self._mw(
+            trust_proxy_headers=True,
+            client_ip_header="CF-Connecting-IP",
+            max_tracked_ips=5,
+            # Large interval so the periodic cleanup never runs during the test;
+            # the inline cap is the only thing that can bound the table.
+            cleanup_interval=10_000,
+        )
+
+        async def _drive() -> None:
+            call_next = AsyncMock(return_value=MagicMock())
+            for i in range(50):
+                req = self._req(
+                    headers={"CF-Connecting-IP": f"10.0.0.{i}"},
+                    client_host="1.2.3.4",
+                )
+                await mw.dispatch(req, call_next)
+
+        asyncio.run(_drive())
+
+        # The table never exceeds the configured cap despite 50 distinct IPs.
+        assert len(mw.requests) <= 5
 
 
 # ---------------------------------------------------------------------------
