@@ -38,7 +38,7 @@ jobs:
   # Check name: "qlty-gate / Qlty Gate" -- required by org docs-tier ruleset.
   qlty-gate:
     if: github.event_name == 'pull_request'
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-qlty-gate.yml@040026ab682aa4b9ef491750d62cdd1592cdb659
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-qlty-gate.yml@1561a3ef04892ffd6c4a0c4c46fdf1de5a34ed02 # .github#188
     permissions:
       contents: read
     with:
@@ -49,7 +49,7 @@ jobs:
   # Remove no-fail once existing qlty debt is resolved.
   qlty-health:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-qlty-gate.yml@040026ab682aa4b9ef491750d62cdd1592cdb659
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-qlty-gate.yml@1561a3ef04892ffd6c4a0c4c46fdf1de5a34ed02 # .github#188
     permissions:
       contents: read
     with:
