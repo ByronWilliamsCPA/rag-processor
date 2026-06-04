@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
+from fastapi import WebSocketDisconnect
 
 from rag_processor.models.batch import Batch, BatchStatus
 from rag_processor.websocket.connection_manager import ConnectionManager
@@ -152,6 +153,36 @@ class TestConnectionManager:
         # One succeeded, one failed
         assert sent_count == 1
         # Failed connection should be removed
+        assert manager.get_connection_count(batch_id) == 1
+
+    @pytest.mark.asyncio
+    async def test_broadcast_tolerates_client_disconnect(
+        self, manager: ConnectionManager
+    ) -> None:
+        """An abrupt client disconnect mid-broadcast is handled, not propagated.
+
+        Regression: WebSocketDisconnect subclasses only Exception (not OSError),
+        so a disconnect raised by send_json must be caught explicitly. Otherwise
+        it aborts delivery to the remaining clients and propagates to the caller
+        (e.g. the event bridge listener), killing real-time delivery.
+        """
+        batch_id = uuid4()
+
+        ws1 = MagicMock()
+        ws1.accept = AsyncMock()
+        ws1.send_json = AsyncMock(side_effect=WebSocketDisconnect(code=1006))
+        ws2 = MagicMock()
+        ws2.accept = AsyncMock()
+        ws2.send_json = AsyncMock()
+
+        await manager.connect(ws1, batch_id)
+        await manager.connect(ws2, batch_id)
+
+        # Must not raise even though ws1 disconnects during send.
+        sent_count = await manager.broadcast(batch_id, {"type": "test"})
+
+        # ws2 still received the message; ws1 was pruned.
+        assert sent_count == 1
         assert manager.get_connection_count(batch_id) == 1
 
     @pytest.mark.asyncio

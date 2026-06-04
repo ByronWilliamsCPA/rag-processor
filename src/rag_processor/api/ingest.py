@@ -17,6 +17,7 @@ import magic
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
 
+from rag_processor.api.dependencies import get_file_router
 from rag_processor.auth.dependencies import get_current_user
 from rag_processor.auth.models import CloudflareUser
 from rag_processor.core.config import settings
@@ -38,9 +39,6 @@ router = APIRouter(prefix="/ingest", tags=["ingest"])
 
 # Compile regex for filename sanitization
 SAFE_FILENAME_PATTERN = re.compile(r"[^\w\s\-.]")
-
-# File router for classification and pipeline routing
-file_router = FileRouter()
 
 
 class JobResponse(BaseModel):
@@ -267,6 +265,7 @@ async def ingest_files(
         Form(description="Target vector store for handoff"),
     ] = None,
     user: CloudflareUser = Depends(get_current_user),
+    file_router: FileRouter = Depends(get_file_router),
 ) -> IngestResponse:
     """Upload files for RAG pipeline processing.
 
@@ -282,6 +281,7 @@ async def ingest_files(
         priority: Processing priority (high, normal, low).
         target_vector_store: Optional target vector store identifier.
         user: Authenticated user from Cloudflare Access.
+        file_router: Injected file classification and pipeline routing service.
 
     Returns:
         IngestResponse containing the new batch ID, batch status, total
