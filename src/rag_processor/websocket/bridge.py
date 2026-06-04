@@ -97,7 +97,29 @@ class EventBridge:
 
         self._running = True
         self._task = asyncio.create_task(self._listen())
+        self._task.add_done_callback(self._on_listener_done)
         logger.info("Event bridge started", pattern=EVENT_CHANNEL_PATTERN)
+
+    def _on_listener_done(self, task: asyncio.Task[None]) -> None:
+        """Surface an unexpected listener exit instead of failing silently.
+
+        A normal :meth:`stop` cancels the task or lets it return after
+        ``_running`` is cleared; both are expected. Any other exception means the
+        listener died unexpectedly, so record it and flip ``_running`` to False so
+        :attr:`running` stops reporting a false healthy state.
+
+        Args:
+            task: The completed listener task.
+        """
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc is not None:
+            self._running = False
+            logger.error(
+                "Event bridge listener exited unexpectedly",
+                error=repr(exc),
+            )
 
     async def stop(self) -> None:
         """Stop relaying and release Redis resources."""
@@ -135,8 +157,12 @@ class EventBridge:
     async def _cleanup(self) -> None:
         """Close the pub/sub subscription and Redis connection."""
         if self._pubsub is not None:
+            # Separate suppress blocks: if punsubscribe raises (the Redis-outage
+            # case this runs in), aclose must still run, otherwise the connection
+            # handle leaks on every reconnect cycle.
             with contextlib.suppress(RedisError, OSError):
                 await self._pubsub.punsubscribe(EVENT_CHANNEL_PATTERN)
+            with contextlib.suppress(RedisError, OSError):
                 await self._pubsub.aclose()
             self._pubsub = None
 
@@ -167,10 +193,24 @@ class EventBridge:
                     else await self._subscribe()
                 )
                 async for message in pubsub.listen():
-                    if message.get("type") == "pmessage":
+                    if message.get("type") != "pmessage":
+                        continue
+                    try:
                         await self._relay(message.get("data"))
-                    # Healthy activity resets the backoff window.
-                    backoff = self._initial_backoff
+                    except Exception:
+                        # Resilience boundary: a single bad event (or a client
+                        # disconnect during broadcast) must not tear down the
+                        # listener. Log and keep consuming so live delivery
+                        # survives. CancelledError is a BaseException and is not
+                        # caught here, so stop() still cancels cleanly.
+                        logger.exception(
+                            "Event bridge failed to relay a message; dropping it",
+                        )
+                    else:
+                        # Only a cleanly relayed event resets the backoff window;
+                        # a subscription ack alone is not evidence of a healthy
+                        # data path.
+                        backoff = self._initial_backoff
             except asyncio.CancelledError:
                 raise
             except (RedisError, OSError) as e:
@@ -196,10 +236,18 @@ class EventBridge:
             return
 
         try:
-            event: dict[str, Any] = json.loads(raw)
+            parsed: object = json.loads(raw)
         except json.JSONDecodeError:
             logger.warning("Event bridge received malformed event payload")
             return
+
+        # A syntactically valid JSON document can still decode to a non-object
+        # (number, array, string, null). Guard before treating it as a mapping so
+        # a stray payload cannot raise AttributeError and kill the listener task.
+        if not isinstance(parsed, dict):
+            logger.warning("Event bridge received non-object event payload")
+            return
+        event: dict[str, Any] = parsed
 
         batch_id = event.get("batch_id")
         if not batch_id:

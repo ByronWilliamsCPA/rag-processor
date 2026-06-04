@@ -24,6 +24,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   manager uses a plain `dict` with non-resurrecting cleanup (`.get`/`.pop`) in
   `broadcast` and `disconnect`, so a batch emptied/removed by a concurrent
   disconnect is not silently recreated as an empty set (key leak).
+- **Event bridge listener resilience**: the Redis pub/sub `EventBridge` no longer
+  dies silently on an unexpected message. `_relay` drops valid-but-non-object
+  JSON payloads instead of raising `AttributeError`; the listener wraps each
+  relay in a resilience boundary so one bad event (or a client disconnect during
+  broadcast) is logged and skipped rather than killing the task; `_cleanup` uses
+  separate suppress blocks so the connection handle is always closed (no leak per
+  reconnect); and the listener task carries a done-callback that records an
+  unexpected exit and clears `running` so it stops reporting a false healthy
+  state. The reconnect backoff now resets only on a cleanly relayed event, not on
+  a bare subscription acknowledgement.
+- **`broadcast` tolerates abrupt client disconnects**: `ConnectionManager.broadcast`
+  now also catches `WebSocketDisconnect` (which subclasses only `Exception`), so a
+  client dropping mid-broadcast prunes that client instead of aborting delivery to
+  the remaining clients and propagating to the caller.
 - **Rate-limit tracking-table bound (H6 hardening)**: `max_tracked_ips` is now
   enforced on insert in `RateLimitMiddleware.dispatch`, not only during the
   time-gated periodic cleanup. This keeps the cap effective under a flood of

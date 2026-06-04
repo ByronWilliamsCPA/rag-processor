@@ -79,6 +79,33 @@ class TestEventBridgeRelay:
 
         mock_broadcast.assert_not_awaited()
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            json.dumps([1, 2, 3]),
+            json.dumps(5),
+            json.dumps("just a string"),
+            json.dumps(None),
+        ],
+    )
+    async def test_relay_ignores_valid_non_dict_json(self, payload: str) -> None:
+        """Valid JSON that is not an object is dropped without raising.
+
+        Regression: json.loads can return a list/int/str/None; calling .get()
+        on those raises AttributeError, which is not caught by the listener and
+        would permanently kill it. The relay must drop non-object payloads.
+        """
+        bridge = EventBridge()
+        with patch(
+            "rag_processor.websocket.bridge.connection_manager.broadcast",
+            new=AsyncMock(),
+        ) as mock_broadcast:
+            # Must not raise.
+            await bridge._relay(payload)
+
+        mock_broadcast.assert_not_awaited()
+
 
 @pytest.mark.unit
 class TestEventBridgeLifecycle:
