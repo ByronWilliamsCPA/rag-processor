@@ -11,9 +11,14 @@ from typing import TYPE_CHECKING, cast
 from fastapi import HTTPException, Request, status
 
 from rag_processor.auth.models import CloudflareUser
+from rag_processor.utils.logging import get_logger
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
     from rag_processor.models.batch import Batch
+
+logger = get_logger(__name__)
 
 
 async def get_current_user(request: Request) -> CloudflareUser:
@@ -80,6 +85,53 @@ def batch_is_owned_by(
     if batch.created_by_user_id and requester_user_id:
         return batch.created_by_user_id == requester_user_id
     return bool(batch.created_by_email) and batch.created_by_email == requester_email
+
+
+def ensure_batch_owned(
+    batch: Batch | None,
+    *,
+    batch_id: UUID | str,
+    user: CloudflareUser,
+    not_found_detail: str,
+) -> Batch:
+    """Return the batch if the caller owns it, otherwise raise 404.
+
+    Centralizes the access-control behavior shared by the batch and job status
+    endpoints: a missing batch and a batch owned by someone else both yield 404
+    (never 403) so batch existence is not leaked. Unauthorized attempts are
+    logged with opaque IDs only.
+
+    Args:
+        batch: The batch that was looked up (or None if not found).
+        batch_id: Batch identifier, used for logging and the 404 message.
+        user: The authenticated caller.
+        not_found_detail: Detail message for the 404 response.
+
+    Returns:
+        The batch, when the caller owns it.
+
+    Raises:
+        HTTPException: 404 if the batch is missing or not owned by the caller.
+    """
+    if batch is not None and batch_is_owned_by(
+        batch, requester_user_id=user.user_id, requester_email=user.email
+    ):
+        return batch
+
+    if batch is not None:
+        # Minimal log context: opaque IDs only. Don't include the requester or
+        # owner email/identity (attacker-controlled probes could otherwise
+        # extract owner info from logs).
+        logger.warning(
+            "Unauthorized batch access attempt",
+            batch_id=str(batch_id),
+            requester_user_id=user.user_id,
+        )
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=not_found_detail,
+    )
 
 
 async def get_optional_user(request: Request) -> CloudflareUser | None:

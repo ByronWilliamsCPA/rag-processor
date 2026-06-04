@@ -24,6 +24,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   manager uses a plain `dict` with non-resurrecting cleanup (`.get`/`.pop`) in
   `broadcast` and `disconnect`, so a batch emptied/removed by a concurrent
   disconnect is not silently recreated as an empty set (key leak).
+- **Event bridge listener resilience**: the Redis pub/sub `EventBridge` no longer
+  dies silently on an unexpected message. `_relay` drops valid-but-non-object
+  JSON payloads instead of raising `AttributeError`; the listener wraps each
+  relay in a resilience boundary so one bad event (or a client disconnect during
+  broadcast) is logged and skipped rather than killing the task; `_cleanup` uses
+  separate suppress blocks so the connection handle is always closed (no leak per
+  reconnect); and the listener task carries a done-callback that records an
+  unexpected exit and clears `running` so it stops reporting a false healthy
+  state. The reconnect backoff now resets only on a cleanly relayed event, not on
+  a bare subscription acknowledgement.
+- **`broadcast` tolerates abrupt client disconnects**: `ConnectionManager.broadcast`
+  now also catches `WebSocketDisconnect` (which subclasses only `Exception`), so a
+  client dropping mid-broadcast prunes that client instead of aborting delivery to
+  the remaining clients and propagating to the caller.
 - **Rate-limit tracking-table bound (H6 hardening)**: `max_tracked_ips` is now
   enforced on insert in `RateLimitMiddleware.dispatch`, not only during the
   time-gated periodic cleanup. This keeps the cap effective under a flood of
@@ -66,6 +80,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   helper, so both enforce the same RS256 + audience + issuer checks and clock-skew leeway.
 - **Domain exception hierarchy wired into FastAPI** via an exception handler
   mapping `ProjectBaseError` subclasses to HTTP responses.
+- **Real-time event delivery to WebSocket clients** via a new
+  `EventBridge` (`websocket/bridge.py`) that subscribes to the Redis
+  `batch:*:events` pub/sub channels and relays each event to the locally
+  connected clients. Started and stopped in the application lifespan; degrades
+  gracefully when Redis is unavailable and reconnects with bounded exponential
+  backoff after transient outages. Previously, worker events were published to
+  Redis but never reached browsers (clients saw only the initial snapshot and
+  `last_event_id` replay).
+- **Application factory** (`create_app()` in `main.py`) is now the single source
+  of truth for middleware ordering and CORS, replacing the import-time global
+  app construction. The `FileRouter` is injected via `Depends(get_file_router)`
+  (`api/dependencies.py`) instead of a module-level singleton, giving tests an
+  override seam.
+
+### Fixed (Architecture Review follow-up)
+
+- **Duplicate CORS middleware removed**: `add_security_middleware` no longer
+  registers a second, conflicting `CORSMiddleware` (empty origins,
+  `allow_headers=["*"]`) on top of the application's own. It now configures CORS
+  only when the caller explicitly supplies `allowed_origins`; `create_app` owns
+  CORS for the gateway.
+- **Docker Compose Redis wiring**: the `app` and `worker` services only received
+  `REDIS_URL`/`LOG_LEVEL`, but application code reads the `RAG_PROCESSOR_`-prefixed
+  settings, so both silently fell back to `redis_host=localhost` and never
+  reached the `redis` service. Added `RAG_PROCESSOR_REDIS_*` (plus log/enqueue)
+  variables to both services and switched the worker to the `rq worker` console
+  script.
 
 #### Phase 0: Foundation Infrastructure
 

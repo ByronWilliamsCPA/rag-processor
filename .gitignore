@@ -302,3 +302,6 @@ tmp_cleanup/.tmp-*
 
 # Git worktrees (branch checkouts used locally)
 .worktrees/
+
+# Template feedback is kept local-only, not tracked in the repo
+docs/template_feedback.md

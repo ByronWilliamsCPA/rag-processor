@@ -11,7 +11,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from rag_processor.auth.dependencies import batch_is_owned_by, get_current_user
+from rag_processor.auth.dependencies import ensure_batch_owned, get_current_user
 from rag_processor.auth.models import CloudflareUser
 from rag_processor.models.batch import (
     BatchStatus,
@@ -22,9 +22,6 @@ from rag_processor.models.job import (
     Pipeline,
 )
 from rag_processor.queue.jobs import get_batch_status_async, get_job_status_async
-from rag_processor.utils.logging import get_logger
-
-logger = get_logger(__name__)
 
 router = APIRouter(prefix="/batch", tags=["batch"])
 
@@ -128,23 +125,13 @@ async def get_batch(
     # Non-blocking Redis read (offloaded to a thread inside the wrapper).
     batch, jobs = await get_batch_status_async(batch_id)
 
-    # Return 404 (not 403) for non-owners to avoid leaking batch existence.
-    if batch is None or not batch_is_owned_by(
-        batch, requester_user_id=user.user_id, requester_email=user.email
-    ):
-        if batch is not None:
-            # Minimal log context: opaque IDs only. Don't include the requester
-            # email or the owner's email/identity (attacker-controlled probes
-            # could otherwise extract owner info from logs).
-            logger.warning(
-                "Unauthorized batch access attempt",
-                batch_id=str(batch_id),
-                requester_user_id=user.user_id,
-            )
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Batch {batch_id} not found",
-        )
+    # 404 (not 403) for missing or non-owned batches; see ensure_batch_owned.
+    batch = ensure_batch_owned(
+        batch,
+        batch_id=batch_id,
+        user=user,
+        not_found_detail=f"Batch {batch_id} not found",
+    )
 
     # Convert jobs to response format
     job_responses = [
@@ -224,22 +211,15 @@ async def get_job(
         )
 
     # A job inherits ownership from its parent batch.
+    # Non-blocking Redis read (offloaded to a thread inside the wrapper).
     batch, _ = await get_batch_status_async(job.batch_id)
-    if batch is None or not batch_is_owned_by(
-        batch, requester_user_id=user.user_id, requester_email=user.email
-    ):
-        if batch is not None:
-            # Minimal log context: opaque IDs only. See note in get_batch.
-            logger.warning(
-                "Unauthorized job access attempt",
-                job_id=str(job_id),
-                batch_id=str(job.batch_id),
-                requester_user_id=user.user_id,
-            )
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Job {job_id} not found",
-        )
+    # 404 (not 403) for missing or non-owned batches; see ensure_batch_owned.
+    ensure_batch_owned(
+        batch,
+        batch_id=job.batch_id,
+        user=user,
+        not_found_detail=f"Job {job_id} not found",
+    )
 
     return JobDetailResponse(
         job_id=job.job_id,

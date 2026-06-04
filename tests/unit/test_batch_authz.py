@@ -17,7 +17,7 @@ import pytest
 from fastapi import HTTPException
 
 from rag_processor.api.batch import get_batch, get_job
-from rag_processor.auth.dependencies import batch_is_owned_by
+from rag_processor.auth.dependencies import batch_is_owned_by, ensure_batch_owned
 from rag_processor.auth.models import CloudflareUser
 from rag_processor.models.batch import Batch, BatchStatus
 from rag_processor.models.job import (
@@ -121,6 +121,39 @@ class TestBatchIsOwnedBy:
             )
             is False
         )
+
+
+class TestEnsureBatchOwned:
+    """Direct tests for the shared ownership/404 helper."""
+
+    def test_returns_batch_for_owner(self):
+        batch = _batch()
+        assert (
+            ensure_batch_owned(
+                batch, batch_id=batch.batch_id, user=_user(), not_found_detail="x"
+            )
+            is batch
+        )
+
+    def test_raises_404_for_missing_batch(self):
+        with pytest.raises(HTTPException) as exc:
+            ensure_batch_owned(
+                None, batch_id=uuid4(), user=_user(), not_found_detail="nope"
+            )
+        assert exc.value.status_code == 404
+        assert exc.value.detail == "nope"
+
+    def test_raises_404_for_non_owner(self):
+        batch = _batch(created_by_user_id="other", created_by_email="other@x")
+        with pytest.raises(HTTPException) as exc:
+            ensure_batch_owned(
+                batch,
+                batch_id=batch.batch_id,
+                user=_user(),
+                not_found_detail="hidden",
+            )
+        # 404, not 403 — existence must not leak.
+        assert exc.value.status_code == 404
 
 
 class TestGetBatchAuthz:

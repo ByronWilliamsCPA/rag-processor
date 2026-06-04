@@ -183,6 +183,43 @@ class Settings(BaseSettings):
         description="Allowed MIME types for upload",
     )
 
+    # PDF classification thresholds (chars per page)
+    pdf_scanned_chars_threshold: int = Field(
+        default=50,
+        ge=0,
+        description=(
+            "PDFs with fewer than this many extracted characters per page are "
+            "classified as scanned (image-based, needing OCR)."
+        ),
+    )
+    pdf_scanned_high_confidence_chars: int = Field(
+        default=10,
+        ge=0,
+        description=(
+            "A scanned-PDF classification is reported 'high' confidence when "
+            "chars/page is below this value, otherwise 'medium'."
+        ),
+    )
+    pdf_digital_high_confidence_chars: int = Field(
+        default=200,
+        ge=0,
+        description=(
+            "A born-digital-PDF classification is reported 'high' confidence "
+            "when chars/page exceeds this value, otherwise 'medium'."
+        ),
+    )
+
+    # Readiness
+    readiness_require_redis: bool = Field(
+        default=False,
+        description=(
+            "If true, the /health/ready probe returns 503 when Redis is "
+            "unreachable. Default false so deployments/CI without a Redis "
+            "dependency still report ready while the check stays truthful in "
+            "the response body."
+        ),
+    )
+
     @property
     def max_file_size_bytes(self) -> int:
         """Get max file size in bytes.

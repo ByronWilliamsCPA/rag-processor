@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from fastapi import WebSocketDisconnect
+
 from rag_processor.utils.logging import get_logger
 
 if TYPE_CHECKING:
@@ -124,7 +126,10 @@ class ConnectionManager:
             try:
                 await websocket.send_json(message)
                 sent_count += 1
-            except (RuntimeError, OSError) as e:
+            except (RuntimeError, OSError, WebSocketDisconnect) as e:
+                # WebSocketDisconnect subclasses only Exception (not OSError), so
+                # without it an abrupt client disconnect mid-broadcast would abort
+                # delivery to the remaining clients and propagate to callers.
                 logger.warning(
                     "Failed to send WebSocket message",
                     batch_id=batch_key,

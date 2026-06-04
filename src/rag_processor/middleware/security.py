@@ -664,16 +664,24 @@ def add_security_middleware(app: FastAPI, config: SecurityConfig | None = None) 
             allowed_hosts=config.allowed_hosts,
         )
 
-    # CORS configuration (OWASP A05)
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=config.allowed_origins,
-        allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
-        allow_headers=["*"],
-        expose_headers=["X-Request-ID"],
-        max_age=3600,
-    )
+    # CORS configuration (OWASP A05).
+    #
+    # CORS is only configured here when the caller explicitly supplies
+    # ``allowed_origins``. The main application owns CORS in
+    # ``rag_processor.main.create_app`` (driven by settings), so passing an
+    # empty list keeps this helper from registering a *second*, conflicting
+    # CORSMiddleware on top of it. Standalone users of this helper can still
+    # opt in by providing origins.
+    if config.allowed_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=config.allowed_origins,
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+            allow_headers=["*"],
+            expose_headers=["X-Request-ID"],
+            max_age=3600,
+        )
 
     # Security headers (OWASP A05, A03, A09)
     app.add_middleware(SecurityHeadersMiddleware)
