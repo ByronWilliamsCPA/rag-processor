@@ -63,6 +63,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### CI/CD
+
+- **Qlty PR gate and weekly health scan**: `qlty.yml` now runs the
+  `python-qlty-gate` reusable workflow on every pull request to `main` in diff
+  mode (`fail-level: medium`) to block merges that introduce medium or higher
+  severity issues, and runs a Monday 07:00 UTC full-codebase health scan that is
+  informational only (`no-fail: true`). The reusable workflow is pinned to a
+  `main`-reachable commit in `ByronWilliamsCPA/.github` (from `.github#188`).
+
 #### WebSocket & Rate Limiting (Tier 2)
 
 - **Proxy-aware rate limiting (H6)**: `RateLimitMiddleware` can resolve the
