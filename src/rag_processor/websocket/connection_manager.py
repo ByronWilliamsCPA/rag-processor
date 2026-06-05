@@ -42,10 +42,11 @@ class ConnectionManager:
         await manager.connect(websocket, batch_id)
         await manager.broadcast(batch_id, {"status": "processing"})
         manager.disconnect(websocket, batch_id)
+
+    Initializes the connection manager with an empty connections dict.
     """
 
     def __init__(self) -> None:
-        """Initialize the connection manager."""
         # Map batch_id -> set of WebSocket connections.
         #
         # A plain dict (not defaultdict) is used deliberately: defaultdict would
@@ -57,8 +58,8 @@ class ConnectionManager:
         """Accept a WebSocket connection and track it for the batch.
 
         Args:
-            websocket: WebSocket connection to track.
-            batch_id: Batch identifier.
+            websocket (WebSocket): WebSocket connection to track.
+            batch_id (UUID | str): Batch identifier.
         """
         await websocket.accept()
         batch_key = str(batch_id)
@@ -76,8 +77,8 @@ class ConnectionManager:
         """Remove a WebSocket connection from tracking.
 
         Args:
-            websocket: WebSocket connection to remove.
-            batch_id: Batch identifier.
+            websocket (WebSocket): WebSocket connection to remove.
+            batch_id (UUID | str): Batch identifier.
         """
         batch_key = str(batch_id)
         connections = self._connections.get(batch_key)
@@ -104,11 +105,11 @@ class ConnectionManager:
         """Broadcast a message to all connections for a batch.
 
         Args:
-            batch_id: Batch identifier.
-            message: JSON-serializable message to send.
+            batch_id (UUID | str): Batch identifier.
+            message (dict[str, str | int | float | bool | None]): JSON-serializable message to send.
 
         Returns:
-            Number of clients that received the message.
+            int: Number of clients that received the message.
         """
         batch_key = str(batch_id)
         # Iterate over a snapshot, not the live set. The sends below are awaited,
@@ -164,11 +165,11 @@ class ConnectionManager:
         """Send a message to a specific WebSocket connection.
 
         Args:
-            websocket: Target WebSocket connection.
-            message: JSON-serializable message to send.
+            websocket (WebSocket): Target WebSocket connection.
+            message (dict[str, str | int | float | bool | None]): JSON-serializable message to send.
 
         Returns:
-            True if message sent successfully, False otherwise.
+            bool: True if message sent successfully, False otherwise.
         """
         try:
             await websocket.send_json(message)
@@ -182,10 +183,10 @@ class ConnectionManager:
         """Get the number of connections for a batch.
 
         Args:
-            batch_id: Batch identifier.
+            batch_id (UUID | str): Batch identifier.
 
         Returns:
-            Number of active connections.
+            int: Number of active connections.
         """
         batch_key = str(batch_id)
         return len(self._connections.get(batch_key, set()))
@@ -194,7 +195,7 @@ class ConnectionManager:
         """Get all batch IDs with active connections.
 
         Returns:
-            List of batch IDs.
+            list[str]: List of batch IDs.
         """
         return list(self._connections.keys())
 

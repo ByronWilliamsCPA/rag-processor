@@ -38,16 +38,16 @@ class Batch(BaseModel):
     """A batch of files uploaded together.
 
     Attributes:
-        batch_id: Unique identifier for the batch.
-        created_by_email: Email of the user who created the batch.
-        created_by_user_id: User ID of the creator.
-        status: Current status of the batch.
-        total_files: Total number of files in the batch.
-        completed_files: Number of successfully completed files.
-        failed_files: Number of failed files.
-        target_vector_store: Target vector store for handoff.
-        created_at: When the batch was created.
-        updated_at: When the batch was last updated.
+        batch_id (UUID): Unique identifier for the batch.
+        created_by_email (str): Email of the user who created the batch.
+        created_by_user_id (str | None): User ID of the creator.
+        status (BatchStatus): Current status of the batch.
+        total_files (int): Total number of files in the batch.
+        completed_files (int): Number of successfully completed files.
+        failed_files (int): Number of failed files.
+        target_vector_store (str | None): Target vector store for handoff.
+        created_at (datetime): When the batch was created.
+        updated_at (datetime): When the batch was last updated.
     """
 
     batch_id: UUID = Field(default_factory=uuid4, description="Unique batch identifier")
@@ -81,7 +81,7 @@ class Batch(BaseModel):
         outcome is mixed.
 
         Returns:
-            None. Mutates `self.status` and `self.updated_at` in place.
+            None: Mutates `self.status` and `self.updated_at` in place.
         """
         self.updated_at = datetime.now(tz=UTC)
 
@@ -102,7 +102,7 @@ class Batch(BaseModel):
         """Convert batch to Redis hash format.
 
         Returns:
-            Dictionary suitable for Redis HSET.
+            dict[str, str]: Dictionary suitable for Redis HSET.
         """
         return {
             "batch_id": str(self.batch_id),
@@ -122,10 +122,10 @@ class Batch(BaseModel):
         """Create Batch from Redis hash data.
 
         Args:
-            data: Dictionary from Redis HGETALL.
+            data (dict[str, str]): Dictionary from Redis HGETALL.
 
         Returns:
-            Batch instance.
+            Batch: Batch instance.
         """
         return cls(
             batch_id=UUID(data["batch_id"]),

@@ -16,11 +16,11 @@ class CloudflareUser(BaseModel):
     """Authenticated user from Cloudflare Access.
 
     Attributes:
-        email: User's email address from Cloudflare Access.
-        user_id: Cloudflare user identifier (sub claim).
-        groups: List of group names the user belongs to.
-        issued_at: When the token was issued.
-        expires_at: When the token expires.
+        email (str): User's email address from Cloudflare Access.
+        user_id (str | None): Cloudflare user identifier (sub claim).
+        groups (list[str]): List of group names the user belongs to.
+        issued_at (datetime): When the token was issued.
+        expires_at (datetime): When the token expires.
     """
 
     email: str = Field(..., description="User's email address")
@@ -58,7 +58,7 @@ class TokenClaims(BaseModel):
         """Convert token claims to CloudflareUser model.
 
         Returns:
-            CloudflareUser with extracted user information.
+            CloudflareUser: CloudflareUser with extracted user information.
         """
         return CloudflareUser(
             email=self.email,

@@ -51,7 +51,7 @@ class _JWKSCache:
         """Check if cache is still valid.
 
         Returns:
-            True if cache has data and TTL hasn't expired.
+            bool: True if cache has data and TTL hasn't expired.
         """
         return bool(self.data) and (time.time() - self.timestamp) < self.ttl
 
@@ -59,7 +59,7 @@ class _JWKSCache:
         """Update cache with new data.
 
         Args:
-            data: JWKS data to cache.
+            data (JWKSData): JWKS data to cache.
         """
         self.data = data
         self.timestamp = time.time()
@@ -96,10 +96,10 @@ async def _load_jwks(*, force_refresh: bool = False) -> JWKSData:
     only one coroutine performs the upstream fetch.
 
     Args:
-        force_refresh: If True, bypass the cached value and refetch.
+        force_refresh (bool): If True, bypass the cached value and refetch.
 
     Returns:
-        The JWKS dictionary with public keys.
+        JWKSData: The JWKS dictionary with public keys.
     """
     if not force_refresh and _jwks_cache.is_valid():
         return _jwks_cache.data
@@ -138,10 +138,10 @@ def _parse_jwks_payload(payload: object) -> tuple[JWKSData, int]:
     fails fast here instead of surfacing later during key resolution.
 
     Args:
-        payload: The decoded JSON body from the JWKS endpoint.
+        payload (object): The decoded JSON body from the JWKS endpoint.
 
     Returns:
-        A tuple of the validated JWKS document and its key count.
+        tuple[JWKSData, int]: A tuple of the validated JWKS document and its key count.
 
     Raises:
         jwt.InvalidTokenError: If the payload shape is invalid.
@@ -174,11 +174,11 @@ async def _resolve_signing_key(jwks: JWKSData, token: str) -> RSAPublicKey:
     # #VERIFY: force-refresh and retry key resolution exactly once on a miss.
 
     Args:
-        jwks: The currently cached JWKS document.
-        token: The JWT whose signing key is being resolved.
+        jwks (JWKSData): The currently cached JWKS document.
+        token (str): The JWT whose signing key is being resolved.
 
     Returns:
-        The matching RSA public key.
+        RSAPublicKey: The matching RSA public key.
 
     Raises:
         jwt.InvalidTokenError: If the key is missing even after a refresh.
@@ -196,11 +196,11 @@ def _select_rsa_key(jwks: JWKSData, kid: str) -> RSAPublicKey | None:
     """Find the RSA public key matching ``kid`` in a JWKS document.
 
     Args:
-        jwks: JWKS dictionary.
-        kid: Key ID to find.
+        jwks (JWKSData): JWKS dictionary.
+        kid (str): Key ID to find.
 
     Returns:
-        The RSA public key, or None if no key matches.
+        RSAPublicKey | None: The RSA public key, or None if no key matches.
     """
     keys_list: list[dict[str, Any]] = jwks.get("keys", [])
     for key in keys_list:
@@ -216,14 +216,11 @@ def _decode_cf_jwt(token: str, rsa_key: RSAPublicKey) -> dict[str, Any]:
     skew handling, shared by the HTTP middleware and the WebSocket path.
 
     Args:
-        token: The JWT string.
-        rsa_key: The RSA public key to verify the signature against.
+        token (str): The JWT string.
+        rsa_key (RSAPublicKey): The RSA public key to verify the signature against.
 
     Returns:
-        The decoded token payload (claims).
-
-    Raises:
-        jwt.InvalidTokenError: If the token fails validation.
+        dict[str, Any]: The decoded token payload (claims).
     """
     return jwt.decode(
         token,
@@ -239,11 +236,11 @@ def _resolve_key_or_raise(jwks: JWKSData, token: str) -> RSAPublicKey:
     """Extract the ``kid`` from a token and resolve its RSA key.
 
     Args:
-        jwks: JWKS dictionary.
-        token: The JWT string (header is read unverified to get the ``kid``).
+        jwks (JWKSData): JWKS dictionary.
+        token (str): The JWT string (header is read unverified to get the ``kid``).
 
     Returns:
-        The matching RSA public key.
+        RSAPublicKey: The matching RSA public key.
 
     Raises:
         jwt.InvalidTokenError: If the token has no ``kid`` or no key matches.
@@ -292,11 +289,11 @@ class CloudflareAuthMiddleware(BaseHTTPMiddleware):
         """Process request and validate JWT if required.
 
         Args:
-            request: Incoming HTTP request.
-            call_next: Next middleware or route handler.
+            request (Request): Incoming HTTP request.
+            call_next (Callable[[Request], Awaitable[Response]]): Next middleware or route handler.
 
         Returns:
-            Response from downstream handler or 401 error.
+            Response: Response from downstream handler or 401 error.
         """
         # Skip auth for public paths
         if self._is_public_path(request.url.path):
@@ -341,10 +338,10 @@ class CloudflareAuthMiddleware(BaseHTTPMiddleware):
         """Check if path is public and doesn't require auth.
 
         Args:
-            path: Request URL path.
+            path (str): Request URL path.
 
         Returns:
-            True if path is public.
+            bool: True if path is public.
         """
         # Exact match or prefix match for health endpoints
         return path in self.PUBLIC_PATHS or path.startswith("/health")
@@ -353,7 +350,7 @@ class CloudflareAuthMiddleware(BaseHTTPMiddleware):
         """Create mock user for local development bypass mode.
 
         Returns:
-            Mock CloudflareUser for development.
+            CloudflareUser: Mock CloudflareUser for development.
         """
         now = datetime.now(tz=UTC)
         return CloudflareUser(
@@ -368,13 +365,10 @@ class CloudflareAuthMiddleware(BaseHTTPMiddleware):
         """Validate JWT token and extract user.
 
         Args:
-            token: JWT token string from header.
+            token (str): JWT token string from header.
 
         Returns:
-            CloudflareUser extracted from token claims.
-
-        Raises:
-            InvalidTokenError: If token is invalid or key not found.
+            CloudflareUser: CloudflareUser extracted from token claims.
         """
         # Get JWKS for signature validation, resolve the signing key, then
         # validate/decode via the shared helpers (same logic as the WebSocket
@@ -394,7 +388,7 @@ class CloudflareAuthMiddleware(BaseHTTPMiddleware):
         instance method so it remains an overridable seam for tests.
 
         Returns:
-            JWKS dictionary with public keys.
+            JWKSData: JWKS dictionary with public keys.
         """
         return await _load_jwks()
 
@@ -402,11 +396,11 @@ class CloudflareAuthMiddleware(BaseHTTPMiddleware):
         """Find RSA key by key ID in JWKS.
 
         Args:
-            jwks: JWKS dictionary.
-            kid: Key ID to find.
+            jwks (JWKSData): JWKS dictionary.
+            kid (str): Key ID to find.
 
         Returns:
-            RSA public key or None if not found.
+            RSAPublicKey | None: RSA public key or None if not found.
         """
         return _select_rsa_key(jwks, kid)
 
@@ -414,10 +408,10 @@ class CloudflareAuthMiddleware(BaseHTTPMiddleware):
         """Create 401 Unauthorized response.
 
         Args:
-            detail: Error detail message.
+            detail (str): Error detail message.
 
         Returns:
-            JSONResponse with 401 status.
+            JSONResponse: JSONResponse with 401 status.
         """
         return JSONResponse(
             status_code=401,
@@ -440,13 +434,10 @@ async def verify_cloudflare_token(token: str) -> dict[str, Any]:
     such as WebSocket connections.
 
     Args:
-        token: JWT token string.
+        token (str): JWT token string.
 
     Returns:
-        Dictionary with user info (email, user_id).
-
-    Raises:
-        InvalidTokenError: If token is invalid or expired.
+        dict[str, Any]: Dictionary with user info (email, user_id).
     """
     # Reuse the exact same JWKS loading, key resolution, and decode logic as
     # the HTTP middleware so HTTP and WebSocket auth accept identical tokens

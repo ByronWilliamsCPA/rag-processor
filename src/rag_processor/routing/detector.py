@@ -20,11 +20,11 @@ class DetectionResult:
     """Result of file type detection.
 
     Attributes:
-        mime_type: Detected MIME type.
-        extension: Recommended file extension.
-        confidence: Confidence level (high, medium, low).
-        magic_match: Whether magic bytes matched.
-        extension_match: Whether file extension matched MIME type.
+        mime_type (str): Detected MIME type.
+        extension (str): Recommended file extension.
+        confidence (str): Confidence level (high, medium, low).
+        magic_match (bool): Whether magic bytes matched.
+        extension_match (bool): Whether file extension matched MIME type.
     """
 
     mime_type: str
@@ -94,7 +94,6 @@ class FileTypeDetector:
     """
 
     def __init__(self) -> None:
-        """Initialize the file type detector."""
         self._magic = magic.Magic(mime=True)
 
     def detect_from_bytes(
@@ -105,11 +104,11 @@ class FileTypeDetector:
         """Detect file type from content bytes.
 
         Args:
-            content: File content as bytes.
-            filename: Optional filename for extension-based fallback.
+            content (bytes): File content as bytes.
+            filename (str | None): Optional filename for extension-based fallback.
 
         Returns:
-            DetectionResult with detected type and confidence.
+            DetectionResult: DetectionResult with detected type and confidence.
         """
         # Detect via magic bytes
         magic_mime = self._detect_magic(content)
@@ -156,10 +155,10 @@ class FileTypeDetector:
         """Detect file type from file path.
 
         Args:
-            file_path: Path to the file.
+            file_path (str | Path): Path to the file.
 
         Returns:
-            DetectionResult with detected type and confidence.
+            DetectionResult: DetectionResult with detected type and confidence.
         """
         path = Path(file_path)
         with path.open("rb") as f:
@@ -171,10 +170,10 @@ class FileTypeDetector:
         """Detect MIME type using magic bytes.
 
         Args:
-            content: File content bytes.
+            content (bytes): File content bytes.
 
         Returns:
-            Detected MIME type string.
+            str: Detected MIME type string.
         """
         return self._magic.from_buffer(content)
 
@@ -182,10 +181,10 @@ class FileTypeDetector:
         """Check if content is a PDF file.
 
         Args:
-            content: File content bytes.
+            content (bytes): File content bytes.
 
         Returns:
-            True if content is PDF.
+            bool: True if content is PDF.
         """
         result = self.detect_from_bytes(content)
         return result.mime_type == "application/pdf"
@@ -194,10 +193,10 @@ class FileTypeDetector:
         """Check if content is an image file.
 
         Args:
-            content: File content bytes.
+            content (bytes): File content bytes.
 
         Returns:
-            True if content is an image.
+            bool: True if content is an image.
         """
         result = self.detect_from_bytes(content)
         return result.mime_type.startswith("image/")
@@ -206,10 +205,10 @@ class FileTypeDetector:
         """Check if content is an audio file.
 
         Args:
-            content: File content bytes.
+            content (bytes): File content bytes.
 
         Returns:
-            True if content is audio.
+            bool: True if content is audio.
         """
         result = self.detect_from_bytes(content)
         return result.mime_type.startswith("audio/")
@@ -218,10 +217,10 @@ class FileTypeDetector:
         """Check if content is a video file.
 
         Args:
-            content: File content bytes.
+            content (bytes): File content bytes.
 
         Returns:
-            True if content is a video.
+            bool: True if content is a video.
         """
         result = self.detect_from_bytes(content)
         return result.mime_type.startswith("video/")
@@ -230,10 +229,10 @@ class FileTypeDetector:
         """Check if content is an office document.
 
         Args:
-            content: File content bytes.
+            content (bytes): File content bytes.
 
         Returns:
-            True if content is a document.
+            bool: True if content is a document.
         """
         result = self.detect_from_bytes(content)
         document_types = {

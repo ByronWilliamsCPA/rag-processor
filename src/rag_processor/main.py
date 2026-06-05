@@ -75,10 +75,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     released cleanly.
 
     Args:
-        app: The FastAPI application instance.
+        app (FastAPI): The FastAPI application instance.
 
     Yields:
-        None after startup; cleanup runs after yield on shutdown.
+        None: After startup; cleanup runs after yield on shutdown.
     """
     logger.info(
         "Starting RAG Processor Gateway",
@@ -108,7 +108,7 @@ def _resolve_cors_origins() -> list[str]:
     it loudly rather than silently producing an insecure configuration.
 
     Returns:
-        The explicit list of allowed CORS origins.
+        list[str]: The explicit list of allowed CORS origins.
 
     Raises:
         RuntimeError: If the wildcard origin is configured.
@@ -135,11 +135,11 @@ async def handle_project_error(
     generic 500.
 
     Args:
-        request: The incoming request (unused).
-        exc: The raised project exception.
+        request (Request): The incoming request (unused).
+        exc (ProjectBaseError): The raised project exception.
 
     Returns:
-        A JSON response with the mapped status code and the exception payload.
+        JSONResponse: A JSON response with the mapped status code and the exception payload.
     """
     status = http_status_for(exc)
     correlation_id = get_correlation_id()
@@ -185,7 +185,7 @@ async def root() -> dict[str, str]:
     `Cf-Access-Jwt-Assertion` header when Cloudflare auth is enabled.
 
     Returns:
-        Dictionary with `name`, `version`, and `docs` URL.
+        dict[str, str]: Dictionary with `name`, `version`, and `docs` URL.
     """
     return {
         "name": "RAG Processor Gateway",
@@ -203,7 +203,7 @@ def create_app() -> FastAPI:
     isolated instances with overridden dependencies.
 
     Returns:
-        A fully configured FastAPI application.
+        FastAPI: A fully configured FastAPI application.
     """
     app = FastAPI(
         title="RAG Processor Gateway",

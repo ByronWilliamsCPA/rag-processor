@@ -16,17 +16,31 @@ class Settings(BaseSettings):
     Loaded from environment variables with RAG_PROCESSOR_ prefix.
 
     Attributes:
-        log_level: The logging level for the application.
-        json_logs: Flag to enable or disable JSON formatted logs.
-        include_timestamp: Flag to include timestamps in logs.
-        cloudflare_team_domain: Cloudflare Access team domain.
-        cloudflare_audience_tag: Cloudflare Access audience tag.
-        cloudflare_enabled: Enable/disable Cloudflare authentication.
-        redis_url: Redis connection URL.
-        upload_dir: Directory for uploaded files.
-        result_dir: Directory for processing results.
-        max_file_size_mb: Maximum file size in megabytes.
-        allowed_mime_types: Allowed MIME types for upload.
+        model_config: Pydantic settings configuration.
+        log_level (Literal['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']): The logging level for the application.
+        json_logs (bool): Flag to enable or disable JSON formatted logs.
+        include_timestamp (bool): Flag to include timestamps in logs.
+        cloudflare_team_domain (str): Cloudflare Access team domain.
+        cloudflare_audience_tag (str): Cloudflare Access audience tag.
+        cloudflare_enabled (bool): Enable/disable Cloudflare authentication.
+        cors_allowed_origins (list[str]): Allowed CORS origins list.
+        enqueue_enabled (bool): Enable background processing via Redis/RQ.
+        rate_limiting_enabled (bool): Enable rate limiting middleware.
+        rate_limit_rpm (int): Rate limit requests per minute per IP.
+        rate_limit_trust_proxy (bool): Trust proxy-provided client IP header for rate limiting.
+        rate_limit_client_ip_header (str): Header to read the real client IP from when rate_limit_trust_proxy is true.
+        redis_host (str): Redis server hostname.
+        redis_port (int): Redis server port.
+        redis_password (str): Redis password (empty for no auth).
+        redis_db (int): Redis database number.
+        upload_dir (str): Directory for uploaded files.
+        result_dir (str): Directory for processing results.
+        max_file_size_mb (int): Maximum file size in megabytes.
+        allowed_mime_types (list[str]): Allowed MIME types for upload.
+        pdf_scanned_chars_threshold (int): PDFs with fewer chars per page classified as scanned.
+        pdf_scanned_high_confidence_chars (int): Scanned-PDF high confidence chars per page threshold.
+        pdf_digital_high_confidence_chars (int): Born-digital-PDF high confidence chars per page threshold.
+        readiness_require_redis (bool): If true, readiness probe returns 503 when Redis is unreachable.
     """
 
     model_config = SettingsConfigDict(
@@ -225,7 +239,7 @@ class Settings(BaseSettings):
         """Get max file size in bytes.
 
         Returns:
-            Maximum file size in bytes.
+            int: Maximum file size in bytes.
         """
         return self.max_file_size_mb * 1024 * 1024
 

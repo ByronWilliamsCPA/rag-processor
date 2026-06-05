@@ -27,9 +27,9 @@ class ClassificationResult:
     """Result of file classification.
 
     Attributes:
-        classification: The file classification enum value.
-        confidence: Confidence level (high, medium, low).
-        details: Additional classification details.
+        classification (FileClassification): The file classification enum value.
+        confidence (str): Confidence level (high, medium, low).
+        details (dict[str, str | int | float]): Additional classification details.
     """
 
     classification: FileClassification
@@ -44,6 +44,14 @@ class FileClassifier:
     and content analysis. For PDFs, distinguishes between scanned
     (image-based) and born-digital (text-based) documents.
 
+    Args:
+        scanned_chars_threshold (int | None): Chars/page below which a PDF is scanned.
+            Defaults to the configured ``pdf_scanned_chars_threshold``.
+        scanned_high_confidence_chars (int | None): Chars/page below which a scanned
+            classification is 'high' confidence. Defaults to settings.
+        digital_high_confidence_chars (int | None): Chars/page above which a born-digital
+            classification is 'high' confidence. Defaults to settings.
+
     Example:
         classifier = FileClassifier()
         result = classifier.classify_from_bytes(pdf_content, "document.pdf")
@@ -57,16 +65,6 @@ class FileClassifier:
         scanned_high_confidence_chars: int | None = None,
         digital_high_confidence_chars: int | None = None,
     ) -> None:
-        """Initialize the file classifier.
-
-        Args:
-            scanned_chars_threshold: Chars/page below which a PDF is scanned.
-                Defaults to the configured ``pdf_scanned_chars_threshold``.
-            scanned_high_confidence_chars: Chars/page below which a scanned
-                classification is 'high' confidence. Defaults to settings.
-            digital_high_confidence_chars: Chars/page above which a born-digital
-                classification is 'high' confidence. Defaults to settings.
-        """
         self._detector = FileTypeDetector()
         self._scanned_chars_threshold = (
             scanned_chars_threshold
@@ -92,11 +90,11 @@ class FileClassifier:
         """Classify a file from its content bytes.
 
         Args:
-            content: File content as bytes.
-            filename: Optional filename for type detection.
+            content (bytes): File content as bytes.
+            filename (str | None): Optional filename for type detection.
 
         Returns:
-            ClassificationResult with classification and confidence.
+            ClassificationResult: ClassificationResult with classification and confidence.
         """
         # First, detect the file type
         detection = self._detector.detect_from_bytes(content, filename)
@@ -139,10 +137,10 @@ class FileClassifier:
         """Classify a file from its path.
 
         Args:
-            file_path: Path to the file.
+            file_path (str | Path): Path to the file.
 
         Returns:
-            ClassificationResult with classification and confidence.
+            ClassificationResult: ClassificationResult with classification and confidence.
         """
         path = Path(file_path)
         with path.open("rb") as f:
@@ -157,10 +155,10 @@ class FileClassifier:
         PDFs with low text density are classified as scanned.
 
         Args:
-            content: PDF file content.
+            content (bytes): PDF file content.
 
         Returns:
-            ClassificationResult for the PDF.
+            ClassificationResult: ClassificationResult for the PDF.
         """
         try:
             with pdfplumber.open(io.BytesIO(content)) as pdf:
@@ -237,10 +235,10 @@ class FileClassifier:
         """Check if MIME type is an office document.
 
         Args:
-            mime_type: MIME type string.
+            mime_type (str): MIME type string.
 
         Returns:
-            True if MIME type is a document.
+            bool: True if MIME type is a document.
         """
         document_types = {
             "application/msword",

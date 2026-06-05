@@ -55,14 +55,14 @@ class BatchEvent(BaseModel):
     """Event for batch/job status updates.
 
     Attributes:
-        event_id: Unique event identifier.
-        event_type: Type of event.
-        batch_id: Batch identifier.
-        job_id: Job identifier (for job events).
-        status: Current status.
-        message: Human-readable message.
-        data: Additional event data.
-        timestamp: Event timestamp.
+        event_id (UUID): Unique event identifier.
+        event_type (EventType): Type of event.
+        batch_id (UUID): Batch identifier.
+        job_id (UUID | None): Job identifier (for job events).
+        status (str): Current status.
+        message (str): Human-readable message.
+        data (dict[str, Any]): Additional event data.
+        timestamp (datetime): Event timestamp.
     """
 
     event_id: UUID = Field(default_factory=uuid4)
@@ -78,7 +78,7 @@ class BatchEvent(BaseModel):
         """Convert event to JSON-serializable dict.
 
         Returns:
-            Dictionary with string UUIDs and ISO timestamp.
+            dict[str, Any]: Dictionary with string UUIDs and ISO timestamp.
         """
         return {
             "event_id": str(self.event_id),
@@ -100,7 +100,7 @@ def get_redis_client() -> redis.Redis:
     the rest of the application.
 
     Returns:
-        Redis client instance.
+        redis.Redis: Redis client instance.
     """
     return _get_shared_redis_client(decode_responses=True)
 
@@ -112,8 +112,8 @@ def publish_event(event: BatchEvent, redis_client: redis.Redis | None = None) ->
     in a list for event replay on reconnect.
 
     Args:
-        event: Event to publish.
-        redis_client: Optional Redis client (for testing).
+        event (BatchEvent): Event to publish.
+        redis_client (redis.Redis | None): Optional Redis client (for testing).
     """
     client = redis_client or get_redis_client()
 
@@ -148,12 +148,12 @@ def get_event_history(
     Used for replay on WebSocket reconnect.
 
     Args:
-        batch_id: Batch identifier.
-        redis_client: Optional Redis client (for testing).
-        limit: Maximum events to return.
+        batch_id (UUID | str): Batch identifier.
+        redis_client (redis.Redis | None): Optional Redis client (for testing).
+        limit (int): Maximum events to return.
 
     Returns:
-        List of events (oldest first).
+        list[dict[str, Any]]: List of events (oldest first).
     """
     client = redis_client or get_redis_client()
     history_key = BATCH_EVENTS_LIST.format(batch_id=str(batch_id))
@@ -183,11 +183,11 @@ async def get_event_history_async(
     ``rag_processor.queue.jobs``.
 
     Args:
-        batch_id: Batch identifier.
-        limit: Maximum events to return.
+        batch_id (UUID | str): Batch identifier.
+        limit (int): Maximum events to return.
 
     Returns:
-        List of events (oldest first).
+        list[dict[str, Any]]: List of events (oldest first).
     """
     return await asyncio.to_thread(get_event_history, batch_id, limit=limit)
 
@@ -203,15 +203,15 @@ def create_job_event(
     """Create a job-related event.
 
     Args:
-        event_type: Type of event.
-        batch_id: Batch identifier.
-        job_id: Job identifier.
-        status: Current status.
-        message: Human-readable message.
-        **data: Additional event data.
+        event_type (EventType): Type of event.
+        batch_id (UUID): Batch identifier.
+        job_id (UUID): Job identifier.
+        status (str): Current status.
+        message (str): Human-readable message.
+        **data (Any): Additional event data.
 
     Returns:
-        BatchEvent instance.
+        BatchEvent: BatchEvent instance.
     """
     return BatchEvent(
         event_type=event_type,
@@ -233,14 +233,14 @@ def create_batch_event(
     """Create a batch-level event.
 
     Args:
-        event_type: Type of event.
-        batch_id: Batch identifier.
-        status: Current status.
-        message: Human-readable message.
-        **data: Additional event data.
+        event_type (EventType): Type of event.
+        batch_id (UUID): Batch identifier.
+        status (str): Current status.
+        message (str): Human-readable message.
+        **data (Any): Additional event data.
 
     Returns:
-        BatchEvent instance.
+        BatchEvent: BatchEvent instance.
     """
     return BatchEvent(
         event_type=event_type,

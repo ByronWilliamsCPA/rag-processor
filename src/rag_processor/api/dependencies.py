@@ -23,6 +23,6 @@ def get_file_router() -> FileRouter:
     override this dependency to inject a stub router.
 
     Returns:
-        The shared FileRouter instance.
+        FileRouter: The shared FileRouter instance.
     """
     return FileRouter()

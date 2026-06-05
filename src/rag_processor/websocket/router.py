@@ -28,10 +28,10 @@ async def verify_ws_token(token: str | None) -> dict[str, str] | None:
     """Verify WebSocket authentication token.
 
     Args:
-        token: CF Access token from query parameter.
+        token (str | None): CF Access token from query parameter.
 
     Returns:
-        User info dict if valid, None otherwise.
+        dict[str, str] | None: User info dict if valid, None otherwise.
     """
     if not settings.cloudflare_enabled:
         # Bypass mode. The returned identity MUST match
@@ -73,9 +73,9 @@ async def _replay_events(
     """Replay missed events to a reconnecting client.
 
     Args:
-        websocket: WebSocket connection.
-        batch_id: Batch identifier.
-        last_event_id: Last event ID received by client.
+        websocket (WebSocket): WebSocket connection.
+        batch_id (UUID): Batch identifier.
+        last_event_id (str): Last event ID received by client.
     """
     # Non-blocking read via the shared async wrapper (offloads the sync Redis
     # call off the event loop); see websocket.events.
@@ -96,8 +96,8 @@ async def _handle_client_message(
     """Handle incoming message from client.
 
     Args:
-        websocket: WebSocket connection.
-        data: Message data from client.
+        websocket (WebSocket): WebSocket connection.
+        data (dict[str, str | int | float | bool | None]): Message data from client.
     """
     # Handle ping
     if data.get("type") == "ping":
@@ -111,7 +111,7 @@ async def _websocket_message_loop(websocket: WebSocket) -> None:
     """Main message loop for WebSocket connection.
 
     Args:
-        websocket: WebSocket connection.
+        websocket (WebSocket): WebSocket connection.
     """
     while True:
         try:
@@ -146,10 +146,10 @@ async def websocket_batch_status(
     Authentication via query parameter `token` (Cloudflare Access JWT).
 
     Args:
-        websocket: WebSocket connection.
-        batch_id: Batch to subscribe to.
-        cf_access_token: Cloudflare Access token for authentication.
-        last_event_id: Last received event ID for replay.
+        websocket (WebSocket): WebSocket connection.
+        batch_id (UUID): Batch to subscribe to.
+        cf_access_token (str | None): Cloudflare Access token for authentication.
+        last_event_id (str | None): Last received event ID for replay.
     """
     # Verify authentication
     user = await verify_ws_token(cf_access_token)

@@ -20,7 +20,7 @@ def utc_now() -> datetime:
     """Get current UTC datetime.
 
     Returns:
-        Current UTC datetime with timezone info.
+        datetime: Current UTC datetime with timezone info.
 
     Example:
         >>> now = utc_now()
@@ -34,10 +34,10 @@ def from_timestamp(timestamp: float | int) -> datetime:
     """Create UTC datetime from Unix timestamp.
 
     Args:
-        timestamp: Unix timestamp (seconds since epoch).
+        timestamp (float | int): Unix timestamp (seconds since epoch).
 
     Returns:
-        UTC datetime with timezone info.
+        datetime: UTC datetime with timezone info.
 
     Example:
         >>> dt = from_timestamp(1640995200)  # 2022-01-01 00:00:00 UTC
@@ -53,10 +53,10 @@ def parse_iso_datetime(iso_string: str) -> datetime:
     Handles both 'Z' suffix and '+00:00' formats.
 
     Args:
-        iso_string: ISO format datetime string.
+        iso_string (str): ISO format datetime string.
 
     Returns:
-        UTC datetime with timezone info.
+        datetime: UTC datetime with timezone info.
 
     Example:
         >>> dt = parse_iso_datetime("2024-01-01T12:00:00Z")

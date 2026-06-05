@@ -36,6 +36,8 @@ from starlette.responses import JSONResponse, Response
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from fastapi import FastAPI, Request
     from starlette.types import ASGIApp
 
@@ -48,10 +50,10 @@ def _is_valid_ip(value: str) -> bool:
     into the tracking table.
 
     Args:
-        value: Candidate client IP string.
+        value (str): Candidate client IP string.
 
     Returns:
-        True if the value is a valid IP address, False otherwise.
+        bool: True if the value is a valid IP address, False otherwise.
     """
     try:
         ipaddress.ip_address(value)
@@ -79,15 +81,18 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     - Permissions-Policy: Restrict browser features
     """
 
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         """Add security headers to response.
 
         Args:
-            request: The incoming HTTP request.
-            call_next: Callable to invoke the next middleware or endpoint.
+            request (Request): The incoming HTTP request.
+            call_next (Callable[[Request], Awaitable[Response]]): Callable to
+                invoke the next middleware or endpoint.
 
         Returns:
-            Response with security headers added.
+            Response: Response with security headers added.
         """
         response = await call_next(request)
 
@@ -145,10 +150,16 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         - fastapi-limiter (https://github.com/long2ice/fastapi-limiter)
 
     Args:
-        requests_per_minute: Maximum requests per IP per minute
-        burst_size: Maximum burst requests allowed
-        max_tracked_ips: Maximum IPs to track (prevents memory exhaustion)
-        cleanup_interval: Seconds between full cleanup cycles
+        app (ASGIApp): The ASGI application to wrap.
+        requests_per_minute (int): Maximum requests per IP per minute.
+        burst_size (int): Maximum burst requests allowed.
+        max_tracked_ips (int): Maximum IPs to track (prevents memory exhaustion).
+        cleanup_interval (int): Seconds between full cleanup cycles.
+        trust_proxy_headers (bool): Read the client IP from ``client_ip_header``
+            instead of ``request.client.host``. Enable only behind a trusted
+            proxy that overwrites the header, or clients can spoof it.
+        client_ip_header (str): Header carrying the real client IP when
+            ``trust_proxy_headers`` is true.
     """
 
     def __init__(
@@ -162,20 +173,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         trust_proxy_headers: bool = False,
         client_ip_header: str = "CF-Connecting-IP",
     ) -> None:
-        """Initialize rate limiter.
-
-        Args:
-            app: The ASGI application to wrap.
-            requests_per_minute: Maximum requests per IP per minute.
-            burst_size: Maximum burst requests allowed.
-            max_tracked_ips: Maximum IPs to track (prevents memory exhaustion).
-            cleanup_interval: Seconds between full cleanup cycles.
-            trust_proxy_headers: Read the client IP from ``client_ip_header``
-                instead of ``request.client.host``. Enable only behind a trusted
-                proxy that overwrites the header, or clients can spoof it.
-            client_ip_header: Header carrying the real client IP when
-                ``trust_proxy_headers`` is true.
-        """
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
         self.burst_size = burst_size
@@ -195,10 +192,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         address, or ``"unknown"`` when unavailable.
 
         Args:
-            request: The incoming HTTP request.
+            request (Request): The incoming HTTP request.
 
         Returns:
-            The client IP string to rate-limit on.
+            str: The client IP string to rate-limit on.
         """
         if self.trust_proxy_headers:
             forwarded = request.headers.get(self.client_ip_header)
@@ -244,7 +241,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         2. If we exceed max_tracked_ips, removes least recently active IPs
 
         Args:
-            current_time: Current timestamp for expiration checks
+            current_time (float): Current timestamp for expiration checks
         """
         # Only run full cleanup periodically to avoid performance impact
         if current_time - self._last_cleanup < self.cleanup_interval:
@@ -307,15 +304,18 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         while len(self.requests) > self.max_tracked_ips:
             del self.requests[next(iter(self.requests))]
 
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         """Apply rate limiting per IP address.
 
         Args:
-            request: The incoming HTTP request.
-            call_next: Callable to invoke the next middleware or endpoint.
+            request (Request): The incoming HTTP request.
+            call_next (Callable[[Request], Awaitable[Response]]): Callable to
+                invoke the next middleware or endpoint.
 
         Returns:
-            Response from downstream handler or 429 if rate limited.
+            Response: Response from downstream handler or 429 if rate limited.
         """
         client_ip = self._get_client_ip(request)
         current_time = time.time()
@@ -427,10 +427,10 @@ class SSRFPreventionMiddleware(BaseHTTPMiddleware):
         """Check if IP is any internal type (private, loopback, link-local, etc).
 
         Args:
-            ip: Parsed IP address object
+            ip (ipaddress.IPv4Address | ipaddress.IPv6Address): Parsed IP address object
 
         Returns:
-            True if the IP is internal, False otherwise
+            bool: True if the IP is internal, False otherwise
         """
         internal_checks = [
             ip.is_private,
@@ -447,10 +447,10 @@ class SSRFPreventionMiddleware(BaseHTTPMiddleware):
         """Check if an IP address is private, loopback, or otherwise internal.
 
         Args:
-            ip_str: IP address string to validate
+            ip_str (str): IP address string to validate
 
         Returns:
-            True if the IP is private/internal, False otherwise
+            bool: True if the IP is private/internal, False otherwise
         """
         try:
             ip = ipaddress.ip_address(ip_str)
@@ -473,10 +473,10 @@ class SSRFPreventionMiddleware(BaseHTTPMiddleware):
         """Extract hostname from URL string.
 
         Args:
-            url: URL string to parse
+            url (str): URL string to parse
 
         Returns:
-            Hostname string or None if parsing fails
+            str | None: Hostname string or None if parsing fails
         """
         from urllib.parse import urlparse
 
@@ -491,10 +491,10 @@ class SSRFPreventionMiddleware(BaseHTTPMiddleware):
         """Extract scheme from URL string.
 
         Args:
-            url: URL string to parse
+            url (str): URL string to parse
 
         Returns:
-            Scheme string or None if parsing fails
+            str | None: Scheme string or None if parsing fails
         """
         from urllib.parse import urlparse
 
@@ -508,10 +508,10 @@ class SSRFPreventionMiddleware(BaseHTTPMiddleware):
         """Check if URL uses a blocked scheme.
 
         Args:
-            url: URL string to check
+            url (str): URL string to check
 
         Returns:
-            True if scheme is blocked, False otherwise
+            bool: True if scheme is blocked, False otherwise
         """
         scheme = self._extract_scheme_from_url(url)
         return scheme is not None and scheme in self.BLOCKED_SCHEMES
@@ -520,10 +520,10 @@ class SSRFPreventionMiddleware(BaseHTTPMiddleware):
         """Check if hostname is in blocklist or is a private IP.
 
         Args:
-            host: Hostname to check
+            host (str): Hostname to check
 
         Returns:
-            True if host should be blocked, False otherwise
+            bool: True if host should be blocked, False otherwise
         """
         host_lower = host.lower()
         if host_lower in self.BLOCKED_HOSTS:
@@ -536,10 +536,10 @@ class SSRFPreventionMiddleware(BaseHTTPMiddleware):
         Detects attempts like 2130706433 = 127.0.0.1
 
         Args:
-            host: Hostname that might be a decimal IP
+            host (str): Hostname that might be a decimal IP
 
         Returns:
-            True if it's an obfuscated private IP, False otherwise
+            bool: True if it's an obfuscated private IP, False otherwise
         """
         if not host.isdigit():
             return False
@@ -559,10 +559,10 @@ class SSRFPreventionMiddleware(BaseHTTPMiddleware):
         """Check if a URL points to a blocked destination.
 
         Args:
-            url: URL string to validate
+            url (str): URL string to validate
 
         Returns:
-            True if the URL should be blocked, False otherwise
+            bool: True if the URL should be blocked, False otherwise
         """
         if self._has_blocked_scheme(url):
             return True
@@ -573,18 +573,21 @@ class SSRFPreventionMiddleware(BaseHTTPMiddleware):
 
         return self._is_blocked_host(host) or self._is_obfuscated_private_ip(host)
 
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         """Check for SSRF patterns in request.
 
         Validates query parameters, form data, and JSON body for potential
         SSRF attempts targeting internal resources.
 
         Args:
-            request: The incoming HTTP request.
-            call_next: Callable to invoke the next middleware or endpoint.
+            request (Request): The incoming HTTP request.
+            call_next (Callable[[Request], Awaitable[Response]]): Callable to
+                invoke the next middleware or endpoint.
 
         Returns:
-            Response from downstream handler or 400 if SSRF detected.
+            Response: Response from downstream handler or 400 if SSRF detected.
         """
         # Check query parameters for URLs
         for param, value in request.query_params.items():
@@ -607,16 +610,16 @@ class SecurityConfig:
     """Configuration for security middleware.
 
     Attributes:
-        enable_https_redirect: Redirect HTTP to HTTPS (production only)
-        enable_rate_limiting: Enable rate limiting middleware
-        enable_ssrf_prevention: Enable SSRF prevention middleware
-        allowed_origins: CORS allowed origins (default: none)
-        allowed_hosts: Trusted host names (default: all)
-        rate_limit_rpm: Rate limit requests per minute
-        trust_proxy_headers: Resolve the rate-limit client IP from
+        enable_https_redirect (bool): Redirect HTTP to HTTPS (production only)
+        enable_rate_limiting (bool): Enable rate limiting middleware
+        enable_ssrf_prevention (bool): Enable SSRF prevention middleware
+        allowed_origins (list[str]): CORS allowed origins (default: none)
+        allowed_hosts (list[str]): Trusted host names (default: all)
+        rate_limit_rpm (int): Rate limit requests per minute
+        trust_proxy_headers (bool): Resolve the rate-limit client IP from
             ``client_ip_header`` instead of the direct peer. Enable only behind
             a trusted proxy that overwrites the header (default: False).
-        client_ip_header: Header carrying the real client IP when
+        client_ip_header (str): Header carrying the real client IP when
             ``trust_proxy_headers`` is True (default: ``CF-Connecting-IP``).
     """
 
@@ -636,8 +639,8 @@ def add_security_middleware(app: FastAPI, config: SecurityConfig | None = None) 
     This configures comprehensive security following OWASP best practices.
 
     Args:
-        app: FastAPI application instance
-        config: Security configuration options. Uses defaults if not provided.
+        app (FastAPI): FastAPI application instance
+        config (SecurityConfig | None): Security configuration options. Uses defaults if not provided.
 
     Example:
         >>> from fastapi import FastAPI

@@ -45,13 +45,13 @@ class JobResponse(BaseModel):
     """Response model for a job.
 
     Attributes:
-        job_id: Unique job identifier.
-        filename: Original filename.
-        file_type: MIME type of the file.
-        file_size_bytes: Size in bytes.
-        status: Current job status.
-        classification: File classification for routing.
-        pipeline: Target processing pipeline.
+        job_id (UUID): Unique job identifier.
+        filename (str): Original filename.
+        file_type (str): MIME type of the file.
+        file_size_bytes (int): Size in bytes.
+        status (JobStatus): Current job status.
+        classification (FileClassification): File classification for routing.
+        pipeline (Pipeline): Target processing pipeline.
     """
 
     job_id: UUID
@@ -67,11 +67,11 @@ class IngestResponse(BaseModel):
     """Response model for file ingestion.
 
     Attributes:
-        batch_id: Unique batch identifier.
-        status: Batch status.
-        total_files: Total number of files uploaded.
-        jobs: List of created jobs.
-        message: Human-readable message.
+        batch_id (UUID): Unique batch identifier.
+        status (BatchStatus): Batch status.
+        total_files (int): Total number of files uploaded.
+        jobs (list[JobResponse]): List of created jobs.
+        message (str): Human-readable message.
     """
 
     batch_id: UUID
@@ -85,8 +85,8 @@ class FileValidationError(BaseModel):
     """Error details for file validation failures.
 
     Attributes:
-        filename: The problematic filename.
-        error: Description of the validation error.
+        filename (str): The problematic filename.
+        error (str): Description of the validation error.
     """
 
     filename: str
@@ -97,10 +97,10 @@ def sanitize_filename(filename: str) -> str:
     """Sanitize filename to prevent path traversal and other issues.
 
     Args:
-        filename: Original filename from upload.
+        filename (str): Original filename from upload.
 
     Returns:
-        Sanitized filename safe for filesystem use.
+        str: Sanitized filename safe for filesystem use.
     """
     # Remove any path components
     filename = Path(filename).name
@@ -125,10 +125,10 @@ def detect_mime_type(content: bytes) -> str:
     """Detect MIME type using magic bytes.
 
     Args:
-        content: File content bytes.
+        content (bytes): File content bytes.
 
     Returns:
-        Detected MIME type string.
+        str: Detected MIME type string.
     """
     return magic.from_buffer(content, mime=True)
 
@@ -139,10 +139,10 @@ async def validate_file(
     """Validate an uploaded file.
 
     Args:
-        file: The uploaded file to validate.
+        file (UploadFile): The uploaded file to validate.
 
     Returns:
-        Tuple of (content, mime_type, errors).
+        tuple[bytes, str, list[FileValidationError]]: Tuple of (content, mime_type, errors).
     """
     errors: list[FileValidationError] = []
     filename = file.filename or "unknown"
@@ -198,9 +198,9 @@ async def _persist_and_enqueue(
     client receives an error instead of a false success.
 
     Args:
-        batch: The batch to persist and enqueue.
-        jobs: The jobs belonging to the batch.
-        batch_dir: The on-disk directory holding the uploaded files.
+        batch (Batch): The batch to persist and enqueue.
+        jobs (list[Job]): The jobs belonging to the batch.
+        batch_dir (Path): The on-disk directory holding the uploaded files.
 
     Raises:
         HTTPException: 503 if persistence/enqueue fails.
@@ -277,14 +277,14 @@ async def ingest_files(
     Authentication: Requires a valid Cloudflare Access JWT.
 
     Args:
-        files: List of files to upload (multipart/form-data).
-        priority: Processing priority (high, normal, low).
-        target_vector_store: Optional target vector store identifier.
-        user: Authenticated user from Cloudflare Access.
-        file_router: Injected file classification and pipeline routing service.
+        files (Annotated[list[UploadFile], File(description='Files to upload for processing')]): List of files to upload (multipart/form-data).
+        priority (Annotated[Priority, Form(description='Processing priority')]): Processing priority (high, normal, low).
+        target_vector_store (Annotated[str | None, Form(description='Target vector store for handoff')]): Optional target vector store identifier.
+        user (CloudflareUser): Authenticated user from Cloudflare Access.
+        file_router (FileRouter): Injected file classification and pipeline routing service.
 
     Returns:
-        IngestResponse containing the new batch ID, batch status, total
+        IngestResponse: IngestResponse containing the new batch ID, batch status, total
         accepted files, per-job metadata, and a human-readable message.
 
     Raises:
@@ -454,7 +454,7 @@ async def ingest_health() -> dict[str, str]:
     Authentication: Requires a valid Cloudflare Access JWT.
 
     Returns:
-        Dictionary with `status` ("healthy") and `upload_dir` path.
+        dict[str, str]: Dictionary with `status` ("healthy") and `upload_dir` path.
 
     Raises:
         HTTPException: 503 if the upload directory is not writable.

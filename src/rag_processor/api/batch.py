@@ -30,19 +30,19 @@ class JobDetailResponse(BaseModel):
     """Response model for job details.
 
     Attributes:
-        job_id: Unique job identifier.
-        batch_id: Parent batch identifier.
-        filename: Original filename.
-        file_type: MIME type of the file.
-        file_size_bytes: Size in bytes.
-        classification: File classification.
-        pipeline: Target processing pipeline.
-        status: Current job status.
-        error_message: Error message if failed.
-        retry_count: Number of retry attempts.
-        created_at: When the job was created.
-        started_at: When processing started.
-        completed_at: When processing completed.
+        job_id (UUID): Unique job identifier.
+        batch_id (UUID): Parent batch identifier.
+        filename (str): Original filename.
+        file_type (str): MIME type of the file.
+        file_size_bytes (int): Size in bytes.
+        classification (FileClassification): File classification.
+        pipeline (Pipeline): Target processing pipeline.
+        status (JobStatus): Current job status.
+        error_message (str | None): Error message if failed.
+        retry_count (int): Number of retry attempts.
+        created_at (str): When the job was created.
+        started_at (str | None): When processing started.
+        completed_at (str | None): When processing completed.
     """
 
     job_id: UUID
@@ -64,15 +64,15 @@ class BatchDetailResponse(BaseModel):
     """Response model for batch details.
 
     Attributes:
-        batch_id: Unique batch identifier.
-        created_by_email: Email of the user who created the batch.
-        status: Current batch status.
-        total_files: Total number of files in the batch.
-        completed_files: Number of completed files.
-        failed_files: Number of failed files.
-        target_vector_store: Target vector store for handoff.
-        created_at: When the batch was created.
-        jobs: List of jobs in the batch.
+        batch_id (UUID): Unique batch identifier.
+        created_by_email (str): Email of the user who created the batch.
+        status (BatchStatus): Current batch status.
+        total_files (int): Total number of files in the batch.
+        completed_files (int): Number of completed files.
+        failed_files (int): Number of failed files.
+        target_vector_store (str | None): Target vector store for handoff.
+        created_at (str): When the batch was created.
+        jobs (list[JobDetailResponse]): List of jobs in the batch.
     """
 
     batch_id: UUID
@@ -113,14 +113,11 @@ async def get_batch(
     Authentication: Requires a valid Cloudflare Access JWT.
 
     Args:
-        batch_id: Batch identifier (UUID).
-        user: Authenticated user from Cloudflare Access.
+        batch_id (UUID): Batch identifier (UUID).
+        user (Annotated[CloudflareUser, Depends(get_current_user)]): Authenticated user from Cloudflare Access.
 
     Returns:
-        BatchDetailResponse with batch metadata and the list of jobs.
-
-    Raises:
-        HTTPException: 404 if batch not found or caller does not own it.
+        BatchDetailResponse: BatchDetailResponse with batch metadata and the list of jobs.
     """
     # Non-blocking Redis read (offloaded to a thread inside the wrapper).
     batch, jobs = await get_batch_status_async(batch_id)
@@ -193,11 +190,11 @@ async def get_job(
     Authentication: Requires a valid Cloudflare Access JWT.
 
     Args:
-        job_id: Job identifier (UUID).
-        user: Authenticated user from Cloudflare Access.
+        job_id (UUID): Job identifier (UUID).
+        user (Annotated[CloudflareUser, Depends(get_current_user)]): Authenticated user from Cloudflare Access.
 
     Returns:
-        JobDetailResponse with job metadata and processing state.
+        JobDetailResponse: JobDetailResponse with job metadata and processing state.
 
     Raises:
         HTTPException: 404 if job not found or caller does not own its batch.
