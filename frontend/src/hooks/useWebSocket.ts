@@ -390,6 +390,12 @@ export function useWebSocket(options: UseWebSocketOptions): UseWebSocketReturn {
 
   // Connect on mount, disconnect on unmount
   useEffect(() => {
+    // Subscribing to the WebSocket on mount is the canonical effect use case.
+    // connect() synchronously sets connectionState to 'connecting' so the UI
+    // reflects the attempt immediately; that intentional state write is what
+    // react-hooks/set-state-in-effect (new in eslint-plugin-react-hooks v7)
+    // flags here. Deferring the call would only add first-paint latency.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     connect();
 
     return () => {
