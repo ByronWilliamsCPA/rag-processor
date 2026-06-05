@@ -1,0 +1,35 @@
+version: 2
+# Renovate is the sole version-update PR-opener. open-pull-requests-limit: 0
+# suppresses Dependabot version-update PRs (it does not cap security-update PRs,
+# which are governed by a separate repo setting and are left disabled). Dependabot
+# alerts come from the dependency graph (a repo setting), not this file; the
+# entries below document the intended ecosystems and keep version PRs suppressed.
+# Refs: standards CI-021 (amended), CI-074.
+updates:
+  - package-ecosystem: "uv"             # Python: pyproject.toml + uv.lock
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+  - package-ecosystem: "github-actions" # .github/workflows/
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+  - package-ecosystem: "npm"            # frontend/package.json
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+  - package-ecosystem: "docker"         # root Dockerfile
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+  - package-ecosystem: "docker"         # frontend/Dockerfile
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+  # .clusterfuzzlite/Dockerfile is intentionally omitted: it is a fuzzing-harness
+  # build image, not a deployable application manifest.
