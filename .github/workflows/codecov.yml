@@ -23,7 +23,7 @@ jobs:
     name: Upload Coverage
     # Only run on successful CI completion
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-codecov.yml@74c633acfdd5f707ab154fd59bd212c6df663dd6 # main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-codecov.yml@a9781c9f0f051339d5fed81b6b9f4fff2b064035 # main
     with:
       artifact-name: 'coverage-reports'
       coverage-files: '*.xml'
