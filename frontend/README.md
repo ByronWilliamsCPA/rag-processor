@@ -31,7 +31,7 @@ pnpm run build
 
 ### Prerequisites
 
-- Node.js 22+
+- Node.js 22.18+ (required by `@hey-api/openapi-ts`)
 - Backend API running on port 8000
 
 ### Available Scripts

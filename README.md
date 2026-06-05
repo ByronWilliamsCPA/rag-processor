@@ -108,7 +108,7 @@ The full stack runs with Docker Compose, including the FastAPI gateway, React fr
 ### Docker Prerequisites
 
 - Docker and Docker Compose
-- Node.js 18+ and pnpm (for frontend development without Docker)
+- Node.js 22.18+ and pnpm (for frontend development without Docker)
 
 ### Quick Start (Docker)
 
