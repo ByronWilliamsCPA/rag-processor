@@ -78,7 +78,7 @@ async def liveness() -> HealthStatus:
     Authentication: Public endpoint, no authentication required.
 
     Returns:
-        HealthStatus with current `status`, `uptime_seconds`, and
+        HealthStatus: HealthStatus with current `status`, `uptime_seconds`, and
         runtime version metadata.
     """
     return HealthStatus(
@@ -96,7 +96,7 @@ async def check_redis() -> ReadinessCheck:
     decide whether to fail the probe.
 
     Returns:
-        ReadinessCheck reflecting the real Redis reachability.
+        ReadinessCheck: ReadinessCheck reflecting the real Redis reachability.
     """
     from rag_processor.core.redis import get_redis_client
 
@@ -145,7 +145,7 @@ async def readiness() -> ReadinessStatus:
     Authentication: Public endpoint, no authentication required.
 
     Returns:
-        ReadinessStatus with overall health and per-dependency check
+        ReadinessStatus: ReadinessStatus with overall health and per-dependency check
         results (latency and error details).
 
     Raises:
@@ -210,7 +210,7 @@ async def startup() -> HealthStatus:
     Authentication: Public endpoint, no authentication required.
 
     Returns:
-        HealthStatus indicating startup completion and uptime.
+        HealthStatus: HealthStatus indicating startup completion and uptime.
     """
     # Add any startup checks here (e.g., database migrations completed)
     # For most applications, being alive means startup is complete
@@ -242,7 +242,7 @@ async def health() -> HealthStatus:
     Authentication: Public endpoint, no authentication required.
 
     Returns:
-        HealthStatus from the liveness check.
+        HealthStatus: HealthStatus from the liveness check.
     """
     return await liveness()
 

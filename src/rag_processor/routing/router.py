@@ -32,10 +32,10 @@ class RoutingResult:
     """Result of file routing decision.
 
     Attributes:
-        classification: The file classification.
-        pipeline: The target processing pipeline.
-        confidence: Confidence level of the routing decision.
-        details: Additional routing details.
+        classification (FileClassification): The file classification.
+        pipeline (Pipeline): The target processing pipeline.
+        confidence (str): Confidence level of the routing decision.
+        details (dict[str, str | int | float]): Additional routing details.
     """
 
     classification: FileClassification
@@ -50,6 +50,10 @@ class FileRouter:
     Combines file classification with routing logic to determine
     which pipeline should process each file.
 
+    Args:
+        routing_config (dict[FileClassification, Pipeline] | None): Optional custom routing
+            configuration. If not provided, uses DEFAULT_ROUTING.
+
     Example:
         router = FileRouter()
         result = router.route_from_bytes(file_content, "document.pdf")
@@ -60,12 +64,6 @@ class FileRouter:
         self,
         routing_config: dict[FileClassification, Pipeline] | None = None,
     ) -> None:
-        """Initialize the file router.
-
-        Args:
-            routing_config: Optional custom routing configuration.
-                If not provided, uses DEFAULT_ROUTING.
-        """
         self._classifier = FileClassifier()
         self._routing = routing_config or DEFAULT_ROUTING
 
@@ -77,11 +75,11 @@ class FileRouter:
         """Route a file based on its content bytes.
 
         Args:
-            content: File content as bytes.
-            filename: Optional filename for type detection.
+            content (bytes): File content as bytes.
+            filename (str | None): Optional filename for type detection.
 
         Returns:
-            RoutingResult with routing decision.
+            RoutingResult: RoutingResult with routing decision.
         """
         # Classify the file
         classification_result = self._classifier.classify_from_bytes(content, filename)
@@ -111,10 +109,10 @@ class FileRouter:
         """Route a file based on its path.
 
         Args:
-            file_path: Path to the file.
+            file_path (str | Path): Path to the file.
 
         Returns:
-            RoutingResult with routing decision.
+            RoutingResult: RoutingResult with routing decision.
         """
         path = Path(file_path)
         with path.open("rb") as f:
@@ -129,10 +127,10 @@ class FileRouter:
         """Get the pipeline for a given classification.
 
         Args:
-            classification: File classification.
+            classification (FileClassification): File classification.
 
         Returns:
-            Target pipeline for the classification.
+            Pipeline: Target pipeline for the classification.
         """
         return self._routing.get(classification, Pipeline.NONE)
 
@@ -140,10 +138,10 @@ class FileRouter:
         """Check if a classification has a supported pipeline.
 
         Args:
-            classification: File classification.
+            classification (FileClassification): File classification.
 
         Returns:
-            True if classification has a non-NONE pipeline.
+            bool: True if classification has a non-NONE pipeline.
         """
         pipeline = self._routing.get(classification, Pipeline.NONE)
         return pipeline != Pipeline.NONE

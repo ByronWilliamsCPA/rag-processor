@@ -40,6 +40,12 @@ EVENT_CHANNEL_PATTERN = "batch:*:events"
 class EventBridge:
     """Relays Redis pub/sub batch events to local WebSocket connections.
 
+    Args:
+        initial_backoff (float): Initial delay (seconds) before the first
+            reconnect attempt after a listener error.
+        max_backoff (float): Upper bound (seconds) on the exponential reconnect
+            backoff.
+
     Example:
         bridge = EventBridge()
         await bridge.start()
@@ -53,14 +59,6 @@ class EventBridge:
         initial_backoff: float = 1.0,
         max_backoff: float = 30.0,
     ) -> None:
-        """Initialize the bridge in a stopped state.
-
-        Args:
-            initial_backoff: Initial delay (seconds) before the first reconnect
-                attempt after a listener error.
-            max_backoff: Upper bound (seconds) on the exponential reconnect
-                backoff.
-        """
         self._redis: aioredis.Redis | None = None
         self._pubsub: PubSub | None = None
         self._task: asyncio.Task[None] | None = None
@@ -73,7 +71,7 @@ class EventBridge:
         """Whether the bridge is actively listening for events.
 
         Returns:
-            True while the listener task is active, False otherwise.
+            bool: True while the listener task is active, False otherwise.
         """
         return self._running
 
@@ -109,7 +107,7 @@ class EventBridge:
         :attr:`running` stops reporting a false healthy state.
 
         Args:
-            task: The completed listener task.
+            task (asyncio.Task[None]): The completed listener task.
         """
         if task.cancelled():
             return
@@ -140,7 +138,7 @@ class EventBridge:
         """(Re)create the Redis client/pub-sub and subscribe to the pattern.
 
         Returns:
-            The active pub/sub subscription.
+            PubSub: The active pub/sub subscription.
         """
         if self._redis is None:
             self._redis = aioredis.Redis(
@@ -230,7 +228,7 @@ class EventBridge:
         """Parse a raw pub/sub payload and broadcast it to the batch's clients.
 
         Args:
-            raw: The raw ``data`` field from a pub/sub message (JSON string).
+            raw (object): The raw ``data`` field from a pub/sub message (JSON string).
         """
         if not isinstance(raw, str):
             return

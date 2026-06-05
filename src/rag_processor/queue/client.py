@@ -37,18 +37,16 @@ class QueueClient:
 
     Manages priority queues and job submission to Redis.
 
+    Args:
+        redis_client (redis.Redis | None): Optional Redis client. If not provided, creates
+            one from settings.
+
     Example:
         client = QueueClient()
         rq_job = client.enqueue(process_job, job_id, priority=Priority.HIGH)
     """
 
     def __init__(self, redis_client: redis.Redis | None = None) -> None:
-        """Initialize the queue client.
-
-        Args:
-            redis_client: Optional Redis client. If not provided, creates
-                one from settings.
-        """
         if redis_client is not None:
             self._redis = redis_client
         else:
@@ -74,15 +72,15 @@ class QueueClient:
         """Enqueue a job to the appropriate priority queue.
 
         Args:
-            func: Function to execute.
-            *args: Positional arguments for the function.
-            priority: Job priority (determines queue).
-            job_timeout: Optional timeout in seconds.
-            retry: Optional number of retries on failure.
-            **kwargs: Keyword arguments for the function.
+            func (Callable[..., Any]): Function to execute.
+            *args (Any): Positional arguments for the function.
+            priority (Priority): Job priority (determines queue).
+            job_timeout (int | None): Optional timeout in seconds.
+            retry (int | None): Optional number of retries on failure.
+            **kwargs (Any): Keyword arguments for the function.
 
         Returns:
-            RQ Job instance.
+            Any: RQ Job instance.
         """
         queue_name = PRIORITY_QUEUE_MAP.get(priority, QUEUE_DEFAULT)
         queue = self._queues[queue_name]
@@ -110,10 +108,10 @@ class QueueClient:
         """Get the queue for a given priority.
 
         Args:
-            priority: Queue priority.
+            priority (Priority): Queue priority.
 
         Returns:
-            RQ Queue instance.
+            Queue: RQ Queue instance.
         """
         queue_name = PRIORITY_QUEUE_MAP.get(priority, QUEUE_DEFAULT)
         return self._queues[queue_name]
@@ -122,7 +120,7 @@ class QueueClient:
         """Get the length of all queues.
 
         Returns:
-            Dictionary of queue name to job count.
+            dict[str, int]: Dictionary of queue name to job count.
         """
         return {name: len(queue) for name, queue in self._queues.items()}
 
@@ -130,7 +128,7 @@ class QueueClient:
         """Clear all queues.
 
         Returns:
-            Total number of jobs cleared.
+            int: Total number of jobs cleared.
         """
         total = 0
         for queue in self._queues.values():
@@ -143,7 +141,7 @@ class QueueClient:
         """Check Redis connection.
 
         Returns:
-            True if Redis is reachable.
+            bool: True if Redis is reachable.
         """
         try:
             return cast("bool", self._redis.ping())
@@ -159,7 +157,7 @@ def get_queue_client() -> QueueClient:
     """Get the global queue client instance.
 
     Returns:
-        QueueClient singleton.
+        QueueClient: QueueClient singleton.
     """
     global _queue_client  # noqa: PLW0603 - Singleton pattern
     if _queue_client is None:

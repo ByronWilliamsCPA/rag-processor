@@ -30,10 +30,10 @@ def substitute_env_vars(value: str) -> str:
     Supports format: ${VAR_NAME:-default_value}
 
     Args:
-        value: String potentially containing env var references.
+        value (str): String potentially containing env var references.
 
     Returns:
-        String with env vars substituted.
+        str: String with env vars substituted.
     """
 
     def replacer(match: re.Match[str]) -> str:
@@ -48,10 +48,10 @@ def process_config_values(obj: Any) -> Any:
     """Recursively process config values, substituting env vars in strings.
 
     Args:
-        obj: Config object (dict, list, or value).
+        obj (Any): Config object (dict, list, or value).
 
     Returns:
-        Processed config with env vars substituted.
+        Any: Processed config with env vars substituted.
     """
     if isinstance(obj, dict):
         return {k: process_config_values(v) for k, v in obj.items()}
@@ -93,7 +93,7 @@ class AuthConfig:
         """Get the auth token from environment.
 
         Returns:
-            Auth token string or None if not configured.
+            str | None: Auth token string or None if not configured.
         """
         if not self.token_env:
             return None
@@ -128,7 +128,7 @@ class VectorStoreConfig:
         """Get the API key from environment.
 
         Returns:
-            API key string or None if not configured.
+            str | None: API key string or None if not configured.
         """
         if not self.api_key_env:
             return None
@@ -160,10 +160,10 @@ class PipelineConfiguration:
         """Get configuration for a specific pipeline.
 
         Args:
-            pipeline: The pipeline enum value.
+            pipeline (Pipeline): The pipeline enum value.
 
         Returns:
-            Pipeline configuration or None if not found.
+            PipelineConfig | None: Pipeline configuration or None if not found.
         """
         if pipeline == Pipeline.NONE:
             return None
@@ -175,10 +175,10 @@ class PipelineConfiguration:
         """Get the target pipeline for a file classification.
 
         Args:
-            classification: The file classification.
+            classification (FileClassification): The file classification.
 
         Returns:
-            Target pipeline.
+            Pipeline: Target pipeline.
         """
         return self.routing.get(classification, Pipeline.NONE)
 
@@ -194,13 +194,13 @@ def load_pipeline_config(
     strict mode is enabled.
 
     Args:
-        config_path: Path to the config file. If None, uses default location.
-        strict: If True, raise ConfigurationError when the file is missing
+        config_path (str | Path | None): Path to the config file. If None, uses default location.
+        strict (bool): If True, raise ConfigurationError when the file is missing
             instead of silently falling back to the built-in localhost
             defaults. Use in production to fail fast on misconfiguration.
 
     Returns:
-        Loaded pipeline configuration.
+        PipelineConfiguration: Loaded pipeline configuration.
 
     Raises:
         ConfigurationError: In strict mode, when the config file is missing.
@@ -239,7 +239,7 @@ def _create_default_config() -> PipelineConfiguration:
     """Create default configuration when no config file exists.
 
     Returns:
-        Default pipeline configuration with standard pipelines.
+        PipelineConfiguration: Default pipeline configuration with standard pipelines.
     """
     default_retries = RetryConfig()
 
@@ -291,10 +291,10 @@ def _parse_config(config: dict[str, Any]) -> PipelineConfiguration:
     """Parse raw config dict into typed configuration.
 
     Args:
-        config: Raw config dictionary.
+        config (dict[str, Any]): Raw config dictionary.
 
     Returns:
-        Typed pipeline configuration.
+        PipelineConfiguration: Typed pipeline configuration.
     """
     # Parse default retries
     default_retries_raw = config.get("default_retries", {})
@@ -392,7 +392,7 @@ def get_pipeline_config() -> PipelineConfiguration:
     """Get the global pipeline configuration.
 
     Returns:
-        Pipeline configuration (lazy loaded).
+        PipelineConfiguration: Pipeline configuration (lazy loaded).
     """
     global _config  # noqa: PLW0603
     if _config is None:
@@ -406,10 +406,10 @@ def reload_pipeline_config(
     """Reload the pipeline configuration.
 
     Args:
-        config_path: Optional path to config file.
+        config_path (str | Path | None): Optional path to config file.
 
     Returns:
-        Reloaded pipeline configuration.
+        PipelineConfiguration: Reloaded pipeline configuration.
     """
     global _config  # noqa: PLW0603
     _config = load_pipeline_config(config_path)

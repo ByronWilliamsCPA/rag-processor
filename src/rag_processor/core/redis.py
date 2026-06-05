@@ -46,10 +46,10 @@ def _build_pool(*, decode_responses: bool) -> redis.ConnectionPool:
     """Build a Redis connection pool from application settings.
 
     Args:
-        decode_responses: Whether connections decode responses to ``str``.
+        decode_responses (bool): Whether connections decode responses to ``str``.
 
     Returns:
-        A configured Redis connection pool.
+        redis.ConnectionPool: A configured Redis connection pool.
     """
     return redis.ConnectionPool(
         host=settings.redis_host,
@@ -64,12 +64,12 @@ def get_redis_client(*, decode_responses: bool = True) -> redis.Redis:
     """Return a synchronous Redis client backed by a shared connection pool.
 
     Args:
-        decode_responses: ``True`` (default) for ``str`` responses used by
+        decode_responses (bool): ``True`` (default) for ``str`` responses used by
             application data and event publishing; ``False`` for ``bytes``
             responses required by RQ.
 
     Returns:
-        A ``redis.Redis`` client sharing the appropriate process-wide pool.
+        redis.Redis: A ``redis.Redis`` client sharing the appropriate process-wide pool.
     """
     global _decoded_pool, _raw_pool  # noqa: PLW0603 - module-level pool cache
 

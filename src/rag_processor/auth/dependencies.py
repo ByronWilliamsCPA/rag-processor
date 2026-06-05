@@ -28,10 +28,10 @@ async def get_current_user(request: Request) -> CloudflareUser:
     and makes it available to route handlers.
 
     Args:
-        request: The incoming HTTP request.
+        request (Request): The incoming HTTP request.
 
     Returns:
-        The authenticated CloudflareUser.
+        CloudflareUser: The authenticated CloudflareUser.
 
     Raises:
         HTTPException: 401 if user is not authenticated.
@@ -75,12 +75,12 @@ def batch_is_owned_by(
     can both pass primitives without constructing a model.
 
     Args:
-        batch: The batch being accessed.
-        requester_user_id: The caller's Cloudflare user ID (sub), or None.
-        requester_email: The caller's email, or None.
+        batch (Batch): The batch being accessed.
+        requester_user_id (str | None): The caller's Cloudflare user ID (sub), or None.
+        requester_email (str | None): The caller's email, or None.
 
     Returns:
-        True if the caller created the batch.
+        bool: True if the caller created the batch.
     """
     if batch.created_by_user_id and requester_user_id:
         return batch.created_by_user_id == requester_user_id
@@ -102,13 +102,13 @@ def ensure_batch_owned(
     logged with opaque IDs only.
 
     Args:
-        batch: The batch that was looked up (or None if not found).
-        batch_id: Batch identifier, used for logging and the 404 message.
-        user: The authenticated caller.
-        not_found_detail: Detail message for the 404 response.
+        batch (Batch | None): The batch that was looked up (or None if not found).
+        batch_id (UUID | str): Batch identifier, used for logging and the 404 message.
+        user (CloudflareUser): The authenticated caller.
+        not_found_detail (str): Detail message for the 404 response.
 
     Returns:
-        The batch, when the caller owns it.
+        Batch: The batch, when the caller owns it.
 
     Raises:
         HTTPException: 404 if the batch is missing or not owned by the caller.
@@ -141,9 +141,9 @@ async def get_optional_user(request: Request) -> CloudflareUser | None:
     but may provide different responses based on auth status.
 
     Args:
-        request: The incoming HTTP request.
+        request (Request): The incoming HTTP request.
 
     Returns:
-        The authenticated CloudflareUser or None.
+        CloudflareUser | None: The authenticated CloudflareUser or None.
     """
     return cast("CloudflareUser | None", getattr(request.state, "user", None))

@@ -90,23 +90,23 @@ class Job(BaseModel):
     """A single file processing job.
 
     Attributes:
-        job_id: Unique identifier for the job.
-        batch_id: ID of the parent batch.
-        filename: Original filename.
-        file_path: Path to stored file.
-        file_type: MIME type of the file.
-        file_size_bytes: Size of the file in bytes.
-        classification: File classification for routing.
-        routed_to: Target pipeline for processing.
-        status: Current job status.
-        priority: Job priority level.
-        error_message: Error message if failed.
-        retry_count: Number of retry attempts.
-        max_retries: Maximum retry attempts allowed.
-        created_at: When the job was created.
-        updated_at: When the job was last updated.
-        started_at: When processing started.
-        completed_at: When processing completed.
+        job_id (UUID): Unique identifier for the job.
+        batch_id (UUID): ID of the parent batch.
+        filename (str): Original filename.
+        file_path (str): Path to stored file.
+        file_type (str): MIME type of the file.
+        file_size_bytes (int): Size of the file in bytes.
+        classification (FileClassification): File classification for routing.
+        routed_to (Pipeline): Target pipeline for processing.
+        status (JobStatus): Current job status.
+        priority (Priority): Job priority level.
+        error_message (str | None): Error message if failed.
+        retry_count (int): Number of retry attempts.
+        max_retries (int): Maximum retry attempts allowed.
+        created_at (datetime): When the job was created.
+        updated_at (datetime): When the job was last updated.
+        started_at (datetime | None): When processing started.
+        completed_at (datetime | None): When processing completed.
     """
 
     job_id: UUID = Field(default_factory=uuid4, description="Unique job identifier")
@@ -165,7 +165,7 @@ class Job(BaseModel):
         """Mark job as failed.
 
         Args:
-            error_message: The error message describing the failure.
+            error_message (str): The error message describing the failure.
         """
         self.status = JobStatus.FAILED
         self.error_message = error_message
@@ -176,7 +176,7 @@ class Job(BaseModel):
         """Check if job can be retried.
 
         Returns:
-            True if retry count is below max_retries.
+            bool: True if retry count is below max_retries.
         """
         return self.retry_count < self.max_retries
 
@@ -184,7 +184,7 @@ class Job(BaseModel):
         """Convert job to Redis hash format.
 
         Returns:
-            Dictionary suitable for Redis HSET.
+            dict[str, str]: Dictionary suitable for Redis HSET.
         """
         return {
             "job_id": str(self.job_id),
@@ -211,10 +211,10 @@ class Job(BaseModel):
         """Create Job from Redis hash data.
 
         Args:
-            data: Dictionary from Redis HGETALL.
+            data (dict[str, str]): Dictionary from Redis HGETALL.
 
         Returns:
-            Job instance.
+            Job: Job instance.
         """
         return cls(
             job_id=UUID(data["job_id"]),

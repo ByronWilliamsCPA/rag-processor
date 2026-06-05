@@ -31,6 +31,10 @@ class RedisStore:
 
     Stores batch and job metadata in Redis hashes for fast lookup.
 
+    Args:
+        redis_client (redis.Redis | None): Optional Redis client. If not provided,
+            creates one from settings.
+
     Example:
         store = RedisStore()
         store.save_batch(batch)
@@ -38,12 +42,6 @@ class RedisStore:
     """
 
     def __init__(self, redis_client: redis.Redis | None = None) -> None:
-        """Initialize the Redis store.
-
-        Args:
-            redis_client: Optional Redis client. If not provided, creates
-                one from settings.
-        """
         if redis_client is not None:
             self._redis = redis_client
         else:
@@ -54,7 +52,7 @@ class RedisStore:
         """Save a batch to Redis.
 
         Args:
-            batch: Batch to save.
+            batch (Batch): Batch to save.
         """
         key = f"{BATCH_KEY_PREFIX}{batch.batch_id}"
         self._redis.hset(key, mapping=batch.to_redis_dict())
@@ -64,10 +62,10 @@ class RedisStore:
         """Load a batch from Redis.
 
         Args:
-            batch_id: Batch identifier.
+            batch_id (UUID | str): Batch identifier.
 
         Returns:
-            Batch if found, None otherwise.
+            Batch | None: Batch if found, None otherwise.
         """
         key = f"{BATCH_KEY_PREFIX}{batch_id}"
         data = cast("dict[str, str]", self._redis.hgetall(key))
@@ -88,10 +86,10 @@ class RedisStore:
         """Update batch status fields.
 
         Args:
-            batch_id: Batch identifier.
-            completed_files: Number of completed files.
-            failed_files: Number of failed files.
-            status: New status value.
+            batch_id (UUID | str): Batch identifier.
+            completed_files (int | None): Number of completed files.
+            failed_files (int | None): Number of failed files.
+            status (str | None): New status value.
         """
         key = f"{BATCH_KEY_PREFIX}{batch_id}"
         updates: dict[str, str] = {}
@@ -113,7 +111,7 @@ class RedisStore:
         """Save a job to Redis.
 
         Args:
-            job: Job to save.
+            job (Job): Job to save.
         """
         key = f"{JOB_KEY_PREFIX}{job.job_id}"
         self._redis.hset(key, mapping=job.to_redis_dict())
@@ -132,10 +130,10 @@ class RedisStore:
         """Load a job from Redis.
 
         Args:
-            job_id: Job identifier.
+            job_id (UUID | str): Job identifier.
 
         Returns:
-            Job if found, None otherwise.
+            Job | None: Job if found, None otherwise.
         """
         key = f"{JOB_KEY_PREFIX}{job_id}"
         data = cast("dict[str, str]", self._redis.hgetall(key))
@@ -158,12 +156,12 @@ class RedisStore:
         """Update job status fields.
 
         Args:
-            job_id: Job identifier.
-            status: New status value.
-            error_message: Error message if failed.
-            retry_count: Updated retry count.
-            started_at: Processing start time (ISO format).
-            completed_at: Processing completion time (ISO format).
+            job_id (UUID | str): Job identifier.
+            status (str | None): New status value.
+            error_message (str | None): Error message if failed.
+            retry_count (int | None): Updated retry count.
+            started_at (str | None): Processing start time (ISO format).
+            completed_at (str | None): Processing completion time (ISO format).
         """
         key = f"{JOB_KEY_PREFIX}{job_id}"
         updates: dict[str, str] = {}
@@ -188,10 +186,10 @@ class RedisStore:
         """Get all jobs for a batch.
 
         Args:
-            batch_id: Batch identifier.
+            batch_id (UUID | str): Batch identifier.
 
         Returns:
-            List of jobs in the batch.
+            list[Job]: List of jobs in the batch.
         """
         batch_jobs_key = f"{BATCH_JOBS_KEY_PREFIX}{batch_id}"
         job_ids = cast("set[str]", self._redis.smembers(batch_jobs_key))
@@ -208,7 +206,7 @@ class RedisStore:
         """Delete a batch and its jobs from Redis.
 
         Args:
-            batch_id: Batch identifier.
+            batch_id (UUID | str): Batch identifier.
         """
         # Get all job IDs
         batch_jobs_key = f"{BATCH_JOBS_KEY_PREFIX}{batch_id}"
@@ -230,7 +228,7 @@ class RedisStore:
         """Check Redis connection.
 
         Returns:
-            True if Redis is reachable.
+            bool: True if Redis is reachable.
         """
         try:
             return cast("bool", self._redis.ping())
@@ -246,7 +244,7 @@ def get_redis_store() -> RedisStore:
     """Get the global Redis store instance.
 
     Returns:
-        RedisStore singleton.
+        RedisStore: RedisStore singleton.
     """
     global _redis_store  # noqa: PLW0603 - Singleton pattern
     if _redis_store is None:

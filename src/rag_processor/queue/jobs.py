@@ -33,10 +33,10 @@ def enqueue_job(job: Job) -> str:
     Saves the job to Redis and enqueues it for processing.
 
     Args:
-        job: Job to enqueue.
+        job (Job): Job to enqueue.
 
     Returns:
-        RQ job ID.
+        str: RQ job ID.
     """
     # Save job to Redis
     store = get_redis_store()
@@ -72,11 +72,11 @@ def enqueue_batch_jobs(batch: Batch, jobs: list[Job]) -> list[str]:
     (which would otherwise leave orphaned RQ jobs whose metadata was deleted).
 
     Args:
-        batch: Parent batch.
-        jobs: Jobs to enqueue.
+        batch (Batch): Parent batch.
+        jobs (list[Job]): Jobs to enqueue.
 
     Returns:
-        List of RQ job IDs.
+        list[str]: List of RQ job IDs.
 
     Raises:
         Exception: Re-raises any enqueue failure after rolling back.
@@ -135,9 +135,9 @@ def _rollback_enqueued_batch(
     batch has disappeared, which closes all but a narrow TOCTOU window.
 
     Args:
-        store: Redis store used to delete the batch and its jobs.
-        batch: The batch being rolled back.
-        enqueued_rq_jobs: RQ jobs that were successfully enqueued before failure.
+        store (RedisStore): Redis store used to delete the batch and its jobs.
+        batch (Batch): The batch being rolled back.
+        enqueued_rq_jobs (list[Any]): RQ jobs that were successfully enqueued before failure.
     """
     for rq_job in enqueued_rq_jobs:
         try:
@@ -155,10 +155,10 @@ def get_job_status(job_id: UUID | str) -> Job | None:
     """Get the current status of a job.
 
     Args:
-        job_id: Job identifier.
+        job_id (UUID | str): Job identifier.
 
     Returns:
-        Job if found, None otherwise.
+        Job | None: Job if found, None otherwise.
     """
     store = get_redis_store()
     return store.get_job(job_id)
@@ -168,10 +168,10 @@ def get_batch_status(batch_id: UUID | str) -> tuple[Batch | None, list[Job]]:
     """Get the current status of a batch and its jobs.
 
     Args:
-        batch_id: Batch identifier.
+        batch_id (UUID | str): Batch identifier.
 
     Returns:
-        Tuple of (Batch, list of Jobs). Batch is None if not found.
+        tuple[Batch | None, list[Job]]: Tuple of (Batch, list of Jobs). Batch is None if not found.
     """
     store = get_redis_store()
     batch = store.get_batch(batch_id)
@@ -191,10 +191,10 @@ async def get_job_status_async(job_id: UUID | str) -> Job | None:
     stalling the event loop in async HTTP/WebSocket handlers.
 
     Args:
-        job_id: Job identifier.
+        job_id (UUID | str): Job identifier.
 
     Returns:
-        Job if found, None otherwise.
+        Job | None: Job if found, None otherwise.
     """
     return await asyncio.to_thread(get_job_status, job_id)
 
@@ -208,10 +208,10 @@ async def get_batch_status_async(
     do not block the event loop.
 
     Args:
-        batch_id: Batch identifier.
+        batch_id (UUID | str): Batch identifier.
 
     Returns:
-        Tuple of (Batch, list of Jobs). Batch is None if not found.
+        tuple[Batch | None, list[Job]]: Tuple of (Batch, list of Jobs). Batch is None if not found.
     """
     return await asyncio.to_thread(get_batch_status, batch_id)
 
@@ -220,7 +220,7 @@ def update_batch_progress(batch_id: UUID | str) -> None:
     """Update batch progress based on job statuses.
 
     Args:
-        batch_id: Batch identifier.
+        batch_id (UUID | str): Batch identifier.
     """
     store = get_redis_store()
     batch = store.get_batch(batch_id)
@@ -273,10 +273,10 @@ def process_job_task(job_id: str) -> dict[str, str]:
     simulates processing (for now), and updates the status.
 
     Args:
-        job_id: Job identifier.
+        job_id (str): Job identifier.
 
     Returns:
-        Result dictionary with status.
+        dict[str, str]: Result dictionary with status.
     """
     store = get_redis_store()
     job = store.get_job(job_id)
@@ -390,7 +390,7 @@ def _run_pipeline(job: Job) -> None:
     single, mockable seam and real pipeline errors are captured per-job.
 
     Args:
-        job: The job to process.
+        job (Job): The job to process.
     """
     # Intentionally a no-op until the pipeline adapter lands. The job is logged
     # so the seam is observable and the argument is meaningfully used.

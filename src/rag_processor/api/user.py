@@ -48,10 +48,10 @@ async def get_me(
     Authentication: Requires a valid Cloudflare Access JWT.
 
     Args:
-        user: The authenticated user from Cloudflare Access (injected).
+        user (CloudflareUser): The authenticated user from Cloudflare Access (injected).
 
     Returns:
-        UserResponse with `email`, optional `user_id`, and `groups`.
+        UserResponse: UserResponse with `email`, optional `user_id`, and `groups`.
     """
     return UserResponse(
         email=user.email,
