@@ -180,6 +180,7 @@ path = [
     "frontend/tsconfig*.json",
     "frontend/vite.config.ts",
     "frontend/vitest.config.ts",  # Vitest test configuration
+    "frontend/openapi-ts.config.ts",  # OpenAPI client generator config
     "frontend/playwright.config.ts",  # Playwright E2E config
     "frontend/src/vite-env.d.ts",
     "frontend/src/test/setup.ts",
