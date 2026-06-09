@@ -6,6 +6,7 @@
 name: PR Validation
 
 on:
+  merge_group:
   pull_request:
     types: [opened, synchronize, reopened]
     branches:
@@ -13,9 +14,9 @@ on:
       - master
       - develop
 
-# Cancel in-progress runs for same PR
+# Cancel in-progress runs for same PR or merge-queue ref
 concurrency:
-  group: pr-validation-${{ github.event.pull_request.number }}
+  group: pr-validation-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
