@@ -54,12 +54,12 @@ jobs:
       has-benchmarks: ${{ steps.check.outputs.has-benchmarks }}
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
           egress-policy: audit
 
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Check for benchmark script
         id: check
@@ -82,7 +82,7 @@ jobs:
     name: Performance Regression
     needs: check-benchmarks
     if: needs.check-benchmarks.outputs.has-benchmarks == 'true'
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-performance-regression.yml@74c633acfdd5f707ab154fd59bd212c6df663dd6 # main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-performance-regression.yml@7d12f5486ab5c856397ebaa4acd3c99ca385227c # main
     with:
       benchmark-script: 'scripts/benchmark.py'
       python-version: '3.12'
@@ -106,7 +106,7 @@ jobs:
     if: needs.check-benchmarks.outputs.has-benchmarks == 'false'
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
           egress-policy: audit
 
