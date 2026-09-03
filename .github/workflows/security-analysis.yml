@@ -58,3 +58,40 @@ jobs:
       # rag-processor uses hatchling as build backend, so editable installs
       # require the build step. The reusable defaults no-build: true; override.
       no-build: false
+
+  # Reusable-workflow-caller jobs always emit "<caller job> / <inner job>"
+  # (e.g. "Security Analysis / Security Gate Validation"), never the bare
+  # inner job name. The ByronWilliamsCPA-default-branch-baseline org ruleset
+  # requires the bare context "Security Gate Validation", so a normal job
+  # with that exact name is added here to satisfy it.
+  # #CRITICAL: this job is the only source of the bare "Security Gate
+  # Validation" required check; do not rename it or drop the needs: gate.
+  # #ASSUME: the reusable workflow's own inner security-gate job (which this
+  # depends on transitively via the "security" caller job's aggregate result)
+  # continues to fail the "security" job on a real HIGH/CRITICAL finding.
+  # #VERIFY: after a security finding lands, confirm this job goes red, not
+  # just the "Security Analysis / Security Gate Validation" check.
+  security-gate-validation:
+    name: Security Gate Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [security]
+    if: always()
+    permissions:
+      contents: read
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Check security analysis result
+        env:
+          SECURITY_RESULT: ${{ needs.security.result }}
+        run: |
+          if [ "$SECURITY_RESULT" = "success" ] || [ "$SECURITY_RESULT" = "skipped" ]; then
+            echo "Security Gate Validation passed (Security Analysis: $SECURITY_RESULT)"
+          else
+            echo "::error::Security Gate Validation failed: Security Analysis result is $SECURITY_RESULT"
+            exit 1
+          fi
