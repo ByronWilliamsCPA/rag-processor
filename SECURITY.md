@@ -51,8 +51,11 @@ This project runs automated security checks on every pull request:
 
 - Bandit (Python static analysis)
 - TruffleHog (secret detection)
-- CodeQL (semantic code analysis)
 - pip-audit / OSV Scanner (dependency vulnerability scanning)
 - Trivy (container image scanning)
+
+CodeQL was removed 2026-09: GitHub now bills Advanced Security / Code
+Security, so CodeQL code scanning and SARIF ingestion into the Security tab
+no longer function. See `CHANGELOG.md`.
 
 See `.github/workflows/security-analysis.yml` for configuration.
