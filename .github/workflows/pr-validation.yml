@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Harden the runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           # egress-policy: block -- enabled 2026-05-23 (compliance audit). If a CI run fails on a network call, switch this single occurrence back to audit and capture the missing endpoint in the issue tracker.
           egress-policy: audit  # TODO: switch to block after 2026-06-30 (compliance audit deferral)
@@ -78,7 +78,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Harden the runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           # egress-policy: block -- enabled 2026-05-23 (compliance audit). If a CI run fails on a network call, switch this single occurrence back to audit and capture the missing endpoint in the issue tracker.
           egress-policy: audit  # TODO: switch to block after 2026-06-30 (compliance audit deferral)
@@ -112,7 +112,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Harden the runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           # egress-policy: block -- enabled 2026-05-23 (compliance audit). If a CI run fails on a network call, switch this single occurrence back to audit and capture the missing endpoint in the issue tracker.
           egress-policy: audit  # TODO: switch to block after 2026-06-30 (compliance audit deferral)
@@ -181,7 +181,7 @@ jobs:
     if: always()
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 

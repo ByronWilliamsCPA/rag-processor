@@ -30,7 +30,7 @@ permissions:
 jobs:
   sonarcloud:
     name: SonarCloud Analysis
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-sonarcloud.yml@4bd2d7c207a7fcf2dfcec8416c805d06d745c241 # main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-sonarcloud.yml@b7c661ec3bfeb04370ce3a9c748bd8c4e93bfe89 # main
     with:
       python-version: '3.12'
       # Every version requires-python (">=3.11,<3.15") admits, not just the build version.
