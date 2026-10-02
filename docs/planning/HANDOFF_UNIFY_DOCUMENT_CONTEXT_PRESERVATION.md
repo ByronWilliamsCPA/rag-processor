@@ -11,6 +11,10 @@ tags:
   - architecture
 ---
 
+> **Note**: This is a Prepare-Doc to Unify handoff. It does not describe Ingest (this repository) and is kept
+> here for history only. The current pipeline overview is in
+> [pipeline-level-0.md](../architecture/pipeline-level-0.md).
+
 > **From**: Project A (Prepare-Doc) Team
 > **To**: Foundry-Unify Team
 > **Date**: January 27, 2026

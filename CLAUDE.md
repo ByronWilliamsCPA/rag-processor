@@ -26,7 +26,7 @@ This feedback will be shared with the template team to improve the cookiecutter 
 ## Project Overview
 
 **Name**: RAG Processor
-**Description**: React-based frontend for RAG pipeline with FastAPI backend integration
+**Description**: Ingest gateway and router for the Foundry RAG pipeline: FastAPI backend plus React upload and status UI (the downstream processing step is currently a stub; see `docs/architecture/diagrams/level-1/index.md` and `docs/architecture/pipeline-level-0.md`)
 **Author**: Byron Williams <byron@williamscpa.dev>
 **Repository**: <https://github.com/ByronWilliamsCPA/rag-processor>
 **Created**: 2025-12-04

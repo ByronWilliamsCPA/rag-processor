@@ -34,10 +34,11 @@ This directory contains the essential planning documents for RAG Processor.
 
 | Document | Purpose | Status |
 |----------|---------|--------|
-| [project-vision.md](./project-vision.md) | What & Why | Awaiting Generation |
-| [tech-spec.md](./tech-spec.md) | How to build | Awaiting Generation |
-| [roadmap.md](./roadmap.md) | Implementation plan | Awaiting Generation |
-| [adr/](./adr/) | Architecture decisions | Awaiting Generation |
+| [project-vision.md](./project-vision.md) | What & Why | Generated |
+| [tech-spec.md](./tech-spec.md) | How to build | Generated |
+| [roadmap.md](./roadmap.md) | Implementation plan | Generated |
+| [adr/](./adr/) | Architecture decisions | Generated (ADR-001) |
+| [PROJECT-PLAN.md](./PROJECT-PLAN.md) | Synthesized plan | Generated |
 
 ## Using Documents During Development
 

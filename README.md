@@ -36,11 +36,14 @@
 
 ## Overview
 
-React-based frontend for RAG pipeline with FastAPI backend integration
+Ingest gateway for the Foundry RAG pipeline: a FastAPI service with a React upload and status UI that accepts files,
+classifies them, decides which pipeline each belongs to, and tracks job status. The step that hands files to the
+downstream services is not built yet; see the [Level 1 architecture](docs/architecture/diagrams/level-1/index.md).
 
 This project provides:
 
-- Core functionality for react-based frontend for rag pipeline with fastapi backend integration
+- Authenticated multi-file upload, file-type detection, and routing (FastAPI, Cloudflare Access)
+- Redis and RQ job queue with batch status over REST and WebSocket
 - Production-ready code with comprehensive testing
 - Well-documented API and architecture
 - Security-first development practices
@@ -99,15 +102,8 @@ uv run pre-commit install
 
 ### Basic Usage
 
-```python
-# Import and use the package
-from rag_processor import YourModule
-
-# Example: Create an instance and use it
-module = YourModule()
-result = module.process()
-print(result)
-```
+The service is used through its HTTP API, not as an importable library. Start the stack as described below, then
+upload files with `POST /api/v1/ingest` or through the React UI. Interactive API docs are served by FastAPI at `/docs`.
 
 ## Local Development with Docker
 
