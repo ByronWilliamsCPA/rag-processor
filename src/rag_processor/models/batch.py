@@ -45,7 +45,6 @@ class Batch(BaseModel):
         total_files (int): Total number of files in the batch.
         completed_files (int): Number of successfully completed files.
         failed_files (int): Number of failed files.
-        target_vector_store (str | None): Target vector store for handoff.
         created_at (datetime): When the batch was created.
         updated_at (datetime): When the batch was last updated.
     """
@@ -59,9 +58,6 @@ class Batch(BaseModel):
     total_files: int = Field(default=0, ge=0, description="Total files in batch")
     completed_files: int = Field(default=0, ge=0, description="Completed files count")
     failed_files: int = Field(default=0, ge=0, description="Failed files count")
-    target_vector_store: str | None = Field(
-        None, description="Target vector store for handoff"
-    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(tz=UTC),
         description="Batch creation timestamp",
@@ -112,7 +108,6 @@ class Batch(BaseModel):
             "total_files": str(self.total_files),
             "completed_files": str(self.completed_files),
             "failed_files": str(self.failed_files),
-            "target_vector_store": self.target_vector_store or "",
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
         }
@@ -135,7 +130,6 @@ class Batch(BaseModel):
             total_files=int(data["total_files"]),
             completed_files=int(data["completed_files"]),
             failed_files=int(data["failed_files"]),
-            target_vector_store=data["target_vector_store"] or None,
             created_at=_parse_iso_datetime(data["created_at"]),
             updated_at=_parse_iso_datetime(data["updated_at"]),
         )

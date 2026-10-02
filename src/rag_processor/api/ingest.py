@@ -260,10 +260,6 @@ async def ingest_files(
         Priority,
         Form(description="Processing priority"),
     ] = Priority.NORMAL,
-    target_vector_store: Annotated[
-        str | None,
-        Form(description="Target vector store for handoff"),
-    ] = None,
     user: CloudflareUser = Depends(get_current_user),
     file_router: FileRouter = Depends(get_file_router),
 ) -> IngestResponse:
@@ -279,7 +275,6 @@ async def ingest_files(
     Args:
         files (Annotated[list[UploadFile], File(description='Files to upload for processing')]): List of files to upload (multipart/form-data).
         priority (Annotated[Priority, Form(description='Processing priority')]): Processing priority (high, normal, low).
-        target_vector_store (Annotated[str | None, Form(description='Target vector store for handoff')]): Optional target vector store identifier.
         user (CloudflareUser): Authenticated user from Cloudflare Access.
         file_router (FileRouter): Injected file classification and pipeline routing service.
 
@@ -302,7 +297,6 @@ async def ingest_files(
     batch = Batch(
         created_by_email=user.email,
         created_by_user_id=user.user_id,
-        target_vector_store=target_vector_store,
         total_files=len(files),
     )
 

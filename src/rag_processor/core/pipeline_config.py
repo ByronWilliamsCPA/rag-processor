@@ -114,28 +114,6 @@ class PipelineConfig:
 
 
 @dataclass
-class VectorStoreConfig:
-    """Configuration for a vector store."""
-
-    name: str
-    type: str
-    url: str
-    collection: str
-    api_key_env: str = ""
-
-    @property
-    def api_key(self) -> str | None:
-        """Get the API key from environment.
-
-        Returns:
-            str | None: API key string or None if not configured.
-        """
-        if not self.api_key_env:
-            return None
-        return os.environ.get(self.api_key_env)
-
-
-@dataclass
 class RateLimitConfig:
     """Rate limiting configuration."""
 
@@ -153,7 +131,6 @@ class PipelineConfiguration:
     default_retries: RetryConfig
     pipelines: dict[str, PipelineConfig]
     routing: dict[FileClassification, Pipeline]
-    vector_stores: dict[str, VectorStoreConfig]
     rate_limiting: RateLimitConfig
 
     def get_pipeline(self, pipeline: Pipeline) -> PipelineConfig | None:
@@ -282,7 +259,6 @@ def _create_default_config() -> PipelineConfiguration:
             FileClassification.DOCUMENT: Pipeline.DOC_PROCESSING,
             FileClassification.UNKNOWN: Pipeline.NONE,
         },
-        vector_stores={},
         rate_limiting=RateLimitConfig(),
     )
 
@@ -354,17 +330,6 @@ def _parse_config(config: dict[str, Any]) -> PipelineConfiguration:
                 pipeline=pipeline_str,
             )
 
-    # Parse vector stores
-    vector_stores: dict[str, VectorStoreConfig] = {}
-    for name, store_raw in config.get("vector_stores", {}).items():
-        vector_stores[name] = VectorStoreConfig(
-            name=store_raw.get("name", name),
-            type=store_raw.get("type", "qdrant"),
-            url=store_raw.get("url", ""),
-            collection=store_raw.get("collection", ""),
-            api_key_env=store_raw.get("api_key_env", ""),
-        )
-
     # Parse rate limiting
     rate_limit_raw = config.get("rate_limiting", {})
     rate_limiting = RateLimitConfig(
@@ -379,7 +344,6 @@ def _parse_config(config: dict[str, Any]) -> PipelineConfiguration:
         default_retries=default_retries,
         pipelines=pipelines,
         routing=routing,
-        vector_stores=vector_stores,
         rate_limiting=rate_limiting,
     )
 

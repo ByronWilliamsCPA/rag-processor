@@ -13,7 +13,6 @@ interface UploadStore {
   error: string | null;
   response: IngestResponse | null;
   priority: Priority;
-  targetVectorStore: string | null;
 
   // Actions
   addFiles: (files: FileWithPreview[]) => void;
@@ -24,7 +23,6 @@ interface UploadStore {
   setError: (error: string | null) => void;
   setResponse: (response: IngestResponse | null) => void;
   setPriority: (priority: Priority) => void;
-  setTargetVectorStore: (store: string | null) => void;
   reset: () => void;
 }
 
@@ -35,7 +33,6 @@ const initialState = {
   error: null,
   response: null,
   priority: 'normal' as const,
-  targetVectorStore: null,
 };
 
 export const useUploadStore = create<UploadStore>((set) => ({
@@ -83,11 +80,6 @@ export const useUploadStore = create<UploadStore>((set) => ({
   setPriority: (priority) =>
     set({
       priority,
-    }),
-
-  setTargetVectorStore: (store) =>
-    set({
-      targetVectorStore: store,
     }),
 
   reset: () => set(initialState),

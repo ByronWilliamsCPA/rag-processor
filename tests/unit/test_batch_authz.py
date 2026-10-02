@@ -169,6 +169,7 @@ class TestGetBatchAuthz:
         ):
             resp = await get_batch(batch.batch_id, user=_user())
         assert resp.batch_id == batch.batch_id
+        assert "target_vector_store" not in resp.model_dump()
 
     @pytest.mark.asyncio
     async def test_non_owner_gets_404_not_403(self):
