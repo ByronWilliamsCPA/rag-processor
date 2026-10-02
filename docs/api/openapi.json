@@ -12,7 +12,7 @@
           "health"
         ],
         "summary": "Liveness probe",
-        "description": "Indicates if the application is running. Used by Kubernetes liveness probe.",
+        "description": "Indicates whether the application process is alive. Intended for Kubernetes liveness probes. This endpoint is public and does not require authentication.",
         "operationId": "liveness_health_live_get",
         "responses": {
           "200": {
@@ -35,7 +35,7 @@
           "health"
         ],
         "summary": "Readiness probe",
-        "description": "Checks if the application can serve traffic. Used by Kubernetes readiness probe.",
+        "description": "Checks whether the application can serve traffic by exercising all critical dependencies (database, cache, external services). Intended for Kubernetes readiness probes. This endpoint is public and does not require authentication.",
         "operationId": "readiness_health_ready_get",
         "responses": {
           "200": {
@@ -61,7 +61,7 @@
           "health"
         ],
         "summary": "Startup probe",
-        "description": "Indicates if the application has completed startup. Used by Kubernetes startup probe.",
+        "description": "Indicates whether the application has completed startup. Intended for Kubernetes startup probes that delay liveness and readiness checks during slow initialization. This endpoint is public and does not require authentication.",
         "operationId": "startup_health_startup_get",
         "responses": {
           "200": {
@@ -84,7 +84,7 @@
           "user"
         ],
         "summary": "Get current user",
-        "description": "Returns the currently authenticated user's information.",
+        "description": "Returns the currently authenticated user's identity information (email, user ID, and group memberships) extracted from the Cloudflare Access JWT. Requires Cloudflare Access authentication.",
         "operationId": "get_me_api_v1_user_me_get",
         "responses": {
           "200": {
@@ -111,7 +111,7 @@
           "ingest"
         ],
         "summary": "Upload files for processing",
-        "description": "Upload one or more files for RAG pipeline processing.",
+        "description": "Upload one or more files for RAG pipeline processing. Each file is validated for size and MIME type, sanitized, then assigned to a pipeline. Requires Cloudflare Access authentication.",
         "operationId": "ingest_files_api_v1_ingest_post",
         "requestBody": {
           "content": {
@@ -141,14 +141,7 @@
             "description": "File(s) too large"
           },
           "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
+            "description": "Validation error"
           }
         },
         "security": [
@@ -164,7 +157,7 @@
           "ingest"
         ],
         "summary": "Check ingest endpoint health",
-        "description": "Verify that the ingest endpoint is ready to accept uploads.",
+        "description": "Verify the ingest endpoint can accept uploads by checking that the upload directory is writable. Requires Cloudflare Access authentication. Returns 503 if the upload directory is unavailable.",
         "operationId": "ingest_health_api_v1_ingest_health_get",
         "responses": {
           "200": {
@@ -180,6 +173,9 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "Upload directory not writable"
           }
         },
         "security": [
@@ -195,7 +191,7 @@
           "batch"
         ],
         "summary": "Get batch status",
-        "description": "Get the status and details of a batch and its jobs.",
+        "description": "Get the status and details of a batch including all of its jobs, file metadata, and timestamps. Requires Cloudflare Access authentication.",
         "operationId": "get_batch_api_v1_batch__batch_id__get",
         "parameters": [
           {
@@ -247,7 +243,7 @@
           "batch"
         ],
         "summary": "Get job status",
-        "description": "Get the status and details of a specific job.",
+        "description": "Get the status and details of a specific job, including pipeline routing, error message, retry count, and timestamps. Requires Cloudflare Access authentication.",
         "operationId": "get_job_api_v1_batch_job__job_id__get",
         "parameters": [
           {
@@ -298,8 +294,8 @@
         "tags": [
           "root"
         ],
-        "summary": "API root",
-        "description": "Returns the API name, version, and a link to the docs.",
+        "summary": "API information",
+        "description": "Returns basic API metadata including the service name, version, and the path to the interactive OpenAPI docs. Requires Cloudflare Access authentication when `CLOUDFLARE_ENABLED=true`.",
         "operationId": "root__get",
         "responses": {
           "200": {
@@ -351,17 +347,6 @@
             "title": "Failed Files",
             "default": 0
           },
-          "target_vector_store": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Target Vector Store"
-          },
           "created_at": {
             "type": "string",
             "title": "Created At"
@@ -383,7 +368,7 @@
           "created_at"
         ],
         "title": "BatchDetailResponse",
-        "description": "Response model for batch details.\n\nAttributes:\n    batch_id: Unique batch identifier.\n    created_by_email: Email of the user who created the batch.\n    status: Current batch status.\n    total_files: Total number of files in the batch.\n    completed_files: Number of completed files.\n    failed_files: Number of failed files.\n    target_vector_store: Target vector store for handoff.\n    created_at: When the batch was created.\n    jobs: List of jobs in the batch."
+        "description": "Response model for batch details.\n\nAttributes:\n    batch_id (UUID): Unique batch identifier.\n    created_by_email (str): Email of the user who created the batch.\n    status (BatchStatus): Current batch status.\n    total_files (int): Total number of files in the batch.\n    completed_files (int): Number of completed files.\n    failed_files (int): Number of failed files.\n    created_at (str): When the batch was created.\n    jobs (list[JobDetailResponse]): List of jobs in the batch."
       },
       "BatchStatus": {
         "type": "string",
@@ -402,7 +387,7 @@
           "files": {
             "items": {
               "type": "string",
-              "format": "binary"
+              "contentMediaType": "application/octet-stream"
             },
             "type": "array",
             "title": "Files",
@@ -412,18 +397,6 @@
             "$ref": "#/components/schemas/Priority",
             "description": "Processing priority",
             "default": "normal"
-          },
-          "target_vector_store": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Target Vector Store",
-            "description": "Target vector store for handoff"
           }
         },
         "type": "object",
@@ -530,7 +503,7 @@
           "jobs"
         ],
         "title": "IngestResponse",
-        "description": "Response model for file ingestion.\n\nAttributes:\n    batch_id: Unique batch identifier.\n    status: Batch status.\n    total_files: Total number of files uploaded.\n    jobs: List of created jobs.\n    message: Human-readable message."
+        "description": "Response model for file ingestion.\n\nAttributes:\n    batch_id (UUID): Unique batch identifier.\n    status (BatchStatus): Batch status.\n    total_files (int): Total number of files uploaded.\n    jobs (list[JobResponse]): List of created jobs.\n    message (str): Human-readable message."
       },
       "JobDetailResponse": {
         "properties": {
@@ -621,7 +594,7 @@
           "created_at"
         ],
         "title": "JobDetailResponse",
-        "description": "Response model for job details.\n\nAttributes:\n    job_id: Unique job identifier.\n    batch_id: Parent batch identifier.\n    filename: Original filename.\n    file_type: MIME type of the file.\n    file_size_bytes: Size in bytes.\n    classification: File classification.\n    pipeline: Target processing pipeline.\n    status: Current job status.\n    error_message: Error message if failed.\n    retry_count: Number of retry attempts.\n    created_at: When the job was created.\n    started_at: When processing started.\n    completed_at: When processing completed."
+        "description": "Response model for job details.\n\nAttributes:\n    job_id (UUID): Unique job identifier.\n    batch_id (UUID): Parent batch identifier.\n    filename (str): Original filename.\n    file_type (str): MIME type of the file.\n    file_size_bytes (int): Size in bytes.\n    classification (FileClassification): File classification.\n    pipeline (Pipeline): Target processing pipeline.\n    status (JobStatus): Current job status.\n    error_message (str | None): Error message if failed.\n    retry_count (int): Number of retry attempts.\n    created_at (str): When the job was created.\n    started_at (str | None): When processing started.\n    completed_at (str | None): When processing completed."
       },
       "JobResponse": {
         "properties": {
@@ -663,7 +636,7 @@
           "pipeline"
         ],
         "title": "JobResponse",
-        "description": "Response model for a job.\n\nAttributes:\n    job_id: Unique job identifier.\n    filename: Original filename.\n    file_type: MIME type of the file.\n    file_size_bytes: Size in bytes.\n    status: Current job status.\n    classification: File classification for routing.\n    pipeline: Target processing pipeline."
+        "description": "Response model for a job.\n\nAttributes:\n    job_id (UUID): Unique job identifier.\n    filename (str): Original filename.\n    file_type (str): MIME type of the file.\n    file_size_bytes (int): Size in bytes.\n    status (JobStatus): Current job status.\n    classification (FileClassification): File classification for routing.\n    pipeline (Pipeline): Target processing pipeline."
       },
       "JobStatus": {
         "type": "string",
@@ -705,40 +678,22 @@
             "title": "Name",
             "description": "Dependency name"
           },
-          "status": {
+          "healthy": {
             "type": "boolean",
-            "title": "Status",
-            "description": "Check passed"
+            "title": "Healthy",
+            "description": "Whether the dependency is reachable"
           },
-          "latency_ms": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Latency Ms",
-            "description": "Check latency in milliseconds"
-          },
-          "error": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error",
-            "description": "Error message if failed"
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable check detail",
+            "default": ""
           }
         },
         "type": "object",
         "required": [
           "name",
-          "status"
+          "healthy"
         ],
         "title": "ReadinessCheck",
         "description": "Individual dependency check result."
@@ -748,41 +703,25 @@
           "status": {
             "type": "string",
             "title": "Status",
-            "description": "Overall status: ok, degraded, or error"
+            "description": "Overall readiness: ready or unavailable"
           },
           "timestamp": {
             "type": "number",
             "title": "Timestamp",
             "description": "Unix timestamp"
           },
-          "uptime_seconds": {
-            "type": "number",
-            "title": "Uptime Seconds",
-            "description": "Application uptime in seconds"
-          },
-          "version": {
-            "type": "string",
-            "title": "Version",
-            "description": "Application version",
-            "default": "0.1.0"
-          },
-          "python_version": {
-            "type": "string",
-            "title": "Python Version"
-          },
           "checks": {
-            "additionalProperties": {
+            "items": {
               "$ref": "#/components/schemas/ReadinessCheck"
             },
-            "type": "object",
+            "type": "array",
             "title": "Checks",
             "description": "Individual dependency checks"
           }
         },
         "type": "object",
         "required": [
-          "status",
-          "uptime_seconds"
+          "status"
         ],
         "title": "ReadinessStatus",
         "description": "Readiness check response with dependency details."
@@ -842,6 +781,13 @@
           "type": {
             "type": "string",
             "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
         "type": "object",
