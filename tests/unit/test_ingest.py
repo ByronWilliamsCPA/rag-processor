@@ -9,6 +9,7 @@ from fastapi import status
 from fastapi.testclient import TestClient
 
 from rag_processor.main import app
+from rag_processor.models.batch import Batch
 
 
 @pytest.fixture
@@ -124,9 +125,24 @@ class TestIngestEndpoint:
 
         assert response.status_code == status.HTTP_201_CREATED
 
-    def test_ingest_with_target_vector_store(self, client, sample_pdf):
-        """Test upload with target vector store parameter."""
+    def test_ingest_without_legacy_field_succeeds(self, client, sample_pdf):
+        """Upload with no vector store field works (field no longer exists)."""
         with patch("rag_processor.api.ingest.detect_mime_type") as mock_detect:
+            mock_detect.return_value = "application/pdf"
+
+            response = client.post(
+                "/api/v1/ingest",
+                files=[("files", ("test.pdf", sample_pdf, "application/pdf"))],
+            )
+
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_ingest_ignores_legacy_target_vector_store(self, client, sample_pdf):
+        """A legacy target_vector_store form value is ignored, not stored or echoed."""
+        with (
+            patch("rag_processor.api.ingest.detect_mime_type") as mock_detect,
+            patch("rag_processor.api.ingest.Batch", wraps=Batch) as mock_batch,
+        ):
             mock_detect.return_value = "application/pdf"
 
             response = client.post(
@@ -136,6 +152,9 @@ class TestIngestEndpoint:
             )
 
         assert response.status_code == status.HTTP_201_CREATED
+        assert "target_vector_store" not in response.text
+        assert "qdrant-prod" not in response.text
+        assert "target_vector_store" not in mock_batch.call_args.kwargs
 
     def test_ingest_invalid_mime_type_rejected(self, client):
         """Test that files with invalid MIME types are rejected."""

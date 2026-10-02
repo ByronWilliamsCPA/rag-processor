@@ -28,7 +28,7 @@ class TestBatchModel:
         assert batch.total_files == 0
         assert batch.completed_files == 0
         assert batch.failed_files == 0
-        assert batch.target_vector_store is None
+        assert not hasattr(batch, "target_vector_store")
         assert isinstance(batch.batch_id, UUID)
         assert isinstance(batch.created_at, datetime)
         assert isinstance(batch.updated_at, datetime)
@@ -38,13 +38,11 @@ class TestBatchModel:
         batch = Batch(
             created_by_email="test@example.com",
             created_by_user_id="user-123",
-            target_vector_store="qdrant-prod",
             total_files=5,
         )
 
         assert batch.created_by_email == "test@example.com"
         assert batch.created_by_user_id == "user-123"
-        assert batch.target_vector_store == "qdrant-prod"
         assert batch.total_files == 5
 
     def test_batch_update_status_processing(self):
@@ -112,6 +110,7 @@ class TestBatchModel:
         assert redis_dict["created_by_user_id"] == "user-123"
         assert redis_dict["status"] == "queued"
         assert redis_dict["total_files"] == "0"
+        assert "target_vector_store" not in redis_dict
 
     def test_batch_from_redis_dict(self):
         """Test creation from Redis hash data."""
@@ -124,7 +123,6 @@ class TestBatchModel:
             "total_files": "3",
             "completed_files": "1",
             "failed_files": "0",
-            "target_vector_store": "qdrant",
             "created_at": now.isoformat(),
             "updated_at": now.isoformat(),
         }
@@ -135,6 +133,26 @@ class TestBatchModel:
         assert batch.created_by_email == "test@example.com"
         assert batch.status == BatchStatus.PROCESSING
         assert batch.total_files == 3
+
+    def test_batch_from_redis_dict_ignores_legacy_vector_store(self):
+        """Hashes written before the field was removed still load."""
+        now = datetime.now(tz=UTC)
+        data = {
+            "batch_id": "550e8400-e29b-41d4-a716-446655440000",
+            "created_by_email": "test@example.com",
+            "created_by_user_id": "",
+            "status": "queued",
+            "total_files": "1",
+            "completed_files": "0",
+            "failed_files": "0",
+            "target_vector_store": "qdrant",
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat(),
+        }
+
+        batch = Batch.from_redis_dict(data)
+
+        assert not hasattr(batch, "target_vector_store")
 
 
 class TestJobModel:
