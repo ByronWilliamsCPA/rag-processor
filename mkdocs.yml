@@ -175,6 +175,7 @@ nav:
 
   - Development:
       - Architecture: development/architecture.md
+      - Pipeline Level 0: architecture/pipeline-level-0.md
       - Testing: development/testing.md
       - Code Quality: development/code-quality.md
       - Contributing: development/contributing.md

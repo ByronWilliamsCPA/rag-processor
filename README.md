@@ -45,6 +45,14 @@ This project provides:
 - Well-documented API and architecture
 - Security-first development practices
 
+## Where this fits in the Foundry pipeline
+
+**Ingest** is the pipeline's front door and its only user-facing service. It accepts uploads, checks file types, routes audio and video to Prepare-Audio and everything else to Prepare-Doc, and reports job status.
+
+The pipeline runs Ingest, then Prepare-Doc or Prepare-Audio, then Unify, then Chunk, and ends at chunks. Embedding,
+vector storage, and search belong to the application that consumes the chunks, not to the pipeline. See
+[Pipeline Level 0 architecture](docs/architecture/pipeline-level-0.md) for the full picture.
+
 ## Features
 
 - **High Quality**: 80%+ test coverage enforced via CI
