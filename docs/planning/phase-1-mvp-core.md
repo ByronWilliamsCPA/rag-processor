@@ -492,6 +492,9 @@ Implement minimum viable product with core user workflows: authenticated file up
 
 **Goal**: Worker processes jobs and calls external pipelines
 
+> **Status note (2026-10-02)**: Sprint 1.15 (worker pipeline calls) is not implemented. `_run_pipeline` in
+> `src/rag_processor/queue/jobs.py` is a no-op placeholder, so jobs complete without calling any pipeline.
+
 **Tasks**:
 
 1. Create job processing function (2.5 hours)

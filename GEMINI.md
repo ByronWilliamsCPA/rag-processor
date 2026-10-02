@@ -2,8 +2,10 @@
 
 ## Repository Context
 
-This is a Python package (rag_processor) providing a RAG pipeline with FastAPI backend
-integration. The package is managed with `uv`, linted with Ruff, type-checked with
+This is a Python package (rag_processor): the Ingest gateway and router of the Foundry RAG
+pipeline (FastAPI backend plus a React upload and status UI; the downstream processing step is
+currently a stub). See `docs/architecture/pipeline-level-0.md` and
+`docs/architecture/diagrams/level-1/index.md`. The package is managed with `uv`, linted with Ruff, type-checked with
 BasedPyright, and tested with pytest.
 
 See `CLAUDE.md` for full project standards. This file captures the subset of rules most

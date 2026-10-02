@@ -11,7 +11,7 @@ All configuration files have been created in `/home/user/cookiecutter-python-tem
 - **Purpose**: Configure Codecov for coverage tracking and reporting
 - **Cookiecutter Variables**:
   - `RAG Processor` - Project name in comments
-  - `React-based frontend for RAG pipeline with FastAPI backend integration` - Description in comments
+  - `Ingest gateway and router for the Foundry RAG pipeline: FastAPI backend with a React upload and status UI` - Description in comments
   - `rag_processor` - Module path for coverage tracking
   - `80` - Coverage target percentage
 - **Features**:
@@ -73,7 +73,7 @@ All configuration files have been created in `/home/user/cookiecutter-python-tem
 - **Condition**: Only generated if `yes == "yes"`
 - **Cookiecutter Variables**:
   - `RAG Processor` - Site name and title
-  - `React-based frontend for RAG pipeline with FastAPI backend integration` - Site description
+  - `Ingest gateway and router for the Foundry RAG pipeline: FastAPI backend with a React upload and status UI` - Site description
   - `Byron Williams` - Author and copyright holder
   - `https://rag-processor.readthedocs.io` - Documentation site URL
   - `https://github.com/ByronWilliamsCPA/rag-processor` - Repository URL
@@ -158,7 +158,7 @@ All templates use the following cookiecutter variables from `cookiecutter.json`:
 |----------|------|---------|---------|
 | `RAG Processor` | string | "My Python Project" | codecov.yml, mkdocs.yml |
 | `rag_processor` | auto | Derived from project_name | codecov.yml, renovate.json, REUSE.toml, mkdocs.yml, noxfile.py |
-| `React-based frontend for RAG pipeline with FastAPI backend integration` | string | "A short description..." | codecov.yml, mkdocs.yml |
+| `Ingest gateway and router for the Foundry RAG pipeline: FastAPI backend with a React upload and status UI` | string | "A short description..." | codecov.yml, mkdocs.yml |
 | `Byron Williams` | string | "Your Name" | REUSE.toml, mkdocs.yml |
 | `ByronWilliamsCPA` | string | "yourusername" | renovate.json |
 | `ByronWilliamsCPA` | auto | Derived from github_username | mkdocs.yml |

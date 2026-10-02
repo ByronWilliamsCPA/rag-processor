@@ -15,29 +15,20 @@ This directory contains the essential planning documents for RAG Processor.
 
 ## Quick Start
 
-> **Complete Guide**: See [PROJECT_SETUP.md](../PROJECT_SETUP.md#project-planning-with-claude-code) for the full workflow.
-
-```bash
-# 1. Generate planning documents
-/plan <your project description>
-
-# 2. Synthesize into project plan
-"Synthesize my planning documents into a project plan"
-
-# 3. Review docs/planning/PROJECT-PLAN.md
-
-# 4. Start development
-/git/milestone start feat/phase-0-foundation
-```
+The planning documents already exist. Start with [project-vision.md](./project-vision.md) and
+[tech-spec.md](./tech-spec.md), then use [PROJECT-PLAN.md](./PROJECT-PLAN.md) and [roadmap.md](./roadmap.md) for
+sequencing. For where the code stands against the Foundry pipeline, see the
+[Level 1 architecture](../architecture/diagrams/level-1/index.md).
 
 ## Documents
 
 | Document | Purpose | Status |
 |----------|---------|--------|
-| [project-vision.md](./project-vision.md) | What & Why | Awaiting Generation |
-| [tech-spec.md](./tech-spec.md) | How to build | Awaiting Generation |
-| [roadmap.md](./roadmap.md) | Implementation plan | Awaiting Generation |
-| [adr/](./adr/) | Architecture decisions | Awaiting Generation |
+| [project-vision.md](./project-vision.md) | What & Why | Generated |
+| [tech-spec.md](./tech-spec.md) | How to build | Generated |
+| [roadmap.md](./roadmap.md) | Implementation plan | Generated |
+| [adr/](./adr/) | Architecture decisions | Generated (ADR-001) |
+| [PROJECT-PLAN.md](./PROJECT-PLAN.md) | Synthesized plan | Generated |
 
 ## Using Documents During Development
 

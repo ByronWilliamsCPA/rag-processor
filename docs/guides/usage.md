@@ -13,21 +13,19 @@ This guide covers common usage patterns for RAG Processor.
 
 ## Installation
 
-### From PyPI
-
-```bash
-pip install rag-processor
-```
-
 ### From Source
 
 ```bash
 git clone https://github.com/ByronWilliamsCPA/rag-processor
-cd rag_processor
+cd rag-processor
 uv sync --all-extras
 ```
 
 ## Library Usage
+
+> **Status**: RAG Processor is a service used through its HTTP API (`POST /api/v1/ingest`, batch and job status
+> endpoints, `WS /ws/batch/{batch_id}`), not a published library. The snippets below only exercise the package
+> internals. See the [README](https://github.com/ByronWilliamsCPA/rag-processor#readme) for running the stack.
 
 ### Basic Import
 

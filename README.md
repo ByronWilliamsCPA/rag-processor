@@ -36,28 +36,44 @@
 
 ## Overview
 
-React-based frontend for RAG pipeline with FastAPI backend integration
+Ingest gateway for the Foundry RAG pipeline: a FastAPI service with a React upload and status UI that accepts files,
+classifies them, decides which pipeline each belongs to, and tracks job status. The step that hands files to the
+downstream services is not built yet; see the [Level 1 architecture](docs/architecture/diagrams/level-1/index.md).
 
 This project provides:
 
-- Core functionality for react-based frontend for rag pipeline with fastapi backend integration
+- Authenticated multi-file upload, file-type detection, and routing (FastAPI, Cloudflare Access)
+- Redis and RQ job queue with batch status over REST and WebSocket
 - Production-ready code with comprehensive testing
 - Well-documented API and architecture
 - Security-first development practices
 
+## Where this fits in the Foundry pipeline
+
+**Ingest** is the pipeline's front door and its only user-facing service. It accepts uploads, checks file types, routes audio and video to Prepare-Audio and everything else to Prepare-Doc, and reports job status.
+
+The pipeline runs Ingest, then Prepare-Doc or Prepare-Audio, then Unify, then Chunk, and ends at chunks. Embedding,
+vector storage, and search belong to the application that consumes the chunks, not to the pipeline. See
+[Pipeline Level 0 architecture](docs/architecture/pipeline-level-0.md) for the full picture.
+
 ## Features
 
-- **High Quality**: 80%+ test coverage enforced via CI
-- **Type Safe**: Full type hints with BasedPyright strict mode
-- **Well Documented**: Clear docstrings and comprehensive guides
-- **Developer Friendly**: Pre-commit hooks, automated formatting, linting
-- **Security First**: Dependency scanning, security analysis, SBOM generation
+- Multi-file ingest endpoint (`POST /api/v1/ingest`) with MIME and magic-byte file type checks and size limits
+- Scanned vs born-digital PDF classification and a routing decision per file
+- Batch and job status over REST (`GET /api/v1/batch/{batch_id}`, `GET /api/v1/batch/job/{job_id}`)
+- WebSocket progress events (`/ws/batch/{batch_id}`)
+- Redis and RQ job queue, off by default (`enqueue_enabled`)
+- Cloudflare Access JWT authentication
+- React upload and status UI
+
+The processing step that calls Prepare-Doc and Prepare-Audio is a placeholder; see
+[Level 1 architecture](docs/architecture/diagrams/level-1/index.md).
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.10+ (tested with 3.12)
+- Python 3.11 to 3.14 (`requires-python` in `pyproject.toml`; CI and badges use 3.12)
 - [UV](https://docs.astral.sh/uv/) for dependency management
 
 **Install UV**:
@@ -80,7 +96,7 @@ pipx install uv
 ```bash
 # Clone repository
 git clone https://github.com/ByronWilliamsCPA/rag-processor.git
-cd rag_processor
+cd rag-processor
 
 # Install dependencies (includes dev tools - REQUIRED for development)
 uv sync --all-extras
@@ -91,15 +107,8 @@ uv run pre-commit install
 
 ### Basic Usage
 
-```python
-# Import and use the package
-from rag_processor import YourModule
-
-# Example: Create an instance and use it
-module = YourModule()
-result = module.process()
-print(result)
-```
+The service is used through its HTTP API, not as an importable library. Start the stack as described below, then
+upload files with `POST /api/v1/ingest` or through the React UI. Interactive API docs are served by FastAPI at `/docs`.
 
 ## Local Development with Docker
 
@@ -618,22 +627,15 @@ qlty check --plugin osv_scanner
 ## Project Structure
 
 ```text
-rag_processor/
-├── src/rag_processor/     # Main package
-│   ├── __init__.py
-│   ├── core.py                           # Core functionality
-│   └── utils/                            # Utility modules
-├── tests/                                # Test suite
-│   ├── unit/                             # Unit tests
-│   └── integration/                      # Integration tests
-├── docs/                                 # Documentation
-│   ├── ADRs/                             # Architecture Decision Records
-│   ├── planning/                         # Project planning docs
-│   └── guides/                           # User guides
-├── pyproject.toml                        # Dependencies & tool config
-├── README.md                             # This file
-├── CONTRIBUTING.md                       # Contribution guidelines
-└── LICENSE                               # License
+rag-processor/
+├── src/rag_processor/     # Main package (api, auth, core, middleware, models, queue, routing, utils, websocket)
+├── frontend/              # React + TypeScript upload and status UI (Vite)
+├── config/                # Pipeline endpoint configuration
+├── tests/                 # Unit and integration tests
+├── docs/                  # Documentation (architecture, ADRs, planning, guides)
+├── pyproject.toml         # Dependencies & tool config
+├── CONTRIBUTING.md        # Contribution guidelines
+└── LICENSE                # License
 ```
 
 ## Documentation
