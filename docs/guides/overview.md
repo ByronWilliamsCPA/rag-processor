@@ -9,7 +9,7 @@ tags:
   - overview
 ---
 
-React-based frontend for RAG pipeline with FastAPI backend integration
+Ingest gateway and router for the Foundry RAG pipeline: FastAPI backend with a React upload and status UI
 
 ## Key Features
 

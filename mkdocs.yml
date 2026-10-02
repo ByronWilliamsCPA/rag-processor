@@ -2,7 +2,7 @@
 # Documentation: https://www.mkdocs.org/user-guide/configuration/
 
 site_name: RAG Processor
-site_description: React-based frontend for RAG pipeline with FastAPI backend integration
+site_description: Ingest gateway and router for the Foundry RAG pipeline: FastAPI backend with a React upload and status UI
 site_author: Byron Williams
 site_url: https://rag-processor.readthedocs.io
 repo_url: https://github.com/ByronWilliamsCPA/rag-processor

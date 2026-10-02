@@ -58,17 +58,22 @@ vector storage, and search belong to the application that consumes the chunks, n
 
 ## Features
 
-- **High Quality**: 80%+ test coverage enforced via CI
-- **Type Safe**: Full type hints with BasedPyright strict mode
-- **Well Documented**: Clear docstrings and comprehensive guides
-- **Developer Friendly**: Pre-commit hooks, automated formatting, linting
-- **Security First**: Dependency scanning, security analysis, SBOM generation
+- Multi-file ingest endpoint (`POST /api/v1/ingest`) with MIME and magic-byte file type checks and size limits
+- Scanned vs born-digital PDF classification and a routing decision per file
+- Batch and job status over REST (`GET /api/v1/batch/{batch_id}`, `GET /api/v1/batch/job/{job_id}`)
+- WebSocket progress events (`/ws/batch/{batch_id}`)
+- Redis and RQ job queue, off by default (`enqueue_enabled`)
+- Cloudflare Access JWT authentication
+- React upload and status UI
+
+The processing step that calls Prepare-Doc and Prepare-Audio is a placeholder; see
+[Level 1 architecture](docs/architecture/diagrams/level-1/index.md).
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.10+ (tested with 3.12)
+- Python 3.11 to 3.14 (`requires-python` in `pyproject.toml`; CI and badges use 3.12)
 - [UV](https://docs.astral.sh/uv/) for dependency management
 
 **Install UV**:
@@ -91,7 +96,7 @@ pipx install uv
 ```bash
 # Clone repository
 git clone https://github.com/ByronWilliamsCPA/rag-processor.git
-cd rag_processor
+cd rag-processor
 
 # Install dependencies (includes dev tools - REQUIRED for development)
 uv sync --all-extras
@@ -622,22 +627,15 @@ qlty check --plugin osv_scanner
 ## Project Structure
 
 ```text
-rag_processor/
-├── src/rag_processor/     # Main package
-│   ├── __init__.py
-│   ├── core.py                           # Core functionality
-│   └── utils/                            # Utility modules
-├── tests/                                # Test suite
-│   ├── unit/                             # Unit tests
-│   └── integration/                      # Integration tests
-├── docs/                                 # Documentation
-│   ├── ADRs/                             # Architecture Decision Records
-│   ├── planning/                         # Project planning docs
-│   └── guides/                           # User guides
-├── pyproject.toml                        # Dependencies & tool config
-├── README.md                             # This file
-├── CONTRIBUTING.md                       # Contribution guidelines
-└── LICENSE                               # License
+rag-processor/
+├── src/rag_processor/     # Main package (api, auth, core, middleware, models, queue, routing, utils, websocket)
+├── frontend/              # React + TypeScript upload and status UI (Vite)
+├── config/                # Pipeline endpoint configuration
+├── tests/                 # Unit and integration tests
+├── docs/                  # Documentation (architecture, ADRs, planning, guides)
+├── pyproject.toml         # Dependencies & tool config
+├── CONTRIBUTING.md        # Contribution guidelines
+└── LICENSE                # License
 ```
 
 ## Documentation

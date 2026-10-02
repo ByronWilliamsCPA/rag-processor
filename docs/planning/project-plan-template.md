@@ -17,7 +17,7 @@ source: "Template from cookiecutter-python-template"
 ---
 
 **Project**: RAG Processor
-**Description**: React-based frontend for RAG pipeline with FastAPI backend integration
+**Description**: Ingest gateway and router for the Foundry RAG pipeline: FastAPI backend with a React upload and status UI
 **Repository**: `rag_processor`
 **Start Date**: YYYY-MM-DD
 **Target Completion**: YYYY-MM-DD

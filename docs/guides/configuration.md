@@ -13,7 +13,9 @@ This guide covers all configuration options for RAG Processor.
 
 ## Environment Variables
 
-RAG Processor uses environment variables for configuration:
+RAG Processor uses environment variables for configuration. This table lists only logging; the full set of
+settings (Redis, queue, upload limits, Cloudflare Access) is defined in `src/rag_processor/core/config.py` and
+`.env.example`.
 
 | Variable | Description | Default |
 |----------|-------------|---------|

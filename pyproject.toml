@@ -4,7 +4,7 @@
 [project]
 name = "rag-processor"
 version = "0.1.0"
-description = "React-based frontend for RAG pipeline with FastAPI backend integration"
+description = "Ingest gateway and router for the Foundry RAG pipeline: FastAPI backend with a React upload and status UI"
 authors = [
     {name = "Byron Williams", email = "byron@williamscpa.dev"}
 ]
