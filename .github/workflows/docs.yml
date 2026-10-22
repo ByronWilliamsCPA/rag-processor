@@ -29,7 +29,7 @@ permissions:
 jobs:
   docs:
     name: Build & Deploy Docs
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-docs.yml@7d12f5486ab5c856397ebaa4acd3c99ca385227c # main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-docs.yml@74cfc8e9d1ea1f6babc40bea102b3071af620942 # main
     with:
       python-version: '3.12'
       # rag-processor uses hatchling as build backend, so editable installs
