@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Dependencies: refreshed `uv.lock` to clear advisories reported by pip-audit and OSV-Scanner (urllib3 2.8.0, tornado 6.5.10, pyjwt 2.15.1, virtualenv 21.14.2, gitpython 3.2.0, jupyterlab 4.6.4, notebook 7.6.3).
 
+### Added
+
+- CI: Claude Tier 0 baseline PR review caller (`.github/workflows/claude-baseline-review.yml`), a thin caller of the org reusable in `ByronWilliamsCPA/.github`. Part of the org-wide tiered-pr-review rollout.
+
 ### Changed
 
 - **Renovate covers the npm frontend**: added `npm` to `enabledManagers` in
