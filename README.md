@@ -50,9 +50,9 @@ This project provides:
 
 ## Where this fits in the Foundry pipeline
 
-**Ingest** is the pipeline's front door and its only user-facing service. It accepts uploads, checks file types, routes audio and video to Prepare-Audio and everything else to Prepare-Doc, and reports job status.
+**Ingest** is the pipeline's front door and its only user-facing service. It accepts uploads, checks file types, records a pipeline selection, and reports job status. Scanned PDFs and images select OCR, born-digital PDFs and documents select DOC_PROCESSING, audio and video select TRANSCRIPTION, and unknown classifications select NONE.
 
-The pipeline runs Ingest, then Prepare-Doc or Prepare-Audio, then Unify, then Chunk, and ends at chunks. Embedding,
+In the target pipeline, Ingest hands off to Prepare-Doc or Prepare-Audio, then Unify, then Chunk, and the pipeline ends at chunks. The current worker stops after pipeline selection because pipeline execution is a no-op placeholder; this service does not yet invoke Prepare-Doc, Prepare-Audio, Unify, or Chunk. Embedding,
 vector storage, and search belong to the application that consumes the chunks, not to the pipeline. See
 [Pipeline Level 0 architecture](docs/architecture/pipeline-level-0.md) for the full picture.
 

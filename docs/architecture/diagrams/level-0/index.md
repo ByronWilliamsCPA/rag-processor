@@ -14,5 +14,5 @@ is shared word for word by all five repositories, so it lives once in this repos
 [pipeline-level-0.md](../../pipeline-level-0.md) rather than being copied here.
 
 In that diagram this repository is the **Ingest** box (`rag-processor`): the front door and only user-facing service.
-It sends documents and images to Prepare-Doc, and audio and video to Prepare-Audio. For the inside of the Ingest box,
+The target architecture sends documents and images to Prepare-Doc, and audio and video to Prepare-Audio. The downstream HTTP handoffs are not built yet. For the inside of the Ingest box,
 see [Level 1](../level-1/index.md).

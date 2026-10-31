@@ -32,7 +32,7 @@ The step that hands files to Prepare-Doc and Prepare-Audio is not built yet; see
 ## Documentation
 
 - [User Guide](guides/overview.md) - Getting started and usage
-- [API Reference](api-reference.md) - Complete API documentation
+- [API Reference](api-reference.md) - Python reference for `core.config` and `utils.logging` (the HTTP API is documented at `/docs` on a running server)
 - [Development](development/architecture.md) - Architecture and contributing
 - [Project](project/roadmap.md) - Roadmap and changelog
 
