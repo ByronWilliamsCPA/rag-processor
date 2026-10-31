@@ -6,7 +6,7 @@ Provides Redis-based storage for batch and job metadata.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from uuid import UUID  # noqa: TC003 - Used at runtime in function signatures
 
 import redis
@@ -15,6 +15,16 @@ from rag_processor.core.redis import get_redis_client
 from rag_processor.models.batch import Batch
 from rag_processor.models.job import Job
 from rag_processor.utils.logging import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    # redis-py's hset() takes Mapping[FieldT, EncodableT], a Mapping keyed by
+    # a Union type. Mapping's key parameter is invariant, so a plain
+    # dict[str, str] is not directly assignable; cast() below tells the
+    # checker the runtime-correct, upstream-defined type instead of
+    # suppressing the check.
+    from redis.typing import EncodableT, FieldT
 
 UTC = timezone.utc  # noqa: UP017
 
@@ -55,7 +65,9 @@ class RedisStore:
             batch (Batch): Batch to save.
         """
         key = f"{BATCH_KEY_PREFIX}{batch.batch_id}"
-        self._redis.hset(key, mapping=batch.to_redis_dict())
+        self._redis.hset(
+            key, mapping=cast("Mapping[FieldT, EncodableT]", batch.to_redis_dict())
+        )
         logger.debug("Batch saved to Redis", batch_id=str(batch.batch_id))
 
     def get_batch(self, batch_id: UUID | str) -> Batch | None:
@@ -102,7 +114,7 @@ class RedisStore:
             updates["status"] = status
 
         if updates:
-            self._redis.hset(key, mapping=updates)
+            self._redis.hset(key, mapping=cast("Mapping[FieldT, EncodableT]", updates))
             logger.debug(
                 "Batch status updated", batch_id=str(batch_id), updates=updates
             )
@@ -114,7 +126,9 @@ class RedisStore:
             job (Job): Job to save.
         """
         key = f"{JOB_KEY_PREFIX}{job.job_id}"
-        self._redis.hset(key, mapping=job.to_redis_dict())
+        self._redis.hset(
+            key, mapping=cast("Mapping[FieldT, EncodableT]", job.to_redis_dict())
+        )
 
         # Add to batch's job list
         batch_jobs_key = f"{BATCH_JOBS_KEY_PREFIX}{job.batch_id}"
@@ -179,7 +193,7 @@ class RedisStore:
 
         if updates:
             updates["updated_at"] = datetime.now(tz=UTC).isoformat()
-            self._redis.hset(key, mapping=updates)
+            self._redis.hset(key, mapping=cast("Mapping[FieldT, EncodableT]", updates))
             logger.debug("Job status updated", job_id=str(job_id), updates=updates)
 
     def get_batch_jobs(self, batch_id: UUID | str) -> list[Job]:

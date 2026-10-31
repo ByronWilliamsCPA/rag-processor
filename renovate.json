@@ -181,7 +181,6 @@
     "schedule": [
       "before 5am on monday"
     ],
-    "commitMessageAction": "Update",
     "automerge": false,
     "labels": [
       "dependencies",
