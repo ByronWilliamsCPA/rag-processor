@@ -97,6 +97,7 @@ path = [
     ".sonarlint/**",  # SonarLint IDE configuration
     ".qlty/**",  # Qlty configuration
     ".coderabbit.yaml",  # CodeRabbit AI review configuration
+    ".mcp.json",  # Claude Code MCP server configuration
     ".vscode/**",  # VS Code settings
     ".idea/**",  # IntelliJ/PyCharm settings
     "concept.txt",
