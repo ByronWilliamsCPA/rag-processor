@@ -687,7 +687,7 @@ uv run pytest tests/unit/test_example.py::test_function_name -v
 **GitHub Actions Workflows**:
 
 1. **CI** (`.github/workflows/ci.yml`): Tests, linting, type checking
-2. **Security** (`.github/workflows/security-analysis.yml`): CodeQL, Bandit, Safety
+2. **Security** (`.github/workflows/security-analysis.yml`): Bandit, Safety (CodeQL removed 2026-09, GitHub Advanced Security billing; see CHANGELOG)
 3. **Docs** (`.github/workflows/docs.yml`): Build and deploy documentation
 4. **Publish** (`.github/workflows/publish-pypi.yml`): PyPI release automation
 
