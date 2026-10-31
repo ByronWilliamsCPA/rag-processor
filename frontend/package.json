@@ -47,10 +47,10 @@
     "postcss": "^8.5.23",
     "prettier": "^3.4.2",
     "tailwindcss": "^4.1.18",
-    "typescript": "~7.0.0",
+    "typescript": "~6.0.0",
     "typescript-eslint": "^8.60.1",
     "vite": "^8.1.6",
-    "vitest": "^4.0.0"
+    "vitest": "^5.0.0"
   },
   "engines": {
     "node": ">=22.18.0"
