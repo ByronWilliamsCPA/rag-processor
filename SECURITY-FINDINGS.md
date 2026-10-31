@@ -10,6 +10,16 @@ traversal, injection, CI supply-chain hardening).
 Each finding lists severity, where it lives, why it matters, and whether this PR
 applies a fix or leaves a follow-up.
 
+> **Note (2026-09):** `.github/workflows/codeql.yml` and
+> `.github/workflows/dependency-review.yml`, referenced throughout the
+> findings below (sections 4.2, 4.3, 4.5, and item 7), were removed in a later PR
+> (`ci/drop-ghas`) because GitHub now bills Advanced Security / Code
+> Security, so CodeQL scanning, the dependency-review action, and SARIF
+> ingestion into the Security tab no longer function. The findings and
+> fixes below remain an accurate record of the review performed at the
+> time; they no longer describe the current workflow set. See
+> `CHANGELOG.md`.
+
 ---
 
 ## Severity legend

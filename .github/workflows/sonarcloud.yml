@@ -30,9 +30,13 @@ permissions:
 jobs:
   sonarcloud:
     name: SonarCloud Analysis
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-sonarcloud.yml@7d12f5486ab5c856397ebaa4acd3c99ca385227c # main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-sonarcloud.yml@4bd2d7c207a7fcf2dfcec8416c805d06d745c241 # main
     with:
       python-version: '3.12'
+      # Every version requires-python (">=3.11,<3.15") admits, not just the build version.
+      # SonarPython gates version-specific rules on ALL declared versions, so declaring only
+      # 3.12 raised PEP 695 rules (S6794/S6796) against code that must still run on 3.11.
+      sonar-python-version: '3.11,3.12,3.13,3.14'
       source-directory: 'src/rag_processor'
       sonar-organization: 'byronwilliamscpa'
       sonar-project-key: 'ByronWilliamsCPA_rag-processor'
