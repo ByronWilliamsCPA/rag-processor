@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Dependencies: refreshed `uv.lock` to clear advisories reported by pip-audit and OSV-Scanner (urllib3 2.8.0, tornado 6.5.10, pyjwt 2.15.1, virtualenv 21.14.2, gitpython 3.2.0, jupyterlab 4.6.4, notebook 7.6.3).
+
 ### Changed
 
 - **Renovate covers the npm frontend**: added `npm` to `enabledManagers` in
@@ -16,6 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   was added to both security `packageRules` so frontend CVEs receive the same
   priority and labels as Python, and a "npm dependencies" grouping rule keeps
   frontend update PRs batched.
+
+### Removed
+
+- ci(security): remove `codeql.yml` and `dependency-review.yml`; GitHub now
+  bills Advanced Security (Code Security), so CodeQL code scanning, the
+  dependency-review action, and SARIF ingestion into the Security tab no
+  longer function. `security-analysis.yml` still passes `run-codeql: true`
+  and `run-dependency-review: true` to the shared org reusable workflow;
+  removing those inputs is a coordinated follow-up so the shared workflow's
+  `true` defaults do not silently re-enable a job that cannot succeed.
 
 ### Removed (BREAKING)
 

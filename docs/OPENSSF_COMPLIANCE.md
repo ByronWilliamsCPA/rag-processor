@@ -193,14 +193,16 @@ Automated dependency updates and vulnerability scanning.
 
 ### 7. Security Scanning (SAST) 🔍
 
-Comprehensive static analysis on every commit.
+Static analysis (Bandit, Ruff security rules) on every commit. CodeQL
+was removed 2026-09 (GitHub now bills Advanced Security / Code Security,
+so CodeQL code scanning and SARIF ingestion into the Security tab no
+longer function); see `CHANGELOG.md`.
 
 **Tools**:
 
 - **Ruff**: Python linting with security rules
 - **Bandit**: Python security issue detection
 - **BasedPyright**: Type safety (prevents entire classes of bugs)
-- **CodeQL**: Advanced semantic code analysis
 
 **Workflow**: `.github/workflows/security-analysis.yml`
 
