@@ -353,7 +353,6 @@ class TestQueueIntegration:
             created_by_email="user@example.com",
             created_by_user_id="user-abc",
             total_files=2,
-            target_vector_store="qdrant-prod",
         )
         self.store.save_batch(batch)
 

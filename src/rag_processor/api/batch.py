@@ -70,7 +70,6 @@ class BatchDetailResponse(BaseModel):
         total_files (int): Total number of files in the batch.
         completed_files (int): Number of completed files.
         failed_files (int): Number of failed files.
-        target_vector_store (str | None): Target vector store for handoff.
         created_at (str): When the batch was created.
         jobs (list[JobDetailResponse]): List of jobs in the batch.
     """
@@ -81,7 +80,6 @@ class BatchDetailResponse(BaseModel):
     total_files: int
     completed_files: int = 0
     failed_files: int = 0
-    target_vector_store: str | None = None
     created_at: str
     jobs: list[JobDetailResponse] = Field(default_factory=list)
 
@@ -157,7 +155,6 @@ async def get_batch(
         total_files=batch.total_files,
         completed_files=batch.completed_files,
         failed_files=batch.failed_files,
-        target_vector_store=batch.target_vector_store,
         created_at=batch.created_at.isoformat(),
         jobs=job_responses,
     )

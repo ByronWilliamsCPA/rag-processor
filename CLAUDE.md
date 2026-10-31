@@ -26,7 +26,7 @@ This feedback will be shared with the template team to improve the cookiecutter 
 ## Project Overview
 
 **Name**: RAG Processor
-**Description**: React-based frontend for RAG pipeline with FastAPI backend integration
+**Description**: Ingest gateway and router for the Foundry RAG pipeline: FastAPI backend plus React upload and status UI (the downstream processing step is currently a stub; see `docs/architecture/diagrams/level-1/index.md` and `docs/architecture/pipeline-level-0.md`)
 **Author**: Byron Williams <byron@williamscpa.dev>
 **Repository**: <https://github.com/ByronWilliamsCPA/rag-processor>
 **Created**: 2025-12-04
@@ -75,7 +75,7 @@ When writing code, ALWAYS tag assumptions that could cause production failures:
 ```python
 # #CRITICAL: [category]: [assumption that could cause outages/data loss]
 # #VERIFY: [defensive code required]
-# Example: Payment processing, auth flows, concurrent writes
+# Example: upload validation, Redis availability, queue enqueue failures
 
 # #ASSUME: [category]: [assumption that could cause bugs]
 # #VERIFY: [validation needed]
@@ -93,7 +93,7 @@ When writing code, ALWAYS tag assumptions that could cause production failures:
 - **Data Integrity**: Type safety at boundaries, null/undefined handling
 - **Concurrency**: Shared state, transaction isolation, deadlock potential
 - **Security**: Authentication, authorization, input validation
-- **Payment/Financial**: Transaction integrity, retry logic, rollback handling
+- **Queue/Storage**: Redis availability, enqueue failures, partial batch writes, upload validation
 
 ---
 
@@ -433,29 +433,52 @@ docker build -t rag_processor .  # Build production image
 
 ```text
 src/rag_processor/
-├── __init__.py              # Package initialization
-├── core/                    # Core business logic
-│   ├── __init__.py
-│   ├── config.py           # Configuration (Pydantic Settings)
-│   └── exceptions.py       # Centralized exception hierarchy
-├── middleware/              # Middleware components
-│   ├── __init__.py
-│   ├── security.py         # Security middleware (OWASP)
-│   └── correlation.py      # Request correlation/tracing
-└── utils/                   # Utilities
-    ├── __init__.py
-    ├── financial.py        # Financial utilities (Decimal precision)
-    └── logging.py          # Structured logging with correlation
+├── __init__.py
+├── main.py                  # FastAPI app factory, router registration
+├── api/                     # REST routes
+│   ├── ingest.py           # POST /api/v1/ingest, GET /api/v1/ingest/health
+│   ├── batch.py            # Batch and job status
+│   ├── user.py             # /api/v1/user/me
+│   ├── health.py           # /health probes
+│   └── dependencies.py
+├── auth/                    # Cloudflare Access JWT validation
+│   ├── cloudflare.py
+│   ├── dependencies.py
+│   └── models.py
+├── core/                    # Settings, exceptions, Redis, cache, Sentry, pipeline config
+│   ├── config.py
+│   ├── exceptions.py
+│   ├── pipeline_config.py
+│   ├── redis.py
+│   ├── cache.py
+│   └── sentry.py
+├── middleware/              # Security headers and request correlation
+│   ├── security.py
+│   └── correlation.py
+├── models/                  # Batch and Job models
+├── queue/                   # Redis/RQ client, job store, job functions
+│   ├── client.py
+│   ├── jobs.py             # _run_pipeline is a no-op placeholder
+│   └── redis_store.py
+├── routing/                 # File type detection, PDF classification, routing
+│   ├── detector.py
+│   ├── classifier.py
+│   └── router.py
+├── utils/                   # logging.py, time_utils.py
+└── websocket/               # WS router, connection manager, events, bridge
 
 tests/
-├── unit/                   # Unit tests
-├── integration/            # Integration tests
-├── conftest.py            # Pytest fixtures
-└── test_example.py        # Example tests
+├── unit/                   # Unit tests (one test_*.py per module area)
+├── integration/            # test_app_lifespan, test_e2e_flow, test_gateway
+└── conftest.py            # Pytest fixtures
+
+frontend/                   # React + TypeScript upload and status UI (Vite)
+config/                     # pipelines.yaml (outbound endpoints; legacy vector_stores block)
 
 docs/                       # MkDocs documentation
 ├── index.md               # Home page
-└── ...                    # Additional docs
+├── architecture/          # Level 0 and Level 1 pipeline architecture
+└── ...                    # Guides, ADRs, planning
 ```
 
 ---
@@ -864,5 +887,5 @@ See `.standards/README.md` for detailed merge instructions.
 
 ---
 
-**Last Updated**: 2025-12-05
+**Last Updated**: 2026-10-02
 **Template Version**: 0.1.0

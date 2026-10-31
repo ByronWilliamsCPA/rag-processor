@@ -12,6 +12,9 @@ component: Strategy
 source: "Initial project planning"
 ---
 
+> **Note:** `target_vector_store` and the handoff endpoint were removed. Ingest does not know about vector stores
+> (owner decision D-31); a legacy `target_vector_store` form value is ignored.
+
 > **Status**: Draft | **Version**: 1.0 | **Updated**: 2025-12-05
 
 ## TL;DR
@@ -135,7 +138,6 @@ class Batch(BaseModel):
     status: BatchStatus  # queued | processing | completed | failed | partial
     total_files: int
     completed_files: int = 0
-    target_vector_store: str | None = None
 
 class Job(BaseModel):
     job_id: UUID
@@ -185,7 +187,6 @@ class Pipeline(str, Enum):
 | GET | /api/v1/batch/{id}/jobs | List jobs | Yes |
 | GET | /api/v1/job/{id} | Get job details | Yes |
 | GET | /api/v1/job/{id}/result | Download result | Yes |
-| POST | /api/v1/batch/{id}/handoff | Trigger vector store handoff | Yes |
 | WS | /ws/batch/{id} | Real-time status | Yes (token param) |
 | GET | /health | Health check | No |
 | GET | /metrics | Prometheus metrics | No |
@@ -202,7 +203,6 @@ Content-Type: multipart/form-data
 
 files=<binary>
 priority=high
-target_vector_store=qdrant-prod
 ```
 
 Response:

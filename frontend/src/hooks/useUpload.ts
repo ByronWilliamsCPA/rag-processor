@@ -11,7 +11,6 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 interface UploadOptions {
   priority?: Priority;
-  targetVectorStore?: string | null;
 }
 
 interface UseUploadReturn {
@@ -31,7 +30,6 @@ export function useUpload(): UseUploadReturn {
     error,
     response,
     priority: defaultPriority,
-    targetVectorStore: defaultTargetVectorStore,
     setUploading,
     setProgress,
     setError,
@@ -60,12 +58,6 @@ export function useUpload(): UseUploadReturn {
         // Add priority
         const priority = options?.priority ?? defaultPriority;
         formData.append('priority', priority);
-
-        // Add target vector store if specified
-        const targetVectorStore = options?.targetVectorStore ?? defaultTargetVectorStore;
-        if (targetVectorStore) {
-          formData.append('target_vector_store', targetVectorStore);
-        }
 
         const response = await axios.post<IngestResponse>(
           `${API_BASE_URL}/api/v1/ingest`,
@@ -118,7 +110,6 @@ export function useUpload(): UseUploadReturn {
     [
       files,
       defaultPriority,
-      defaultTargetVectorStore,
       setUploading,
       setProgress,
       setError,

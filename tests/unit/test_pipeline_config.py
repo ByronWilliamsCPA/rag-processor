@@ -15,7 +15,6 @@ from rag_processor.core.pipeline_config import (
     PipelineConfiguration,
     RateLimitConfig,
     RetryConfig,
-    VectorStoreConfig,
     load_pipeline_config,
     process_config_values,
     substitute_env_vars,
@@ -143,22 +142,6 @@ class TestPipelineConfig:
         assert config.retries.max_attempts == 3
 
 
-class TestVectorStoreConfig:
-    """Tests for VectorStoreConfig dataclass."""
-
-    def test_api_key_from_env(self) -> None:
-        """Test getting API key from environment."""
-        with patch.dict(os.environ, {"QDRANT_KEY": "api123"}):
-            config = VectorStoreConfig(
-                name="test",
-                type="qdrant",
-                url="http://localhost:6333",
-                collection="docs",
-                api_key_env="QDRANT_KEY",
-            )
-            assert config.api_key == "api123"
-
-
 class TestPipelineConfiguration:
     """Tests for PipelineConfiguration."""
 
@@ -176,7 +159,6 @@ class TestPipelineConfiguration:
                 )
             },
             routing={},
-            vector_stores={},
             rate_limiting=RateLimitConfig(),
         )
 
@@ -192,7 +174,6 @@ class TestPipelineConfiguration:
             default_retries=RetryConfig(),
             pipelines={},
             routing={},
-            vector_stores={},
             rate_limiting=RateLimitConfig(),
         )
 
@@ -210,7 +191,6 @@ class TestPipelineConfiguration:
                 FileClassification.SCANNED_PDF: Pipeline.OCR,
                 FileClassification.AUDIO: Pipeline.TRANSCRIPTION,
             },
-            vector_stores={},
             rate_limiting=RateLimitConfig(),
         )
 
@@ -263,6 +243,35 @@ routing:
             assert FileClassification.SCANNED_PDF in config.routing
 
             Path(f.name).unlink()
+
+    def test_stale_vector_stores_block_is_ignored(self, tmp_path: Path) -> None:
+        """A leftover vector_stores block loads without error and is not exposed."""
+        cfg = tmp_path / "pipelines.yaml"
+        cfg.write_text(
+            'version: "1.0"\n'
+            "vector_stores:\n"
+            "  default:\n"
+            "    type: qdrant\n"
+            "    url: http://localhost:6333\n"
+        )
+
+        config = load_pipeline_config(cfg)
+
+        assert not hasattr(config, "vector_stores")
+
+    def test_shipped_config_has_no_vector_stores(self) -> None:
+        """The shipped config/pipelines.yaml no longer declares vector stores."""
+        shipped = Path(__file__).resolve().parents[2] / "config" / "pipelines.yaml"
+
+        assert "vector_stores" not in shipped.read_text()
+
+    def test_shipped_transcription_url_matches_audio_processor_route(self) -> None:
+        """Transcription targets audio-processor's POST /api/v1/process route."""
+        shipped = Path(__file__).resolve().parents[2] / "config" / "pipelines.yaml"
+
+        config = load_pipeline_config(shipped)
+
+        assert config.pipelines["transcription"].url.endswith("/api/v1/process")
 
     def test_load_nonexistent_file_returns_default(self) -> None:
         """Test loading nonexistent file returns default config."""

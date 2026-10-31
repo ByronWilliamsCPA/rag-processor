@@ -32,7 +32,7 @@ prioritized and you will be credited in the release notes unless you prefer othe
 ## Security Surface
 
 This repository contains a RAG (Retrieval-Augmented Generation) pipeline with a
-FastAPI backend and React-based frontend. Primary security concerns and mitigations:
+FastAPI backend and React upload and status UI. Primary security concerns and mitigations:
 
 | Attack vector | Mitigation |
 | --- | --- |
