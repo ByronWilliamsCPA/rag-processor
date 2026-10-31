@@ -12,6 +12,11 @@ component: Strategy
 source: "Derived from roadmap.md Phase 1"
 ---
 
+> **Superseded (vector-store handoff):** Ingest does not hand off to vector stores. The pipeline ends at chunks;
+> embedding, vector storage and search belong to downstream applications (owner decision D-31). The
+> `target_vector_store` field, vector store registration and handoff described below were removed or are no longer
+> planned for this repository. Treat those sections as historical.
+
 <!-- markdownlint-disable MD024 -->
 
 > **Phase Duration**: Weeks 2-4 (15 working days, 120 hours)

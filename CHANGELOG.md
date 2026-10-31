@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- **api**: removed `target_vector_store` from the ingest API. Ingest is the front door of the Foundry pipeline, which
+  ends at chunks; embedding, vector stores and search belong to downstream applications (owner decision D-31).
+  Behavior change: `POST /api/v1/ingest` ignores a `target_vector_store` form value (no error, not stored, not
+  echoed), and `GET /api/v1/batch/{batch_id}` no longer returns `target_vector_store`. Clients that read that response
+  field must stop; clients that still send it keep working. `docs/api/openapi.json` was regenerated.
+- **config**: removed the `vector_stores` block from `config/pipelines.yaml` and `VectorStoreConfig` /
+  `PipelineConfiguration.vector_stores` from `rag_processor.core.pipeline_config`. A leftover `vector_stores` key in a
+  config file is ignored.
+
+### Fixed
+
+- **config**: the `transcription` pipeline URL now points at audio-processor's real route, `POST /api/v1/process`
+  (was `/api/v1/transcribe`). The `ocr`, `doc_processing` and `fusion` entries are marked as placeholders with no
+  matching service in the current pipeline design.
+
 ### Security
 
 - Dependencies: refreshed `uv.lock` to clear advisories reported by pip-audit and OSV-Scanner (urllib3 2.8.0, tornado 6.5.10, pyjwt 2.15.1, virtualenv 21.14.2, gitpython 3.2.0, jupyterlab 4.6.4, notebook 7.6.3).
