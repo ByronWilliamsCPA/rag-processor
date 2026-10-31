@@ -30,7 +30,7 @@ permissions:
 jobs:
   ci:
     name: CI Pipeline
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-ci.yml@7d12f5486ab5c856397ebaa4acd3c99ca385227c # main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-ci.yml@74cfc8e9d1ea1f6babc40bea102b3071af620942 # main
     with:
       python-version: '3.12'
       coverage-threshold: 80
@@ -55,7 +55,7 @@ jobs:
         working-directory: frontend
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           # egress-policy: block -- enabled 2026-05-23 (compliance audit). If a CI run fails on a network call, switch this single occurrence back to audit and capture the missing endpoint in the issue tracker.
           egress-policy: audit  # TODO: switch to block after 2026-06-30 (compliance audit deferral)
@@ -78,7 +78,7 @@ jobs:
           BASE_URL: "http://localhost:3000"
       - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: playwright-report
           path: frontend/playwright-report/
@@ -92,7 +92,7 @@ jobs:
     if: always()
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           # egress-policy: block -- enabled 2026-05-23 (compliance audit). If a CI run fails on a network call, switch this single occurrence back to audit and capture the missing endpoint in the issue tracker.
           egress-policy: audit  # TODO: switch to block after 2026-06-30 (compliance audit deferral)
