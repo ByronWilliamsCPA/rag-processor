@@ -1,6 +1,7 @@
 # Agent Catalog
 
-Subagents available for work in this repository.
+Subagents available for work in this repository. This repository is Ingest, the front door of the Foundry RAG
+pipeline (see `docs/architecture/pipeline-level-0.md`).
 
 ## Specialized Agents
 

@@ -9,7 +9,11 @@ tags:
   - reference
 ---
 
-Complete API documentation for RAG Processor.
+API documentation for RAG Processor.
+
+> **Status**: This page documents only the `core.config` and `utils.logging` modules. The HTTP API (ingest, batch and
+> job status, user, health, WebSocket) is served with interactive docs at `/docs` when the app runs; the routes are in
+> `src/rag_processor/api/` and `src/rag_processor/websocket/`.
 
 ## Core Module
 

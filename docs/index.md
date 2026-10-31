@@ -9,30 +9,30 @@ tags:
   - home
 ---
 
-React-based frontend for RAG pipeline with FastAPI backend integration
+Ingest gateway and router for the Foundry RAG pipeline: FastAPI backend with a React upload and status UI
 
 ## Quick Start
 
 ```bash
-# Install the package
-pip install rag-processor
-
-# Or install with development dependencies
+# Install from source with development dependencies
 uv sync --all-extras
 ```
 
 ## Features
 
-- Modern Python 3.12+ support
-- Type-safe with BasedPyright strict mode
-- Comprehensive test coverage
-- Structured logging with structlog
+- Multi-file ingest endpoint with file type checks, scanned vs born-digital classification, and routing
+- Batch and job status over REST and WebSocket
+- Redis and RQ queue (off by default) and Cloudflare Access JWT auth
+- React upload and status UI
 - Docker support
+
+The step that hands files to Prepare-Doc and Prepare-Audio is not built yet; see the
+[Level 1 architecture](architecture/diagrams/level-1/index.md).
 
 ## Documentation
 
 - [User Guide](guides/overview.md) - Getting started and usage
-- [API Reference](api-reference.md) - Complete API documentation
+- [API Reference](api-reference.md) - Python reference for `core.config` and `utils.logging` (the HTTP API is documented at `/docs` on a running server)
 - [Development](development/architecture.md) - Architecture and contributing
 - [Project](project/roadmap.md) - Roadmap and changelog
 
