@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Renovate holds TypeScript 7 and requires-python bumps**: TypeScript major updates are disabled until typescript-eslint supports TypeScript 7 (its peer range is `<6.1.0`), and `requires-python` is no longer bumped automatically because it defines the supported interpreter range.
 - **Renovate covers the npm frontend**: added `npm` to `enabledManagers` in
   `renovate.json` so `frontend/package.json` and `frontend/package-lock.json`
   are managed (previously only `pep621` and `github-actions` were enabled,

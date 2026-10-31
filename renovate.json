@@ -162,6 +162,19 @@
       ]
     },
     {
+      "description": "Do not bump requires-python: it sets the project's supported interpreter range (3.11-3.14), not a dependency. Raise it deliberately.",
+      "matchManagers": ["pep621"],
+      "matchDepNames": ["python"],
+      "enabled": false
+    },
+    {
+      "description": "Hold TypeScript below 7 until typescript-eslint supports it (its peer range is typescript >=4.8.4 <6.1.0, so TypeScript 7 breaks npm ci and lint). Remove this rule once typescript-eslint widens the range.",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["typescript"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
       "description": "Advance org reusable-workflow SHA pins to the latest semver release tag. No followTag: the org tag-protection ruleset makes every vX.Y.Z tag immutable and no floating major tag exists, so a followed tag would freeze pins permanently.",
       "matchManagers": [
         "github-actions"
