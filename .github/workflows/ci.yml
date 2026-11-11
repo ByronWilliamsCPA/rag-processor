@@ -30,7 +30,7 @@ permissions:
 jobs:
   ci:
     name: CI Pipeline
-    uses: ByronWilliamsCPA/.github/.github/workflows/python-ci.yml@74cfc8e9d1ea1f6babc40bea102b3071af620942 # main
+    uses: ByronWilliamsCPA/.github/.github/workflows/python-ci.yml@79bf84c73af866a34f968262f2631f938c659d77 # main
     with:
       python-version: '3.12'
       coverage-threshold: 80
@@ -55,7 +55,7 @@ jobs:
         working-directory: frontend
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           # egress-policy: block -- enabled 2026-05-23 (compliance audit). If a CI run fails on a network call, switch this single occurrence back to audit and capture the missing endpoint in the issue tracker.
           egress-policy: audit  # TODO: switch to block after 2026-06-30 (compliance audit deferral)
@@ -92,7 +92,7 @@ jobs:
     if: always()
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           # egress-policy: block -- enabled 2026-05-23 (compliance audit). If a CI run fails on a network call, switch this single occurrence back to audit and capture the missing endpoint in the issue tracker.
           egress-policy: audit  # TODO: switch to block after 2026-06-30 (compliance audit deferral)
